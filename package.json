@@ -1,0 +1,13 @@
+{
+  "name": "contactsid-rest-api",
+  "version": "0.0.1",
+  "description": "Node.js RESTful API for managing ContactsID profile data.",
+  "dependencies": {
+    "mongoose": "^3.8.8",
+    "bcrypt": "^0.7.7",
+    "jade": "*",
+    "bcrypt": "^0.7.7",
+    "restify": "2.6.0"
+  },
+  "engine": "node 0.6.x"
+}
