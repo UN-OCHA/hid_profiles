@@ -1,4 +1,5 @@
 var restify = require('restify');
+
 // var routes = require('./routes');
 var config = require('./config');
 var models = require('./models');
@@ -40,14 +41,16 @@ function accountSave(req, res, next) {
 
     console.log('Database connection was successfully opened to %s!', config.db);
 
+    console.log('Field: %s', req.query.fullname);
+
     var userProfile = new Profile({
-      fullname: 'Tobby Hagler',
-      givenname: 'Tobby',
-      familyname: 'Hagler',
-      title: 'Software Architect',
-      organization: 'Phase2',
-      phone: '800-555-1212',
-      email: 'thagler@phasetechnology.com'
+      fullname:     req.query.fullname,
+      givenname:    req.query.givenname,
+      familyname:   req.query.familyname,
+      jobtitle:     req.query.jobtitle,
+      organization: req.query.organization,
+      phone:        req.query.phone,
+      email:        req.query.email
     });
     console.log("Created userProfile from model for %s", userProfile.fullname);
     // console.dir(userProfile);
@@ -66,6 +69,8 @@ function accountSave(req, res, next) {
 }
 
 var server = restify.createServer();
+
+server.use(restify.queryParser());
 
 var versionPrefix = '/v0/';
 
