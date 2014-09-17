@@ -55,11 +55,62 @@ function accountSave(req, res, next) {
     console.log("Created userProfile from model for %s", userProfile.fullname);
     // console.dir(userProfile);
 
-    userProfile.save(function(err, userProfile) {
-      if (err) return console.error.bind(console, '*** Save error: ');
-      console.log('save successful!');
-      // console.dir(userProfile);
-    });
+    if (parseInt(req.params.uid)) {
+
+      console.log('All the things will be an upsert for ID %s.', userProfile._id);
+      var upsertData = userProfile.toObject();
+      delete upsertData._id;
+
+      console.log('Debug: HERE 1');
+      Profile.update({ _id: req.params.uid }, upsertData, { upsert: true }, function(err) {
+        if (err) console.dir(err);
+        console.log('Updated the document!');
+        console.log('Debug: HERE 10');
+      });
+      console.log('Debug: HERE END');
+
+      // console.log(req.params.uid); // OK
+
+      // delete upsertData._id;
+
+      // models.visits.update({ _id: req.params.uid }, upsertData, { upsert: true, multi: false }, function(err) {
+      //   if (err) { 
+      //     console.dir(err);
+      //     // throw err;
+      //   }
+      //   console.log('Update was successful!');
+      // });
+      
+
+      // // // var userProfileID = null;
+      // // // if (parseInt(req.params.uid) == 0) {
+      // // //   delete upsertData._id;
+      // // //   userProfileID = mongoose.Types.ObjectId();
+      // // // } else {
+      // // //   userProfileID = userProfile._id;
+      // // // }
+      // // console.dir(userProfile);
+      // // console.dir(upsertData);
+      // // console.log('^ is the upsertData object');
+
+      // // delete upsertData._id;
+
+      // // userProfile.update({ _id: req.params.uid }, upsertData, function(err, upsertData) {
+      // // // // userProfile.findByIdAndUpdate(req.params.uid, upsertData, function (err, userProfile) {
+      // //   if (err) {
+      // //     console.dir(err);
+      // //     return handleError(err);
+      // //   }
+      // //   console.log('Update successful!');
+      // // //   // res.send(userProfile);
+      // // });
+    } else {
+      userProfile.save(function(err, userProfile) {
+        if (err) return console.error.bind(console, '* Save error: ');
+        console.log('Save successful!');
+      });
+    }
+    
 
     res.send('hello ' + userProfile.fullname);
 
