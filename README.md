@@ -8,6 +8,22 @@ Run `npm install` to ensure all dependicies are met. Run `node server` to start 
 
 ## Examples
 
+### Viewing (searching) profile data
+
+Visit this URL in a browser or via curl to view all documents containing the desired profile fields: http://contactsid.local:8080/v0/profile/view
+
+Use parameters to search profile fields. These parameters are case-insensitive and nothing is required (though, at least one parameter must be given, or the request will be ignored).
+
+  * fullname=[String]
+  * givenname=[String]
+  * familyname=[String]
+  * jobtitle=[String]
+  * organization=[String]
+  * phone=[String]
+  * email=[String]
+
+### Saving profile data
+
 Visit this URL in a browser or via Curl to create or update a profile document: http://contactsid.local:8080/v0/profile/save/:uid
 
 Use the following parameters to provide the values for each profile field (all values must be URL encoded):

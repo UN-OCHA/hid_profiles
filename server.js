@@ -39,9 +39,13 @@ function accountView(req, res, next) {
 
   console.dir(req.query);
 
-  var query = req.query; // TODO: Proper validation of query parameters against the Profile schema
-  // TODO: Also make the query case-insensitive
-  
+  var query = { };
+  for (var prop in req.query) {
+    // TODO: Do some proper validation about the parameter name and its value
+    if (req.query.hasOwnProperty(prop)) { 
+      query[prop] = new RegExp(req.query[prop], "i");
+    }
+  }
 
   Profile.find(query, function (err, docs) {
     if (err) console.dir(err);
