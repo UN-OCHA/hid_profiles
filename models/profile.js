@@ -2,13 +2,14 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var profileSchema = new mongoose.Schema({
-  fullname: String,
-  givenname: String,
-  familyname: String,
-  jobtitle: String,
+  userid:       String,
+  fullname:     String,
+  givenname:    String,
+  familyname:   String,
+  jobtitle:     String,
   organization: String,
-  phone: String,
-  email: String,
+  phone:        String,
+  email:        String,
 });
 
 mongoose.model('Profile', profileSchema);

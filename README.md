@@ -14,13 +14,14 @@ Visit this URL in a browser or via curl to view all documents containing the des
 
 Use parameters to search profile fields. These parameters are case-insensitive and nothing is required (though, at least one parameter must be given, or the request will be ignored).
 
+  * userid=[String] (required, or email is required)
   * fullname=[String]
   * givenname=[String]
   * familyname=[String]
   * jobtitle=[String]
   * organization=[String]
   * phone=[String]
-  * email=[String]
+  * email=[String] (required, or userid is required)
 
 ### Saving profile data
 
@@ -28,6 +29,7 @@ Visit this URL in a browser or via Curl to create or update a profile document: 
 
 Use the following parameters to provide the values for each profile field (all values must be URL encoded):
 
+  * userid=[String] (required)
   * fullname=[String]
   * givenname=[String]
   * familyname=[String]

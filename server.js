@@ -61,6 +61,7 @@ function accountSave(req, res, next) {
   var db = mongoose.connection;
 
   var userProfile = new Profile({
+    userid:       req.query.userid,
     fullname:     req.query.fullname,
     givenname:    req.query.givenname,
     familyname:   req.query.familyname,
@@ -72,12 +73,17 @@ function accountSave(req, res, next) {
   console.log("Created userProfile from model for %s", userProfile.fullname);
 
   if (true) { // TODO: Make room for security/validation later
-    console.log('All the things will be an upsert for ID %s.', userProfile._id);
+    console.log('All the things will be an upsert for ID %s.', req.params.userid);
     var upsertData = userProfile.toObject();
     delete upsertData._id;
-    var userProfileID = (req.params.uid == 0) ? mongoose.Types.ObjectId() : req.params.uid;
 
-    Profile.update({ _id: userProfileID }, upsertData, { upsert: true }, function(err) {
+    var userProfileID = req.params.uid;
+    if (req.params.uid == 0) {
+      userProfileID = req.query.email + '_' + Date.now();
+      userProfile.userid = userProfileID;
+    }
+
+    Profile.update({ userid: userProfileID }, upsertData, { upsert: true }, function(err) {
       if (err) console.dir(err);
       console.log('Updated the document for %s.', req.query.fullname);
     });
