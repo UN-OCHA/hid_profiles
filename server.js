@@ -13,10 +13,10 @@ var Profile  = models.Profile,
 var versionPrefix = '/v0/';
 
 server.get(versionPrefix + 'profile/view', accountView);
-server.head(versionPrefix + 'profile/view', accountView);
+server.post(versionPrefix + 'profile/view', accountView);
 
 server.get(versionPrefix + 'profile/save/:uid', accountSave);
-server.head(versionPrefix + 'profile/save/:uid', accountSave);
+server.post(versionPrefix + 'profile/save/:uid', accountSave);
 
 server.get('test', testpage);
 
@@ -42,7 +42,10 @@ function accountView(req, res, next) {
   var query = { };
   for (var prop in req.query) {
     // TODO: Do some proper validation about the parameter name and its value
-    if (req.query.hasOwnProperty(prop)) { 
+    if (prop == 'userid') {
+      query[prop] = req.query[prop];
+    }
+    else if (req.query.hasOwnProperty(prop)) {
       query[prop] = new RegExp(req.query[prop], "i");
     }
   }
