@@ -20,11 +20,24 @@ server.post(versionPrefix + 'profile/save/:uid', accountSave);
 
 server.get('test', testpage);
 
-server.listen(8080, function() {
+server.get(versionPrefix + 'profile/model', accountModel);
+
+server.listen(4000, function() {
   console.log('%s listening at %s', server.name, server.url);
 });
 
 
+function accountModel(req, res, next) {
+  var paths = Profile.schema.paths;
+  
+  delete paths._id;
+  delete paths.__v;
+
+  var keys = Object.keys(paths);
+
+  res.send(keys);
+  next();
+}
 
 function testpage(req, res, next) {
   res.send('hello from the test page');
