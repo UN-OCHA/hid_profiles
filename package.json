@@ -1,12 +1,14 @@
 {
-  "name": "contactsid-rest-api",
+  "name": "contactsid-profiles",
   "version": "0.0.1",
+  "private": true,
   "description": "Node.js RESTful API for managing ContactsID profile data.",
   "dependencies": {
     "mongoose": "^3.8.8",
     "bcrypt": "^0.7.7",
     "jade": "*",
-    "restify": "2.6.0"
+    "restify": "2.6.0",
+    "bunyan": "^1.0.1"
   },
   "engine": "node 0.6.x",
   "scripts": {
@@ -17,7 +19,5 @@
   "repository": {
     "type": "git",
     "url": "git@bitbucket.org:phase2tech/contactsid_profiles.git"
-  },
-  "author": "",
-  "license": "BSD-2-Clause"
+  }
 }

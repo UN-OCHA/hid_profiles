@@ -1,16 +1,29 @@
 var restify = require('restify');
 var server = restify.createServer();
+var Logger = require('bunyan');
 // var routes = require('./routes');
 var config = require('./config');
 var models = require('./models');
 
 server.use(restify.queryParser());
 
-
 var Profile  = models.Profile,
     mongoose = models.mongoose;
 
 var versionPrefix = '/v0/';
+
+var log = new Logger.createLogger({
+  name: 'contactsid-profiles',
+  serializers: {
+    req: Logger.stdSerializers.req
+  }
+});
+server.log = log;
+
+server.pre(function (request, response, next) {
+  request.log.info({req: request}, 'REQUEST');
+  next();
+});
 
 server.get(versionPrefix + 'profile/view', accountView);
 server.post(versionPrefix + 'profile/view', accountView);
