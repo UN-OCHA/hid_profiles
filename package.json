@@ -8,7 +8,8 @@
     "bcrypt": "^0.7.7",
     "jade": "*",
     "restify": "2.6.0",
-    "bunyan": "^1.0.1"
+    "bunyan": "^1.0.1",
+    "crypto-js": "3.1.2-5"
   },
   "engine": "node 0.6.x",
   "scripts": {

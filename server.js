@@ -57,19 +57,53 @@ function testpage(req, res, next) {
   next();
 }
 
+function valid_security_creds(req) {
+  var client_id   = req.query._access_client_id,
+      access_key  = req.query._access_key;
+
+  // Step 1: Validate that the client app is allowed
+  // @TODO: Pull a list of allowed client IDs from Mongo and get the secret key at the same time
+  var allowed_clients = [ '_access_client_id' ];
+  if (allowed_clients.indexOf('_access_client_id') == -1) return false;
+
+  var SHA256 = require("crypto-js/sha256");
+
+  delete req.query._access_client_id;
+  delete req.query._access_key;
+
+  // @TODO: Get the secret key from Mongo for the requesting client app
+  var correct_access_key  = '',
+      values_string       = '',
+      secret              = 'Kk6a8bk@HZBs'
+
+  for (var key in req.query) {
+    values_string += req.query[key];
+  }
+  values_string += secret;
+
+  correct_access_key = SHA256(values_string);
+
+  // Debug: For comparing hash values
+  // console.log("*** The received hash value was: " + access_key);
+  // console.log("           I think it should be: " + correct_access_key);
+
+  return (access_key == correct_access_key);
+}
+
 function accountView(req, res, next) {
+  if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
+
   var db = mongoose.connection;
-  var docs = { };
+  var docs  = { },
+      query = { };
 
-  console.log('About to print the test object');
-
-  console.dir(req.query);
-
-  var query = { };
   for (var prop in req.query) {
     // TODO: Do some proper validation about the parameter name and its value
     if (prop == 'userid') {
       query[prop] = req.query[prop];
+    }
+    else if (prop == '_access_client_id' || prop == _access_key) {
+      // do nothing
     }
     else if (req.query.hasOwnProperty(prop)) {
       query[prop] = new RegExp(req.query[prop], "i");
@@ -86,7 +120,8 @@ function accountView(req, res, next) {
 }
 
 function accountSave(req, res, next) {
-  console.log('After database connection, before connection object');
+  if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
+  
   var db = mongoose.connection;
 
   var userProfile = new Profile({
@@ -99,10 +134,8 @@ function accountSave(req, res, next) {
     phone:        req.query.phone,
     email:        req.query.email
   });
-  console.log("Created userProfile from model for %s", userProfile.fullname);
 
   if (true) { // TODO: Make room for security/validation later
-    console.log('All the things will be an upsert for ID %s.', req.params.userid);
     var upsertData = userProfile.toObject();
     delete upsertData._id;
 
@@ -114,7 +147,6 @@ function accountSave(req, res, next) {
 
     Profile.update({ userid: userProfileID }, upsertData, { upsert: true }, function(err) {
       if (err) console.dir(err);
-      console.log('Updated the document for %s.', req.query.fullname);
     });
   }
 
