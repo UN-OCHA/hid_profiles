@@ -114,9 +114,8 @@ function accountView(req, res, next) {
     if (err) console.dir(err);
     console.dir(docs);
     res.send(JSON.stringify(docs));
+    next();
   });
-
-  next();
 }
 
 function accountSave(req, res, next) {
@@ -148,10 +147,8 @@ function accountSave(req, res, next) {
 
     Profile.update({ userid: userProfileID }, upsertData, { upsert: true }, function(err) {
       if (err) console.dir(err);
+      res.send(JSON.stringify(userProfile));
+      next();
     });
   }
-
-  res.send(JSON.stringify(userProfile));
-  next();
 }
-
