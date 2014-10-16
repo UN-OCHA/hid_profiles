@@ -127,25 +127,14 @@ function accountSave(req, res, next) {
 
   profileFields = { };
 
-  console.log(' * * * Loop start');
   for (var prop in req.query) {
     profileFields[prop] = req.query[prop];
-    console.log(' * * * profile field: ' + prop);
   }
 
-  console.log(' * * * Loop finish');
+  console.log("Query fields received and prepped for saving to the Profile document");
   console.dir(profileFields);
 
-  var userProfile = new Profile({
-    userid:       req.query.userid,
-    fullname:     req.query.fullname,
-    givenname:    req.query.givenname,
-    familyname:   req.query.familyname,
-    jobtitle:     req.query.jobtitle,
-    organization: req.query.organization,
-    phone:        req.query.phone,
-    email:        req.query.email
-  });
+  var userProfile = new Profile(profileFields);
 
   if (true) { // @TODO: Make room for data validation later
     var upsertData = userProfile.toObject();
