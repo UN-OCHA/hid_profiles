@@ -28,8 +28,11 @@ server.pre(function (request, response, next) {
 server.get(versionPrefix + 'profile/view', accountView);
 server.post(versionPrefix + 'profile/view', accountView);
 
-server.get(versionPrefix + 'profile/save/:uid', accountSave);
-server.post(versionPrefix + 'profile/save/:uid', accountSave);
+server.get(versionPrefix + 'profile/save/:uid', profileSave);
+server.post(versionPrefix + 'profile/save/:uid', profileSave);
+
+server.get(versionPrefix + 'contact/save/:uid', contactSave);
+server.post(versionPrefix + 'contact/save/:uid', contactSave);
 
 server.get('test', testpage);
 
@@ -118,8 +121,8 @@ function accountView(req, res, next) {
   });
 }
 
-function accountSave(req, res, next) {
-  if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
+function profileSave(req, res, next) {
+  // if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
   
   var db = mongoose.connection;
 
@@ -148,6 +151,43 @@ function accountSave(req, res, next) {
     Profile.update({ userid: userProfileID }, upsertData, { upsert: true }, function(err) {
       if (err) console.dir(err);
       res.send(JSON.stringify(userProfile));
+      next();
+    });
+  }
+}
+
+
+function contactSave(req, res, next) {
+  // if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
+  
+  var db = mongoose.connection;
+
+  contactFields = { };
+
+  console.log(" * * * Here come the parameters!");
+  console.dir(req.query);
+  for (var prop in req.query) {
+    contactFields[prop] = req.query[prop];
+  }
+
+  console.log("Query fields received and prepped for saving to the Contact document");
+  console.dir(contactFields);
+
+  var userContact = new Contact(contactFields);
+
+  if (true) { // @TODO: Make room for data validation later
+    var upsertData = userContact.toObject();
+    delete upsertData._id;
+
+    var userContactID = req.params.uid;
+    if (req.params.uid == 0) {
+      userContactID = req.query.email + '_' + Date.now();
+      userContact.userid = userContactID;
+    }
+
+    Contact.update({ userid: userContactID }, upsertData, { upsert: true }, function(err) {
+      if (err) console.dir(err);
+      res.send(JSON.stringify(userContact));
       next();
     });
   }
