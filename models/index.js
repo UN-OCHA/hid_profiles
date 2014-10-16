@@ -4,4 +4,5 @@ var mongoose = require('mongoose');
 mongoose.connect(config.db);
 
 module.exports.Profile = require('./profile');
+module.exports.Contact = require('./contact');
 module.exports.mongoose = mongoose;
