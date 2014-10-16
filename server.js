@@ -124,6 +124,18 @@ function accountSave(req, res, next) {
   
   var db = mongoose.connection;
 
+
+  profileFields = { };
+
+  console.log(' * * * Loop start');
+  for (var prop in req.query) {
+    profileFields[prop] = req.query[prop];
+    console.log(' * * * profile field: ' + prop);
+  }
+
+  console.log(' * * * Loop finish');
+  console.dir(profileFields);
+
   var userProfile = new Profile({
     userid:       req.query.userid,
     fullname:     req.query.fullname,
@@ -135,7 +147,7 @@ function accountSave(req, res, next) {
     email:        req.query.email
   });
 
-  if (true) { // TODO: Make room for security/validation later
+  if (true) { // @TODO: Make room for data validation later
     var upsertData = userProfile.toObject();
     delete upsertData._id;
 
