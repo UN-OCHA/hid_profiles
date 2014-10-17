@@ -114,7 +114,7 @@ function accountView(req, res, next) {
     }
   }
 
-  Profile.findOne(query, function (err, profiles). {
+  Profile.findOne(query, function (err, profiles) {
     if (err) console.dir(err);
     var pid = profiles._id;
 
