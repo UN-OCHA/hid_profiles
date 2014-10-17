@@ -194,14 +194,14 @@ function contactSave(req, res, next) {
   console.dir(profile);
 
   if (true) { // @TODO: Make room for data validation later
-    var upsertData = userContact.toObject();
+    var upsertData = userContact.toObject(),
+      upsertId = mongoose.Types.ObjectId(req.query._contact || null);
+    delete upsertData._contact;
     delete upsertData._id;
 
     userContact._profile = profile._id;
 
-    var userContactID = (req.params.uid == 0) ? mongoose.Types.ObjectId() : req.params.uid;
-
-    Contact.update({ _id: userContactID }, upsertData, { upsert: true }, function(err) {
+    Contact.update({_id: upsertId}, upsertData, { upsert: true }, function(err) {
       if (err) console.dir(err);
       res.send(JSON.stringify(userContact));
       next();
