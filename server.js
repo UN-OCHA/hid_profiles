@@ -8,6 +8,7 @@ var models = require('./models');
 server.use(restify.queryParser());
 
 var Profile  = models.Profile,
+    Contact  = models.Contact,
     mongoose = models.mongoose;
 
 var versionPrefix = '/v0/';
@@ -179,13 +180,9 @@ function contactSave(req, res, next) {
     var upsertData = userContact.toObject();
     delete upsertData._id;
 
-    var userContactID = req.params.uid;
-    if (req.params.uid == 0) {
-      userContactID = req.query.email + '_' + Date.now();
-      userContact.userid = userContactID;
-    }
+    var userContactID = (req.params.uid == 0) ? mongoose.Types.ObjectId() : req.params.uid;
 
-    Contact.update({ userid: userContactID }, upsertData, { upsert: true }, function(err) {
+    Contact.update({ _id: userContactID }, upsertData, { upsert: true }, function(err) {
       if (err) console.dir(err);
       res.send(JSON.stringify(userContact));
       next();
