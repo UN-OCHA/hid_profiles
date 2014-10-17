@@ -50,6 +50,8 @@ var contactSchema = new mongoose.Schema({
   address:            [ addressSchema ],
   uri:                [ uriSchema ],
   organization:       [ organizationSchema ],
+  jobtitle:           String,
+  notes:              String,
 });
 
 mongoose.model('Contact', contactSchema);
