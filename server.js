@@ -95,7 +95,7 @@ function valid_security_creds(req) {
 }
 
 function accountView(req, res, next) {
-  if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
+  // if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
 
   var db = mongoose.connection;
   var docs  = { },
@@ -106,18 +106,24 @@ function accountView(req, res, next) {
     if (prop == 'userid') {
       query[prop] = req.query[prop];
     }
-    else if (prop == '_access_client_id' || prop == _access_key) {
-      // do nothing
-    }
+    // else if (prop == '_access_client_id' || prop == _access_key) {
+    //   // do nothing
+    // }
     else if (req.query.hasOwnProperty(prop)) {
       query[prop] = new RegExp(req.query[prop], "i");
     }
   }
 
-  Profile.find(query, function (err, docs) {
+  Profile.findOne(query, function (err, profiles). {
     if (err) console.dir(err);
-    console.dir(docs);
-    res.send(JSON.stringify(docs));
+    var pid = profiles._id;
+
+    // @todo: @see http://mongoosejs.com/docs/populate.html
+    // Contact.find({ 'name.last': 'Ghost' }, function (err, contacts) {
+
+    // }
+
+    res.send(JSON.stringify(profiles));
     next();
   });
 }
@@ -163,7 +169,7 @@ function contactSave(req, res, next) {
   
   var db = mongoose.connection;
 
-  contactFields = { };
+  var contactFields = { };
 
   console.log(" * * * Here come the parameters!");
   console.dir(req.query);
@@ -176,9 +182,17 @@ function contactSave(req, res, next) {
 
   var userContact = new Contact(contactFields);
 
+
+  console.log(" *** About to get the parent profile!");
+  var profile = Profile.findOne({ _id: mongoose.Types.ObjectId(req.query._profile) });
+  console.log(" *** Just got the parent profile!");
+  console.dir(profile);
+
   if (true) { // @TODO: Make room for data validation later
     var upsertData = userContact.toObject();
     delete upsertData._id;
+
+    userContact._profile = profile._id;
 
     var userContactID = (req.params.uid == 0) ? mongoose.Types.ObjectId() : req.params.uid;
 

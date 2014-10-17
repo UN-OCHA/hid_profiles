@@ -1,5 +1,6 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
+var Profile = mongoose.model('Profile');
 
 
 // Define sub-schemas
@@ -41,7 +42,7 @@ var organizationSchema = new Schema({
 });
 
 var contactSchema = new mongoose.Schema({
-  profile_id:         Schema.Types.ObjectId, // links to "parent" Profile document (required)
+  _profile:           { type: Schema.Types.ObjectId, ref: 'Profile' }, // links to "parent" Profile document (required)
   type:               String, //"local" or "global"
   location:           String, // "Liberia - Ebola crisis" or "Global"
   email:              [ emailSchema ],
