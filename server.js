@@ -114,17 +114,22 @@ function accountView(req, res, next) {
     }
   }
 
-  Profile.findOne(query, function (err, profiles) {
+  Profile.findOne(query, function (err, profile) {
     if (err) console.dir(err);
-    var pid = profiles._id;
+    var pid = profile._id;
 
     // @todo: @see http://mongoosejs.com/docs/populate.html
-    // Contact.find({ 'name.last': 'Ghost' }, function (err, contacts) {
+    Contact.find({ '_profile': pid }, function (err, contacts) {
+      if (err) console.dir(err);
 
-    // }
+      var account = {
+        'profile': profile,
+        'contacts': contacts
+      };
 
-    res.send(JSON.stringify(profiles));
-    next();
+      res.send(JSON.stringify(account));
+      next();
+    });
   });
 }
 
