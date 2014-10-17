@@ -106,9 +106,9 @@ function accountView(req, res, next) {
     if (prop == 'userid') {
       query[prop] = req.query[prop];
     }
-    // else if (prop == '_access_client_id' || prop == _access_key) {
-    //   // do nothing
-    // }
+    else if (prop == '_access_client_id' || prop == '_access_key') {
+      // do nothing
+    }
     else if (req.query.hasOwnProperty(prop)) {
       query[prop] = new RegExp(req.query[prop], "i");
     }
