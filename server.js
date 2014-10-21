@@ -76,17 +76,16 @@ function valid_security_creds(req) {
   delete req.query._access_client_id;
   delete req.query._access_key;
 
+  console.log("Preparing to validate access");
+
   // @TODO: Get the secret key from Mongo for the requesting client app
   var correct_access_key  = '',
-      values_string       = '',
-      secret              = 'Kk6a8bk@HZBs'
+      valuesList          = flattenValues(req.query, ''),
+      secret              = 'Kk6a8bk@HZBs';
 
-  for (var key in req.query) {
-    values_string += req.query[key];
-  }
-  values_string += secret;
+  valuesList += secret;
 
-  correct_access_key = SHA256(values_string);
+  correct_access_key = SHA256(valuesList);
 
   // Debug: For comparing hash values
   // console.log("*** The received hash value was: " + access_key);
@@ -95,8 +94,23 @@ function valid_security_creds(req) {
   return (access_key == correct_access_key);
 }
 
+function flattenValues(q, strlist) {
+  var tempList = '';
+  for (var key in q) {
+    var type = typeof q[key];
+    if (type == 'object' || type == 'array') {
+      tempList += flattenValues(q[key], tempList);
+    }
+    else {
+      tempList += q[key];
+    }
+  }
+
+  return tempList;
+}
+
 function accountView(req, res, next) {
-  // if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
+  if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
 
   var db = mongoose.connection;
   var docs  = { },
@@ -164,7 +178,7 @@ function accountView(req, res, next) {
 }
 
 function profileSave(req, res, next) {
-  // if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
+  if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
   
   var db = mongoose.connection;
 
@@ -198,7 +212,7 @@ function profileSave(req, res, next) {
 
 
 function contactSave(req, res, next) {
-  // if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
+  if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
   
   var db = mongoose.connection;
 
