@@ -1,5 +1,6 @@
 var restify = require('restify');
 var server = restify.createServer();
+var async = require('async');
 var Logger = require('bunyan');
 // var routes = require('./routes');
 var config = require('./config');
@@ -114,22 +115,51 @@ function accountView(req, res, next) {
     }
   }
 
-  Profile.findOne(query, function (err, profile) {
-    if (err) console.dir(err);
-    var pid = profile._id;
-
-    // @todo: @see http://mongoosejs.com/docs/populate.html
-    Contact.find({ '_profile': pid }, function (err, contacts) {
-      if (err) console.dir(err);
-
+  var profile = {},
+    contacts = [];
+  async.series([
+    // Get the profile
+    function (cb) {
+      Profile.findOne(query, function (err, _profile) {
+        if (err) {
+          console.dir(err);
+          return cb(err);
+        }
+        if (_profile && _profile._id) {
+          profile = _profile;
+        }
+        return cb();
+      });
+    },
+    // Get any related contacts
+    function (cb) {
+      // @todo: @see http://mongoosejs.com/docs/populate.html
+      if (profile && profile._id) {
+        Contact.find({ '_profile': profile._id }, function (err, _contacts) {
+          if (err) {
+            console.dir(err);
+            return cb(err);
+          }
+          if (_contacts && _contacts.length) {
+            contacts = _contacts;
+          }
+          return cb();
+        });
+      }
+      else {
+        return cb();
+      }
+    },
+    function (cb) {
       var account = {
         'profile': profile,
         'contacts': contacts
       };
-
       res.send(JSON.stringify(account));
-      next();
-    });
+      return cb();
+    }
+  ], function (err, results) {
+    next();
   });
 }
 
