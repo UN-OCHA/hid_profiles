@@ -175,9 +175,6 @@ function profileSave(req, res, next) {
     profileFields[prop] = req.query[prop];
   }
 
-  console.log("Query fields received and prepped for saving to the Profile document");
-  console.dir(profileFields);
-
   var userProfile = new Profile(profileFields);
 
   if (true) { // @TODO: Make room for data validation later
@@ -193,6 +190,7 @@ function profileSave(req, res, next) {
     Profile.update({ userid: userProfileID }, upsertData, { upsert: true }, function(err) {
       if (err) console.dir(err);
       res.send(JSON.stringify(userProfile));
+      console.dir(userProfile);
       next();
     });
   }
@@ -204,7 +202,8 @@ function contactSave(req, res, next) {
   
   var db = mongoose.connection;
 
-  var contactFields = {};
+  var contactFields = { };
+
   for (var prop in req.query) {
     if (req.query.hasOwnProperty(prop)) {
       if (prop == '_access_client_id' || prop == '_access_key') {
@@ -213,6 +212,7 @@ function contactSave(req, res, next) {
       contactFields[prop] = req.query[prop];
     }
   }
+
   var userContact = new Contact(contactFields);
 
   var result = {},
