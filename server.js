@@ -204,37 +204,90 @@ function contactSave(req, res, next) {
   
   var db = mongoose.connection;
 
-  var contactFields = { };
-
-  console.log(" * * * Here come the parameters!");
-  console.dir(req.query);
+  var contactFields = {};
   for (var prop in req.query) {
-    contactFields[prop] = req.query[prop];
+    if (req.query.hasOwnProperty(prop)) {
+      if (prop == '_access_client_id' || prop == '_access_key') {
+        continue;
+      }
+      contactFields[prop] = req.query[prop];
+    }
   }
-
-  console.log("Query fields received and prepped for saving to the Contact document");
-  console.dir(contactFields);
-
   var userContact = new Contact(contactFields);
 
+  var result = {},
+    userid = null,
+    _profile = null,
+    profileData = null;
+  async.series([
+    // Ensure the userid is specified
+    function (cb) {
+      if (contactFields.userid === null || !contactFields.userid || !contactFields.userid.length) {
+        result = {status: "error", message: "No user ID was specified."};
+        return cb(true);
+      }
+      else {
+        userid = contactFields.userid;
+        return cb();
+      }
+    },
+    // If no profile is specified, first lookup a profile by the userid, and if
+    // none is found, then create a new one for the userid.
+    function (cb) {
+      if (contactFields._profile === null || !contactFields._profile || !contactFields._profile.length) {
+        Profile.findOne({userid: userid}, function (err, profile) {
+          if (err || !profile || !profile._id) {
 
-  console.log(" *** About to get the parent profile!");
-  var profile = Profile.findOne({ _id: mongoose.Types.ObjectId(req.query._profile) });
-  console.log(" *** Just got the parent profile!");
-  console.dir(profile);
+            console.log('Creating new profile for userid ' + userid);
+            Profile.update({_userid: userid}, {userid: userid, status: 1}, {upsert: true}, function(err, profile) {
+              if (err) {
+                console.dir(err);
+                result = {status: "error", message: "Could not create profile for user."};
+                return cb(true);
+              }
+              Profile.findOne({userid: userid}, function (err, profile) {
+                if (err || !profile || !profile._id) {
+                  result = {status: "error", message: "Could not find the created profile."};
+                  return cb(true);
+                }
+                else {
+                  _profile = profile._id;
+                  return cb();
+                }
+              });
+            });
+          }
+          else {
+            _profile = profile._id;
+            return cb();
+          }
+        });
+      }
+      else {
+        _profile = contactFields._profile;
+        return cb();
+      }
+    },
+    // Upsert the contact
+    function (cb) {
+      var upsertData = userContact.toObject(),
+        upsertId = mongoose.Types.ObjectId(req.query._contact || null);
+      delete upsertData._contact;
+      delete upsertData._id;
+      upsertData._profile = _profile;
 
-  if (true) { // @TODO: Make room for data validation later
-    var upsertData = userContact.toObject(),
-      upsertId = mongoose.Types.ObjectId(req.query._contact || null);
-    delete upsertData._contact;
-    delete upsertData._id;
-
-    userContact._profile = profile._id;
-
-    Contact.update({_id: upsertId}, upsertData, { upsert: true }, function(err) {
-      if (err) console.dir(err);
-      res.send(JSON.stringify(userContact));
-      next();
-    });
-  }
+      Contact.update({_id: upsertId}, upsertData, {upsert: true}, function(err) {
+        if (err) {
+          console.dir(err);
+          result = {status: "error", message: "Could not update contact."};
+          return cb(true);
+        }
+        result = {status: "ok", data: upsertData};
+        return cb();
+      });
+    },
+  ], function (err, results) {
+    res.send(JSON.stringify(result));
+    next();
+  });
 }
