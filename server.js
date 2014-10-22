@@ -76,8 +76,6 @@ function valid_security_creds(req) {
   delete req.query._access_client_id;
   delete req.query._access_key;
 
-  console.log("Preparing to validate access");
-
   // @TODO: Get the secret key from Mongo for the requesting client app
   var correct_access_key  = '',
       valuesList          = flattenValues(req.query, ''),
@@ -110,9 +108,12 @@ function flattenValues(q, strlist) {
 }
 
 function accountView(req, res, next) {
-  if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
+  if (!valid_security_creds(req)) {
+    console.log('Invalid API key/secret')
+    res.send(403, new Error('client or key not accepted'));
+    return next();
+  }
 
-  var db = mongoose.connection;
   var docs  = { },
       query = { };
 
@@ -178,10 +179,11 @@ function accountView(req, res, next) {
 }
 
 function profileSave(req, res, next) {
-  if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
-  
-  var db = mongoose.connection;
-
+  if (!valid_security_creds(req)) {
+    console.log('Invalid API key/secret')
+    res.send(403, new Error('client or key not accepted'));
+    return next();
+  }
 
   profileFields = { };
 
@@ -212,7 +214,11 @@ function profileSave(req, res, next) {
 
 
 function contactSave(req, res, next) {
-  if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
+  if (!valid_security_creds(req)) {
+    console.log('Invalid API key/secret')
+    res.send(403, new Error('client or key not accepted'));
+    return next();
+  }
   
   var contactFields = {},
     contactModel = (new Contact(req.query)).toObject();
