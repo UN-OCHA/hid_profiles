@@ -145,11 +145,11 @@ function accountView(req, res, next) {
         return cb();
       });
     },
-    // Get any related contacts
+    // Get any active contacts related to this profile
     function (cb) {
       // @todo: @see http://mongoosejs.com/docs/populate.html
       if (profile && profile._id) {
-        Contact.find({ '_profile': profile._id }, function (err, _contacts) {
+        Contact.find({'_profile': profile._id, 'status': 1}, function (err, _contacts) {
           if (err) {
             console.dir(err);
             return cb(err);
@@ -214,34 +214,28 @@ function profileSave(req, res, next) {
 function contactSave(req, res, next) {
   if (!valid_security_creds(req)) res.send(403, new Error('client or key not accepted'));
   
-  var db = mongoose.connection;
-
-  var contactFields = { };
+  var contactFields = {},
+    contactModel = (new Contact(req.query)).toObject();
 
   for (var prop in req.query) {
-    if (req.query.hasOwnProperty(prop)) {
-      if (prop == '_access_client_id' || prop == '_access_key') {
-        continue;
-      }
+    if (req.query.hasOwnProperty(prop) && contactModel.hasOwnProperty(prop)) {
       contactFields[prop] = req.query[prop];
     }
   }
 
-  var userContact = new Contact(contactFields);
-
   var result = {},
-    userid = null,
+    userid = req.query.userid || '',
     _profile = null,
     profileData = null;
+
   async.series([
     // Ensure the userid is specified
     function (cb) {
-      if (contactFields.userid === null || !contactFields.userid || !contactFields.userid.length) {
+      if (!userid || !userid.length) {
         result = {status: "error", message: "No user ID was specified."};
         return cb(true);
       }
       else {
-        userid = contactFields.userid;
         return cb();
       }
     },
@@ -284,19 +278,17 @@ function contactSave(req, res, next) {
     },
     // Upsert the contact
     function (cb) {
-      var upsertData = userContact.toObject(),
-        upsertId = mongoose.Types.ObjectId(req.query._contact || null);
-      delete upsertData._contact;
-      delete upsertData._id;
-      upsertData._profile = _profile;
+      var upsertId = mongoose.Types.ObjectId(contactFields._id || null);
+      delete contactFields._id;
+      contactFields._profile = _profile;
 
-      Contact.update({_id: upsertId}, upsertData, {upsert: true}, function(err) {
+      Contact.update({_id: upsertId}, {'$set': contactFields}, {upsert: true}, function(err) {
         if (err) {
           console.dir(err);
           result = {status: "error", message: "Could not update contact."};
           return cb(true);
         }
-        result = {status: "ok", data: upsertData};
+        result = {status: "ok", data: contactFields};
         return cb();
       });
     },

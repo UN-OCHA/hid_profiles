@@ -52,6 +52,9 @@ var contactSchema = new mongoose.Schema({
   organization:       [ organizationSchema ],
   jobtitle:           String,
   notes:              String,
+  created:            Number, // timestamp
+  revised:            Number, // timestamp
+  status:             Boolean
 });
 
 mongoose.model('Contact', contactSchema);
