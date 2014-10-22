@@ -13,7 +13,7 @@ var emailSchema = new Schema({
 var phoneSchema = new Schema({
   number:       String, // no dashes or formatting
   countryCode:  String, // ex: "+1",
-  type:         [ String ]
+  type:         String
 });
 
 var addressSchema = new Schema({
@@ -27,13 +27,7 @@ var addressSchema = new Schema({
   thoroughfare:             String,
   premise:                  String, // Apartment, Suite, Box number, etc.
   sub_premise:              String,
-  fulltext:                 String, // "1313 Mockingbird Lane\nSuite 6\nNYC, NY 12345", use \n for newlines
-});
-
-var uriSchema = new Schema({
-  type:   String,
-  uri:    String,
-  label:  String,
+  fulltext:                 String  // "1313 Mockingbird Lane\nSuite 6\nNYC, NY 12345", use \n for newlines
 });
 
 var organizationSchema = new Schema({
@@ -43,14 +37,19 @@ var organizationSchema = new Schema({
 
 var contactSchema = new mongoose.Schema({
   _profile:           { type: Schema.Types.ObjectId, ref: 'Profile' }, // links to "parent" Profile document (required)
-  type:               String, //"local" or "global"
+  type:               String, // "local" or "global"
   location:           String, // "Liberia - Ebola crisis" or "Global"
+  locationId:         String,
+  nameGiven:          String,
+  nameFamily:         String,
   email:              [ emailSchema ],
   phone:              [ phoneSchema ],
+  voip:               [ phoneSchema ],
   address:            [ addressSchema ],
-  uri:                [ uriSchema ],
+  uri:                [ String ],
   organization:       [ organizationSchema ],
   jobtitle:           String,
+  bundle:             [ String ],
   notes:              String,
   created:            Number, // timestamp
   revised:            Number, // timestamp
