@@ -33,6 +33,9 @@ server.post(versionPrefix + 'profile/view', accountView);
 server.get(versionPrefix + 'profile/save/:uid', profileSave);
 server.post(versionPrefix + 'profile/save/:uid', profileSave);
 
+server.get(versionPrefix + 'contact/view', contactView);
+server.post(versionPrefix + 'contact/view', contactView);
+
 server.get(versionPrefix + 'contact/save/:uid', contactSave);
 server.post(versionPrefix + 'contact/save/:uid', contactSave);
 
@@ -212,6 +215,45 @@ function profileSave(req, res, next) {
   }
 }
 
+function contactView(req, res, next) {
+  if (!valid_security_creds(req)) {
+    console.log('Invalid API key/secret')
+    res.send(403, new Error('client or key not accepted'));
+    return next();
+  }
+
+  var docs = {},
+    query = {},
+    contactModel = (new Contact(req.query)).toObject();
+
+  for (var prop in req.query) {
+    if (req.query.hasOwnProperty(prop) && contactModel.hasOwnProperty(prop)) {
+      if (prop == '_id' || prop == '_profile') {
+        query[prop] = req.query[prop];
+      }
+      else {
+        query[prop] = new RegExp(req.query[prop], "i");
+      }
+    }
+  }
+
+  var result = {},
+    contacts = [];
+  Contact.find(query, function (err, _contacts) {
+    if (err) {
+      console.dir(err);
+      result = {status: "error", message: "Query failed for contacts."};
+    }
+    else {
+      if (_contacts && _contacts.length) {
+        contacts = _contacts;
+      }
+      result = {status: "ok", contacts: contacts};
+    }
+    res.send(JSON.stringify(result));
+    next();
+  });
+}
 
 function contactSave(req, res, next) {
   if (!valid_security_creds(req)) {
