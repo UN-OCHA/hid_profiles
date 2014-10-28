@@ -121,15 +121,28 @@ function accountView(req, res, next) {
       query = { };
 
   for (var prop in req.query) {
+    if (!req.query.hasOwnProperty(prop)) {
+      continue;
+    }
+
     // TODO: Do some proper validation about the parameter name and its value
+    var val = req.query[prop];
     if (prop == 'userid') {
-      query[prop] = req.query[prop];
+      query[prop] = val;
     }
     else if (prop == '_access_client_id' || prop == '_access_key') {
       // do nothing
     }
-    else if (req.query.hasOwnProperty(prop)) {
-      query[prop] = new RegExp(req.query[prop], "i");
+    else if (prop == 'text') {
+      query['$or'] = [
+        {jobtitle: new RegExp(val, "i")},
+        {nameGiven: new RegExp(val, "i")},
+        {nameFamily: new RegExp(val, "i")},
+        {'organization.name': new RegExp(val, "i")}
+      ];
+    }
+    else {
+      query[prop] = new RegExp(val, "i");
     }
   }
 
