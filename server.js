@@ -133,16 +133,8 @@ function accountView(req, res, next) {
     else if (prop == '_access_client_id' || prop == '_access_key') {
       // do nothing
     }
-    else if (prop == 'text') {
-      query['$or'] = [
-        {jobtitle: new RegExp(val, "i")},
-        {nameGiven: new RegExp(val, "i")},
-        {nameFamily: new RegExp(val, "i")},
-        {'organization.name': new RegExp(val, "i")}
-      ];
-    }
     else {
-      query[prop] = new RegExp(val, "i");
+      query[prop] = val;
     }
   }
 
@@ -240,12 +232,25 @@ function contactView(req, res, next) {
     contactModel = (new Contact(req.query)).toObject();
 
   for (var prop in req.query) {
-    if (req.query.hasOwnProperty(prop) && contactModel.hasOwnProperty(prop)) {
-      if (prop == '_id' || prop == '_profile') {
-        query[prop] = req.query[prop];
+    if (req.query.hasOwnProperty(prop) && req.query[prop]) {
+      var val = typeof req.query[prop] === 'String' ? req.query[prop] : String(req.query[prop]);
+      if (!val || !val.length) {
+        continue;
       }
-      else {
-        query[prop] = new RegExp(req.query[prop], "i");
+
+      if (prop == '_id' || prop == '_profile') {
+        query[prop] = val;
+      }
+      else if (prop == 'text') {
+        query['$or'] = [
+          {jobtitle: new RegExp(val, "i")},
+          {nameGiven: new RegExp(val, "i")},
+          {nameFamily: new RegExp(val, "i")},
+          {'organization.name': new RegExp(val, "i")}
+        ];
+      }
+      else if (contactModel.hasOwnProperty(prop)) {
+        query[prop] = val;
       }
     }
   }
