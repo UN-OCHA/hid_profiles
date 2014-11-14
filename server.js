@@ -43,7 +43,7 @@ server.get('test', testpage);
 
 server.get(versionPrefix + 'profile/model', accountModel);
 
-server.listen(4000, function() {
+server.listen(process.env.PORT || 4000, function() {
   console.log('%s listening at %s', server.name, server.url);
 });
 
