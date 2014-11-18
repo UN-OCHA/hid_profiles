@@ -3,6 +3,7 @@ profilesmongo:
   environment:
     DNSDOCK_NAME: profilesmongo
     DNSDOCK_IMAGE: contactsid
+    MONGO_OPTIONS: --journal --noprealloc --smallfiles
 profiles:
   image: unocha/nginx16-nodejs
   command: /opt/app/node.sh
