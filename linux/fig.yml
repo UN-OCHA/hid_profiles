@@ -1,0 +1,19 @@
+profilesmongo:
+  image: unocha/mongodb
+  environment:
+    DNSDOCK_NAME: profilesmongo
+    DNSDOCK_IMAGE: contactsid
+profiles:
+  image: unocha/nginx16-nodejs
+  command: /opt/app/node.sh
+  volumes:
+    - ..:/var/www/html
+  environment:
+    DNSDOCK_NAME: profiles
+    DNSDOCK_IMAGE: contactsid
+    PORT: 80
+    NODE_ENV: dockerdev
+  ports:
+    - 8988:80
+  links:
+    - profilesmongo:mongo
