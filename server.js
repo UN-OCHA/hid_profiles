@@ -8,6 +8,15 @@ var models = require('./models');
 
 server.use(restify.queryParser());
 
+server.use(
+  function crossOrigin(req,res,next){
+console.log('adding crossdomain header');
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    return next();
+  }
+);
+
 var Profile  = models.Profile,
     Contact  = models.Contact,
     mongoose = models.mongoose;
@@ -47,7 +56,6 @@ server.listen(process.env.PORT || 4000, function() {
   console.log('%s listening at %s', server.name, server.url);
 });
 
-
 function accountModel(req, res, next) {
   var paths = Profile.schema.paths;
   
@@ -66,6 +74,46 @@ function testpage(req, res, next) {
 }
 
 function valid_security_creds(req) {
+  return valid_security_creds_app(req) || valid_security_creds_user(req);
+}
+
+function valid_security_creds_user(req, cb) {
+  var access_token = req.query.access_token || '';
+
+  // Step 1: Validate the access_token
+  if (access_token.length) {
+/*
+    var options = {
+      hostname: 'auth.contactsid.vm',
+      port: 80,
+      path: '/upload',
+  method: 'POST'
+};
+
+var req = http.request(options, function(res) {
+  console.log('STATUS: ' + res.statusCode);
+  console.log('HEADERS: ' + JSON.stringify(res.headers));
+  res.setEncoding('utf8');
+  res.on('data', function (chunk) {
+    console.log('BODY: ' + chunk);
+  });
+});
+
+req.on('error', function(e) {
+  console.log('problem with request: ' + e.message);
+});
+
+// write data to request body
+req.write('data\n');
+req.write('data\n');
+req.end();
+*/
+    return true;
+  }
+  return cb(true);
+}
+
+function valid_security_creds_app(req) {
   var client_id   = req.query._access_client_id,
       access_key  = req.query._access_key;
 
