@@ -45,9 +45,28 @@ server.post(versionPrefix + 'contact/view', contactView);
 server.get(versionPrefix + 'contact/save', contactSave);
 server.post(versionPrefix + 'contact/save', contactSave);
 
-server.get('test', testpage);
-
 server.get(versionPrefix + 'profile/model', accountModel);
+
+// Provide handling for OPTIONS requests for CORS.
+server.opts('.*', function(req, res, next) {
+  var requestMethod,
+    headers = 'X-Requested-With, Cookie, Set-Cookie, Accept, Access-Control-Allow-Credentials, Origin, Content-Type, Request-Id , X-Api-Version, X-Request-Id, Authorization';
+  if (req.headers.origin && req.headers['access-control-request-method']) {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Headers', headers);
+    res.header('Access-Control-Expose-Headers', 'Set-Cookie');
+    requestMethod = req.headers['access-control-request-method'];
+    res.header('Allow', requestMethod);
+    res.header('Access-Control-Allow-Methods', requestMethod);
+    res.send(204);
+    return next();
+  }
+  else {
+    res.send(404);
+    return next();
+  }
+});
 
 server.listen(process.env.PORT || 4000, function() {
   console.log('%s listening at %s', server.name, server.url);
@@ -62,11 +81,6 @@ function accountModel(req, res, next) {
   var keys = Object.keys(paths);
 
   res.send(keys);
-  next();
-}
-
-function testpage(req, res, next) {
-  res.send('hello from the test page');
   next();
 }
 
