@@ -14,11 +14,13 @@
   },
   "engine": "node 0.6.x",
   "scripts": {
-    "start": "./node_modules/.bin/nodemon server.js"
+    "start": "./node_modules/.bin/nodemon server.js",
+    "_start": "./node_modules/.bin/nodemon ./node_modules/.bin/node-debug server.js"
   },
   "main": "server.js",
   "devDependencies": {
-    "nodemon": "^1.0.15"
+    "nodemon": "^1.0.15",
+    "node-inspector": "^0.7.4"
   },
   "repository": {
     "type": "git",
