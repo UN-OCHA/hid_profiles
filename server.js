@@ -12,7 +12,10 @@ server.use(restify.bodyParser({
   maxBodySize: 16384,
 }));
 
-server.use(restify.CORS());
+server.use(restify.CORS({
+  origins: ['*'],
+  credentials: true
+}));
 
 var Profile  = models.Profile,
     Contact  = models.Contact,
