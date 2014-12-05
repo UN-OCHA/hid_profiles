@@ -15,3 +15,5 @@ profiles:
     DNSDOCK_IMAGE: contactsid
     PORT: 80
     NODE_ENV: dockerdev
+  links:
+    - mongo:mongo
