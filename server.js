@@ -8,14 +8,11 @@ var models = require('./models');
 
 server.use(restify.queryParser());
 
-server.use(
-  function crossOrigin(req,res,next){
-console.log('adding crossdomain header');
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    return next();
-  }
-);
+server.use(restify.bodyParser({
+  maxBodySize: 16384,
+}));
+
+server.use(restify.CORS());
 
 var Profile  = models.Profile,
     Contact  = models.Contact,
@@ -45,8 +42,8 @@ server.post(versionPrefix + 'profile/save/:uid', profileSave);
 server.get(versionPrefix + 'contact/view', contactView);
 server.post(versionPrefix + 'contact/view', contactView);
 
-server.get(versionPrefix + 'contact/save/:uid', contactSave);
-server.post(versionPrefix + 'contact/save/:uid', contactSave);
+server.get(versionPrefix + 'contact/save', contactSave);
+server.post(versionPrefix + 'contact/save', contactSave);
 
 server.get('test', testpage);
 
@@ -77,11 +74,14 @@ function valid_security_creds(req) {
   return valid_security_creds_app(req) || valid_security_creds_user(req);
 }
 
-function valid_security_creds_user(req, cb) {
+function valid_security_creds_user(req) {
   var access_token = req.query.access_token || '';
 
   // Step 1: Validate the access_token
   if (access_token.length) {
+    console.log('access token provided: ' + access_token);
+    req.oauthAccessToken = access_token;
+    delete req.query.access_token;
 /*
     var options = {
       hostname: 'auth.contactsid.vm',
@@ -110,12 +110,15 @@ req.end();
 */
     return true;
   }
-  return cb(true);
+  return false;
 }
 
 function valid_security_creds_app(req) {
   var client_id   = req.query._access_client_id,
       access_key  = req.query._access_key;
+
+  delete req.query._access_client_id;
+  delete req.query._access_key;
 
   // Step 1: Validate that the client app is allowed
   // @TODO: Pull a list of allowed client IDs from Mongo and get the secret key at the same time
@@ -123,9 +126,6 @@ function valid_security_creds_app(req) {
   if (allowed_clients.indexOf('_access_client_id') == -1) return false;
 
   var SHA256 = require("crypto-js/sha256");
-
-  delete req.query._access_client_id;
-  delete req.query._access_key;
 
   // @TODO: Get the secret key from Mongo for the requesting client app
   var correct_access_key  = '',
@@ -226,7 +226,7 @@ function accountView(req, res, next) {
         'profile': profile,
         'contacts': contacts
       };
-      res.send(JSON.stringify(account));
+      res.send(account);
       return cb();
     }
   ], function (err, results) {
@@ -261,7 +261,7 @@ function profileSave(req, res, next) {
 
     Profile.update({ userid: userProfileID }, upsertData, { upsert: true }, function(err) {
       if (err) console.dir(err);
-      res.send(JSON.stringify(userProfile));
+      res.send(userProfile);
       console.dir(userProfile);
       next();
     });
@@ -316,7 +316,7 @@ function contactView(req, res, next) {
       }
       result = {status: "ok", contacts: contacts};
     }
-    res.send(JSON.stringify(result));
+    res.send(result);
     next();
   });
 }
@@ -327,18 +327,18 @@ function contactSave(req, res, next) {
     res.send(403, new Error('client or key not accepted'));
     return next();
   }
-  
-  var contactFields = {},
-    contactModel = (new Contact(req.query)).toObject();
 
-  for (var prop in req.query) {
-    if (req.query.hasOwnProperty(prop) && contactModel.hasOwnProperty(prop)) {
-      contactFields[prop] = req.query[prop];
+  var contactFields = {},
+    contactModel = (new Contact(req.body)).toObject();
+
+  for (var prop in req.body) {
+    if (req.body.hasOwnProperty(prop) && contactModel.hasOwnProperty(prop)) {
+      contactFields[prop] = req.body[prop];
     }
   }
 
   var result = {},
-    userid = req.query.userid || '',
+    userid = req.body.userid || '',
     _profile = null,
     profileData = null;
 
@@ -347,6 +347,7 @@ function contactSave(req, res, next) {
     function (cb) {
       if (!userid || !userid.length) {
         result = {status: "error", message: "No user ID was specified."};
+        console.log('contactSave: invalid request: No user ID was specified.');
         return cb(true);
       }
       else {
@@ -402,12 +403,18 @@ function contactSave(req, res, next) {
           result = {status: "error", message: "Could not update contact."};
           return cb(true);
         }
+        if (contactFields._id) {
+          console.log("Updated contact " + contactFields._id + " for user " + userid);
+        }
+        else {
+          console.log("Created contact for user " + userid);
+        }
         result = {status: "ok", data: contactFields};
         return cb();
       });
     },
   ], function (err, results) {
-    res.send(JSON.stringify(result));
+    res.send(result);
     next();
   });
 }
