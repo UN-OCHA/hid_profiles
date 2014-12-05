@@ -14,10 +14,12 @@
   },
   "engine": "node 0.6.x",
   "scripts": {
-    "start": "node server.js"
+    "start": "./node_modules/.bin/nodemon server.js"
   },
   "main": "server.js",
-  "devDependencies": {},
+  "devDependencies": {
+    "nodemon": "^1.0.15"
+  },
   "repository": {
     "type": "git",
     "url": "git@bitbucket.org:phase2tech/contactsid_profiles.git"
