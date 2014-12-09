@@ -36,17 +36,17 @@ server.pre(function (request, response, next) {
   next();
 });
 
-server.get(versionPrefix + 'profile/view', accountView);
-server.post(versionPrefix + 'profile/view', accountView);
+server.get(versionPrefix + 'profile/view', valid_security_creds, accountView);
+server.post(versionPrefix + 'profile/view', valid_security_creds, accountView);
 
-server.get(versionPrefix + 'profile/save/:uid', profileSave);
-server.post(versionPrefix + 'profile/save/:uid', profileSave);
+server.get(versionPrefix + 'profile/save/:uid', valid_security_creds, profileSave);
+server.post(versionPrefix + 'profile/save/:uid', valid_security_creds, profileSave);
 
-server.get(versionPrefix + 'contact/view', contactView);
-server.post(versionPrefix + 'contact/view', contactView);
+server.get(versionPrefix + 'contact/view', valid_security_creds, contactView);
+server.post(versionPrefix + 'contact/view', valid_security_creds, contactView);
 
-server.get(versionPrefix + 'contact/save', contactSave);
-server.post(versionPrefix + 'contact/save', contactSave);
+server.get(versionPrefix + 'contact/save', valid_security_creds, contactSave);
+server.post(versionPrefix + 'contact/save', valid_security_creds, contactSave);
 
 server.get(versionPrefix + 'profile/model', accountModel);
 
@@ -87,77 +87,95 @@ function accountModel(req, res, next) {
   next();
 }
 
-function valid_security_creds(req) {
-  return valid_security_creds_app(req) || valid_security_creds_user(req);
+function valid_security_creds(req, res, next) {
+  async.parallel([
+    function (cb) {
+      cb(null, valid_security_creds_app(req));
+    },
+    function (cb) {
+      valid_security_creds_user(req, function (authErr, authRes) {
+        cb(authErr, authRes);
+      });
+    }
+  ], function (err, results) {
+    if (results.indexOf(true) !== -1) {
+      next();
+    }
+    else {
+      console.log('Invalid security credentials')
+      res.send(403, new Error('client or key not accepted'));
+    }
+  });
 }
 
-function valid_security_creds_user(req) {
+function valid_security_creds_user(req, cb) {
   var access_token = req.query.access_token || '';
 
   // Step 1: Validate the access_token
   if (access_token.length) {
-    console.log('access token provided: ' + access_token);
-    req.oauthAccessToken = access_token;
     delete req.query.access_token;
-/*
-    var options = {
-      hostname: 'auth.contactsid.vm',
-      port: 80,
-      path: '/upload',
-  method: 'POST'
-};
 
-var req = http.request(options, function(res) {
-  console.log('STATUS: ' + res.statusCode);
-  console.log('HEADERS: ' + JSON.stringify(res.headers));
-  res.setEncoding('utf8');
-  res.on('data', function (chunk) {
-    console.log('BODY: ' + chunk);
-  });
-});
-
-req.on('error', function(e) {
-  console.log('problem with request: ' + e.message);
-});
-
-// write data to request body
-req.write('data\n');
-req.write('data\n');
-req.end();
-*/
-    return true;
+    var client = restify.createJsonClient({
+      url: 'http://auth.contactsid.vm',
+      log: log
+    });
+    client.get('/account.json?access_token=' + access_token, function(err, req, res, obj) {
+      if (err) {
+        console.log('Could not confirm API request key/signature using access token ' + access_token);
+        cb(err, false);
+      }
+      else if (obj.user_id && obj.authorized_services) {
+        console.log('Verified API request key/signature from user ' + obj.user_id);
+        req.oauthAccessToken = access_token;
+        cb(null, true);
+      }
+      else {
+        console.log('Invalid API request key/signature using access token ' + access_token);
+        cb(null, false);
+      }
+    });
   }
-  return false;
+  else {
+    cb(null, false);
+  }
 }
 
 function valid_security_creds_app(req) {
-  var client_id   = req.query._access_client_id,
-      access_key  = req.query._access_key;
+  var client_id = req.query._access_client_id || '',
+    access_key = req.query._access_key || '';
 
-  delete req.query._access_client_id;
-  delete req.query._access_key;
+  if (client_id.length && access_key.length) {
+    delete req.query._access_client_id;
+    delete req.query._access_key;
 
-  // Step 1: Validate that the client app is allowed
-  // @TODO: Pull a list of allowed client IDs from Mongo and get the secret key at the same time
-  var allowed_clients = [ '_access_client_id' ];
-  if (allowed_clients.indexOf('_access_client_id') == -1) return false;
+    // Step 1: Validate that the client app is allowed
+    // @TODO: Pull a list of allowed client IDs from Mongo and get the secret key at the same time
+    var allowed_clients = [ '_access_client_id' ];
+    if (allowed_clients.indexOf('_access_client_id') == -1) return false;
 
-  var SHA256 = require("crypto-js/sha256");
+    var SHA256 = require("crypto-js/sha256");
 
-  // @TODO: Get the secret key from Mongo for the requesting client app
-  var correct_access_key  = '',
-      valuesList          = flattenValues(req.query, ''),
-      secret              = 'Kk6a8bk@HZBs';
+    // @TODO: Get the secret key from Mongo for the requesting client app
+    var correct_access_key  = '',
+        valuesList          = flattenValues(req.query, ''),
+        secret              = 'Kk6a8bk@HZBs';
 
-  valuesList += secret;
+    valuesList += secret;
 
-  correct_access_key = SHA256(valuesList);
+    correct_access_key = SHA256(valuesList);
 
-  // Debug: For comparing hash values
-  // console.log("*** The received hash value was: " + access_key);
-  // console.log("           I think it should be: " + correct_access_key);
-
-  return (access_key == correct_access_key);
+    if (access_key === correct_access_key) {
+      console.log('Verified API request key/signature from client ' + client_id);
+      return true;
+    }
+    else {
+      console.log('Invalid API request key/signature from client ' + client_id);
+      return false;
+    }
+  }
+  else {
+    return false;
+  }
 }
 
 function flattenValues(q, strlist) {
@@ -176,12 +194,6 @@ function flattenValues(q, strlist) {
 }
 
 function accountView(req, res, next) {
-  if (!valid_security_creds(req)) {
-    console.log('Invalid API key/secret')
-    res.send(403, new Error('client or key not accepted'));
-    return next();
-  }
-
   var docs  = { },
       query = { };
 
@@ -194,9 +206,6 @@ function accountView(req, res, next) {
     var val = req.query[prop];
     if (prop == 'userid') {
       query[prop] = val;
-    }
-    else if (prop == '_access_client_id' || prop == '_access_key') {
-      // do nothing
     }
     else {
       query[prop] = val;
@@ -252,13 +261,7 @@ function accountView(req, res, next) {
 }
 
 function profileSave(req, res, next) {
-  if (!valid_security_creds(req)) {
-    console.log('Invalid API key/secret')
-    res.send(403, new Error('client or key not accepted'));
-    return next();
-  }
-
-  profileFields = { };
+  var profileFields = {};
 
   for (var prop in req.query) {
     profileFields[prop] = req.query[prop];
@@ -286,12 +289,6 @@ function profileSave(req, res, next) {
 }
 
 function contactView(req, res, next) {
-  if (!valid_security_creds(req)) {
-    console.log('Invalid API key/secret')
-    res.send(403, new Error('client or key not accepted'));
-    return next();
-  }
-
   var docs = {},
     query = {},
     contactModel = (new Contact(req.query)).toObject();
@@ -339,12 +336,6 @@ function contactView(req, res, next) {
 }
 
 function contactSave(req, res, next) {
-  if (!valid_security_creds(req)) {
-    console.log('Invalid API key/secret')
-    res.send(403, new Error('client or key not accepted'));
-    return next();
-  }
-
   var contactFields = {},
     contactModel = (new Contact(req.body)).toObject();
 
