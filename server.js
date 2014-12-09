@@ -116,7 +116,7 @@ function valid_security_creds_user(req, cb) {
     delete req.query.access_token;
 
     var client = restify.createJsonClient({
-      url: 'http://auth.contactsid.vm',
+      url: config.authBaseUrl,
       log: log
     });
     client.get('/account.json?access_token=' + access_token, function(err, req, res, obj) {
