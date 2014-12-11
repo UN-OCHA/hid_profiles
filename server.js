@@ -17,8 +17,9 @@ server.use(restify.CORS({
   credentials: true
 }));
 
-var Profile  = models.Profile,
-    Contact  = models.Contact,
+var Profile = models.Profile,
+    Contact = models.Contact,
+    Client = models.Client,
     mongoose = models.mongoose;
 
 var versionPrefix = '/v0/';
@@ -90,12 +91,10 @@ function accountModel(req, res, next) {
 function valid_security_creds(req, res, next) {
   async.parallel([
     function (cb) {
-      cb(null, valid_security_creds_app(req));
+      valid_security_creds_app(req, cb);
     },
     function (cb) {
-      valid_security_creds_user(req, function (authErr, authRes) {
-        cb(authErr, authRes);
-      });
+      valid_security_creds_user(req, cb);
     }
   ], function (err, results) {
     if (results.indexOf(true) !== -1) {
@@ -140,41 +139,41 @@ function valid_security_creds_user(req, cb) {
   }
 }
 
-function valid_security_creds_app(req) {
+function valid_security_creds_app(req, cb) {
   var client_id = req.query._access_client_id || '',
-    access_key = req.query._access_key || '';
+    access_key = req.query._access_key || '',
+    SHA256 = require("crypto-js/sha256");
 
-  if (client_id.length && access_key.length) {
+  if (client_id.length || access_key.length) {
     delete req.query._access_client_id;
     delete req.query._access_key;
 
     // Step 1: Validate that the client app is allowed
-    // @TODO: Pull a list of allowed client IDs from Mongo and get the secret key at the same time
-    var allowed_clients = [ '_access_client_id' ];
-    if (allowed_clients.indexOf('_access_client_id') == -1) return false;
-
-    var SHA256 = require("crypto-js/sha256");
-
-    // @TODO: Get the secret key from Mongo for the requesting client app
-    var correct_access_key  = '',
-        valuesList          = flattenValues(req.query, ''),
-        secret              = 'Kk6a8bk@HZBs';
-
-    valuesList += secret;
-
-    correct_access_key = SHA256(valuesList);
-
-    if (access_key === correct_access_key) {
-      console.log('Verified API request key/signature from client ' + client_id);
-      return true;
-    }
-    else {
-      console.log('Invalid API request key/signature from client ' + client_id);
-      return false;
-    }
+    Client.findOne({clientId: client_id}, function (err, doc) {
+      if (err) {
+        console.log('Database query failed when searching for client by ID ' + client_id);
+        cb(err, false);
+      }
+      else if (doc && doc.clientSecret && doc.clientSecret.length) {
+        // Regenerate the access key using the known client secret.
+        var new_access_key = SHA256(flattenValues(req.query, '') + doc.clientSecret);
+        if (access_key === new_access_key) {
+          console.log('Verified API request key/signature from client ' + client_id);
+          cb(null, true);
+        }
+        else {
+          console.log('Invalid API request key/signature from client ' + client_id);
+          cb(null, false);
+        }
+      }
+      else {
+        console.log('Invalid client ID provided for API request ' + client_id);
+        cb(null, false);
+      }
+    });
   }
   else {
-    return false;
+    cb(null, false);
   }
 }
 
