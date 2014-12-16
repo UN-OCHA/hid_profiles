@@ -353,19 +353,20 @@ function contactSaveAccess(req, res, next) {
     // Users are allowed write access only to their own contacts, unless they
     // have an administrative role.
     else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
-      if (req.apiAuth.userId === req.body.userid) {
-        return next();
-      }
       Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
-        if (!err && userProfile && userProfile.roles && userProfile.roles.indexOf("admin") !== -1) {
+        if (!err && userProfile) {
           req.apiAuth.userProfile = userProfile;
-          return next();
+
+          if (req.apiAuth.userId === req.body.userid) {
+            return next();
+          }
+          else if (userProfile.roles && userProfile.roles.indexOf("admin") !== -1) {
+            return next();
+          }
         }
-        else {
-          console.log('User ' + req.apiAuth.userId + ' is not authorized to save contact for ' + req.body.userid);
-          res.send(403, new Error('User not authorized to save contact'));
-          return next(false);
-        }
+        console.log('User ' + req.apiAuth.userId + ' is not authorized to save contact for ' + req.body.userid);
+        res.send(403, new Error('User not authorized to save contact'));
+        return next(false);
       });
       return;
     }
