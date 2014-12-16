@@ -40,14 +40,14 @@ server.pre(function (request, response, next) {
 server.get(versionPrefix + 'profile/view', valid_security_creds, accountView);
 server.post(versionPrefix + 'profile/view', valid_security_creds, accountView);
 
-server.get(versionPrefix + 'profile/save/:uid', valid_security_creds, profileSave);
-server.post(versionPrefix + 'profile/save/:uid', valid_security_creds, profileSave);
+server.get(versionPrefix + 'profile/save/:uid', valid_security_creds, contactSaveAccess, profileSave);
+server.post(versionPrefix + 'profile/save/:uid', valid_security_creds, contactSaveAccess, profileSave);
 
 server.get(versionPrefix + 'contact/view', valid_security_creds, contactView);
 server.post(versionPrefix + 'contact/view', valid_security_creds, contactView);
 
-server.get(versionPrefix + 'contact/save', valid_security_creds, contactSave);
-server.post(versionPrefix + 'contact/save', valid_security_creds, contactSave);
+server.get(versionPrefix + 'contact/save', valid_security_creds, contactSaveAccess, contactSave);
+server.post(versionPrefix + 'contact/save', valid_security_creds, contactSaveAccess, contactSave);
 
 server.get(versionPrefix + 'profile/model', accountModel);
 
@@ -66,10 +66,8 @@ server.opts('.*', function(req, res, next) {
     res.send(204);
     return next();
   }
-  else {
-    res.send(404);
-    return next();
-  }
+  res.send(404);
+  return next();
 });
 
 server.listen(process.env.PORT || 4000, function() {
@@ -97,13 +95,14 @@ function valid_security_creds(req, res, next) {
       valid_security_creds_user(req, cb);
     }
   ], function (err, results) {
-    if (results.indexOf(true) !== -1) {
-      next();
+    results = results.filter(function (val) { return val; });
+    if (results.length && results[0].mode) {
+      req.apiAuth = results[0];
+      return next();
     }
-    else {
-      console.log('Invalid security credentials')
-      res.send(403, new Error('client or key not accepted'));
-    }
+    console.log('Invalid security credentials')
+    res.send(403, new Error('client or key not accepted'));
+    return next(false);
   });
 }
 
@@ -125,8 +124,12 @@ function valid_security_creds_user(req, cb) {
       }
       else if (obj.user_id && obj.authorized_services) {
         console.log('Verified API request key/signature from user ' + obj.user_id);
-        req.oauthAccessToken = access_token;
-        cb(null, true);
+        req.apiAuth = {
+          mode: "user",
+          userId: obj.user_id,
+          oauthAccessToken: access_token
+        };
+        cb(null, req.apiAuth);
       }
       else {
         console.log('Invalid API request key/signature using access token ' + access_token);
@@ -159,7 +162,12 @@ function valid_security_creds_app(req, cb) {
         var new_access_key = SHA256(flattenValues(req.query, '') + doc.clientSecret);
         if (access_key === new_access_key) {
           console.log('Verified API request key/signature from client ' + client_id);
-          cb(null, true);
+          req.apiAuth = {
+            mode: "client",
+            clientId: client_id,
+            trustedClient: true
+          };
+          cb(null, req.apiAuth);
         }
         else {
           console.log('Invalid API request key/signature from client ' + client_id);
@@ -260,8 +268,8 @@ function accountView(req, res, next) {
 }
 
 function profileSave(req, res, next) {
+  //TODO: refactor and explore reuse of contactSave
   var profileFields = {};
-
   for (var prop in req.query) {
     profileFields[prop] = req.query[prop];
   }
@@ -334,6 +342,39 @@ function contactView(req, res, next) {
   });
 }
 
+// Middleware function to grant/deny access to the profileSave and contactSave
+// routes.
+function contactSaveAccess(req, res, next) {
+  if (req.apiAuth && req.apiAuth.mode) {
+    // Trusted API clients are allowed write access to all contacts.
+    if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+      return next();
+    }
+    // Users are allowed write access only to their own contacts, unless they
+    // have an administrative role.
+    else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
+      if (req.apiAuth.userId === req.body.userid) {
+        return next();
+      }
+      Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
+        if (!err && userProfile && userProfile.roles && userProfile.roles.indexOf("admin") !== -1) {
+          req.apiAuth.userProfile = userProfile;
+          return next();
+        }
+        else {
+          console.log('User ' + req.apiAuth.userId + ' is not authorized to save contact for ' + req.body.userid);
+          res.send(403, new Error('User not authorized to save contact'));
+          return next(false);
+        }
+      });
+      return;
+    }
+  }
+  console.log('Client not authorized to save contact');
+  res.send(403, new Error('Client not authorized to save contact'));
+  return next(false);
+}
+
 function contactSave(req, res, next) {
   var contactFields = {},
     contactModel = (new Contact(req.body)).toObject();
@@ -347,7 +388,11 @@ function contactSave(req, res, next) {
   var result = {},
     userid = req.body.userid || '',
     _profile = null,
-    profileData = null;
+    profileData = null,
+    setRoles = false,
+    newRoles = [],
+    setVerified = false,
+    newVerified = false;
 
   async.series([
     // Ensure the userid is specified
@@ -360,6 +405,26 @@ function contactSave(req, res, next) {
       else {
         return cb();
       }
+    },
+    // If the user making this change is not an admin, then exclude protected
+    // fields from the submission.
+    function (cb) {
+      if (req.apiAuth.mode === 'client' || req.apiAuth.userProfile.roles.indexOf("admin") != -1) {
+        // Allow any field changes
+        if (req.body.hasOwnProperty("adminRoles")) {
+          setRoles = true;
+          newRoles = req.body.adminRoles;
+        }
+        if (req.body.hasOwnProperty("verified")) {
+          setVerified = true;
+          newVerified = req.body.verified;
+        }
+      }
+      else {
+        // Remove fields that should be protected
+        delete contactFields.keyContact;
+      }
+      return cb();
     },
     // If no profile is specified, first lookup a profile by the userid, and if
     // none is found, then create a new one for the userid.
@@ -410,8 +475,8 @@ function contactSave(req, res, next) {
           result = {status: "error", message: "Could not update contact."};
           return cb(true);
         }
-        if (contactFields._id) {
-          console.log("Updated contact " + contactFields._id + " for user " + userid);
+        if (upsertId) {
+          console.log("Updated contact " + upsertId + " for user " + userid);
         }
         else {
           console.log("Created contact for user " + userid);
@@ -419,6 +484,26 @@ function contactSave(req, res, next) {
         result = {status: "ok", data: contactFields};
         return cb();
       });
+    },
+    // Update the related profile
+    function (cb) {
+      if (setRoles || setVerified) {
+        Profile.findOne({_id: _profile}, function (err, profile) {
+          if (!err && profile) {
+            if (setRoles) {
+              profile.roles = newRoles;
+            }
+            if (setVerified) {
+              profile.verified = newVerified;
+            }
+            return profile.save(function (err, profile, num) {
+              console.log("Updated profile " + _profile + " to change admin roles for user " + userid);
+              return cb(err);
+            });
+          }
+          return cb(err);
+        });
+      }
     },
   ], function (err, results) {
     res.send(result);

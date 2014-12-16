@@ -53,7 +53,8 @@ var contactSchema = new mongoose.Schema({
   notes:              String,
   created:            Number, // timestamp
   revised:            Number, // timestamp
-  status:             Boolean
+  status:             Boolean,
+  keyContact:         Boolean
 });
 
 mongoose.model('Contact', contactSchema);

@@ -10,7 +10,9 @@ var profileSchema = new mongoose.Schema({
   created:      Number, // timestamp
   revised:      Number, // timestamp
   status:       Boolean,
-  _contacts:    [{ type: Schema.Types.ObjectId, ref: 'Contact' }]
+  _contacts:    [{ type: Schema.Types.ObjectId, ref: 'Contact' }],
+  roles:        [ String ],
+  verified:     Boolean
 });
 
 mongoose.model('Profile', profileSchema);
