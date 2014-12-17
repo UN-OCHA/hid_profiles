@@ -335,6 +335,12 @@ function contactView(req, res, next) {
     else {
       if (_contacts && _contacts.length) {
         contacts = _contacts;
+
+        if (req.query.hasOwnProperty("verified") && req.query.verified) {
+          contacts = _contacts.filter(function (item) {
+            return item._profile && item._profile.verified;
+          });
+        }
       }
       result = {status: "ok", contacts: contacts};
     }
