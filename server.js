@@ -511,7 +511,9 @@ function contactSave(req, res, next) {
           }
           return cb(err);
         });
+        return;
       }
+      return cb();
     },
   ], function (err, results) {
     res.send(result);
