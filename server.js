@@ -361,13 +361,15 @@ function contactSaveAccess(req, res, next) {
     // have an administrative role.
     else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
       Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
-        if (!err && userProfile) {
-          req.apiAuth.userProfile = userProfile;
+        if (!err) {
+          if (userProfile) {
+            req.apiAuth.userProfile = userProfile;
+          }
 
           if (req.apiAuth.userId === req.body.userid) {
             return next();
           }
-          else if (userProfile.roles && userProfile.roles.indexOf("admin") !== -1) {
+          else if (userProfile && userProfile.roles && userProfile.roles.indexOf("admin") !== -1) {
             return next();
           }
         }
@@ -417,7 +419,7 @@ function contactSave(req, res, next) {
     // If the user making this change is not an admin, then exclude protected
     // fields from the submission.
     function (cb) {
-      if (req.apiAuth.mode === 'client' || req.apiAuth.userProfile.roles.indexOf("admin") != -1) {
+      if (req.apiAuth.mode === 'client' || (req.apiAuth.userProfile && req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.indexOf("admin") != -1)) {
         // Allow any field changes
         if (req.body.hasOwnProperty("adminRoles")) {
           setRoles = true;
