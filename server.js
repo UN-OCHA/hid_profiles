@@ -160,7 +160,7 @@ function valid_security_creds_app(req, cb) {
       else if (doc && doc.clientSecret && doc.clientSecret.length) {
         // Regenerate the access key using the known client secret.
         var new_access_key = SHA256(flattenValues(req.query, '') + doc.clientSecret);
-        if (access_key === new_access_key) {
+        if (access_key === new_access_key.toString()) {
           console.log('Verified API request key/signature from client ' + client_id);
           req.apiAuth = {
             mode: "client",
