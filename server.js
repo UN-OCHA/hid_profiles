@@ -327,7 +327,7 @@ function contactView(req, res, next) {
   var result = {},
     contacts = [];
 
-  Contact.find(query).populate('_profile').exec(function (err, _contacts) {
+  Contact.find(query).sort({nameGiven: 1, nameFamily: 1}).populate('_profile').exec(function (err, _contacts) {
     if (err) {
       console.dir(err);
       result = {status: "error", message: "Query failed for contacts."};
