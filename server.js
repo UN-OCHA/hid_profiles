@@ -5,6 +5,7 @@ var Logger = require('bunyan');
 // var routes = require('./routes');
 var config = require('./config');
 var models = require('./models');
+var _ = require('lodash');
 
 server.use(restify.queryParser());
 
@@ -20,6 +21,7 @@ server.use(restify.CORS({
 var Profile = models.Profile,
     Contact = models.Contact,
     Client = models.Client,
+    Cache = models.Cache,
     mongoose = models.mongoose;
 
 var versionPrefix = '/v0/';
@@ -37,19 +39,19 @@ server.pre(function (request, response, next) {
   next();
 });
 
+server.get(versionPrefix + 'app/data', valid_security_creds, getAppData);
+
 server.get(versionPrefix + 'profile/view', valid_security_creds, accountView);
 server.post(versionPrefix + 'profile/view', valid_security_creds, accountView);
 
-server.get(versionPrefix + 'profile/save/:uid', valid_security_creds, contactSaveAccess, profileSave);
+//server.get(versionPrefix + 'profile/save/:uid', valid_security_creds, contactSaveAccess, profileSave);
 server.post(versionPrefix + 'profile/save/:uid', valid_security_creds, contactSaveAccess, profileSave);
 
 server.get(versionPrefix + 'contact/view', valid_security_creds, contactView);
 server.post(versionPrefix + 'contact/view', valid_security_creds, contactView);
 
-server.get(versionPrefix + 'contact/save', valid_security_creds, contactSaveAccess, contactSave);
+//server.get(versionPrefix + 'contact/save', valid_security_creds, contactSaveAccess, contactSave);
 server.post(versionPrefix + 'contact/save', valid_security_creds, contactSaveAccess, contactSave);
-
-server.get(versionPrefix + 'profile/model', accountModel);
 
 // Provide handling for OPTIONS requests for CORS.
 server.opts('.*', function(req, res, next) {
@@ -73,18 +75,6 @@ server.opts('.*', function(req, res, next) {
 server.listen(process.env.PORT || 4000, function() {
   console.log('%s listening at %s', server.name, server.url);
 });
-
-function accountModel(req, res, next) {
-  var paths = Profile.schema.paths;
-  
-  delete paths._id;
-  delete paths.__v;
-
-  var keys = Object.keys(paths);
-
-  res.send(keys);
-  next();
-}
 
 function valid_security_creds(req, res, next) {
   async.parallel([
@@ -198,6 +188,54 @@ function flattenValues(q, strlist) {
   }
 
   return tempList;
+}
+
+function getAppRoles(callback) {
+  async.series([
+    function (cb) {
+      Cache.findOne({"name": "operations"}, function (err, doc) {
+        if (err) {
+          return cb(err, null);
+        }
+        if (doc && doc.data) {
+          var ops = [];
+          _.forEach(doc.data, function (item) {
+            _.forEach(item, function (operation, opId) {
+              if (opId.length && operation.name && operation.name.length) {
+                var op = {
+                  id: "manager:" + opId,
+                  name: operation.name + " Manager"
+                };
+                ops.push(op);
+                var op = {
+                  id: "editor:" + opId,
+                  name: operation.name + " Editor"
+                };
+                ops.push(op);
+              }
+            });
+          });
+          return cb(null, ops);
+        }
+      });
+    }
+  ], function (err, results) {
+    var roles = [{"id": "admin", "name": "Administrator"}];
+    _.forEach(results, function (items) {
+      if (items.length) {
+        roles = roles.concat(items);
+      }
+    });
+    roles = roles.sort(function(a, b) { return (a.name > b.name) ? 1 : -1; });
+    return callback(null, roles);
+  });
+}
+
+function getAppData(req, res, next) {
+  getAppRoles(function (err, data) {
+    res.send({roles: data});
+    next();
+  });
 }
 
 function accountView(req, res, next) {
