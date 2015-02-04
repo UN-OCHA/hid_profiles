@@ -1,4 +1,5 @@
 var async = require('async'),
+  _ = require('lodash'),
   Cache = require('../models').Cache;
 
 function getAppRoles(callback) {
@@ -8,7 +9,7 @@ function getAppRoles(callback) {
         if (err) {
           return cb(err, null);
         }
-        if (doc && doc.data) {
+        else if (doc && doc.data) {
           var ops = [];
           _.forEach(doc.data, function (item) {
             _.forEach(item, function (operation, opId) {
@@ -28,12 +29,13 @@ function getAppRoles(callback) {
           });
           return cb(null, ops);
         }
+        return cb(null, null);
       });
     }
   ], function (err, results) {
     var roles = [{"id": "admin", "name": "Administrator"}];
     _.forEach(results, function (items) {
-      if (items.length) {
+      if (items && items.length) {
         roles = roles.concat(items);
       }
     });
@@ -49,4 +51,4 @@ function getAppData(req, res, next) {
   });
 }
 
-exports.get = getAppRoles;
+exports.get = getAppData;
