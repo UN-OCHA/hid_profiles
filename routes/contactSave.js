@@ -1,6 +1,8 @@
 var async = require('async'),
+  _ = require('lodash'),
   Profile = require('../models').Profile,
   Contact = require('../models').Contact,
+  roles = require('../lib/roles.js'),
   mongoose = require('../models').mongoose;
 
 // Middleware function to grant/deny access to the profileSave and contactSave
@@ -75,13 +77,19 @@ function post(req, res, next) {
     function (cb) {
       if (req.apiAuth.mode === 'client' || (req.apiAuth.userProfile && req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.indexOf("admin") != -1)) {
         // Allow any field changes
-        if (req.body.hasOwnProperty("adminRoles")) {
-          setRoles = true;
-          newRoles = req.body.adminRoles;
-        }
         if (req.body.hasOwnProperty("verified")) {
           setVerified = true;
           newVerified = req.body.verified;
+        }
+        if (req.body.hasOwnProperty("adminRoles")) {
+          setRoles = true;
+          newRoles = req.body.adminRoles;
+
+          // If any admin roles are granted, then also set the verified flag.
+          if (req.body.adminRoles.length) {
+            setVerified = true;
+            newVerified = 1;
+          }
         }
       }
       else {
@@ -89,6 +97,24 @@ function post(req, res, next) {
         delete contactFields.keyContact;
       }
       return cb();
+    },
+    // If new roles are set, filter them by the valid roles list.
+    function (cb) {
+      if (setRoles) {
+        roles.get(function (err, rolesList) {
+          if (!err && rolesList && rolesList.length) {
+            validRoles = rolesList.map(function (val, idx, arr) { return val.id; });
+            newRoles = _.intersection(newRoles, validRoles);
+          }
+          else {
+            setRoles = false;
+          }
+          return cb();
+        });
+      }
+      else {
+        return cb();
+      }
     },
     // If no profile is specified, first lookup a profile by the userid, and if
     // none is found, then create a new one for the userid.
