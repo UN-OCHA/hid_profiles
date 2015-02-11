@@ -54,7 +54,8 @@ var contactSchema = new mongoose.Schema({
   created:            Number, // timestamp
   revised:            Number, // timestamp
   status:             Boolean,
-  keyContact:         Boolean
+  keyContact:         Boolean,
+  protectedRoles:     [ String ]
 });
 
 mongoose.model('Contact', contactSchema);
