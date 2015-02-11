@@ -57,6 +57,8 @@ function post(req, res, next) {
     newRoles = [],
     setVerified = false,
     newVerified = false;
+    setProtectedRoles = false,
+    newProtectedRoles = [],
 
   async.series([
     // Ensure the userid is specified
@@ -87,6 +89,18 @@ function post(req, res, next) {
       else {
         // Remove fields that should be protected
         delete contactFields.keyContact;
+      }
+
+      //If any protectedRoles are set, make sure the user is an admin make the user verified
+      //Otherwise, we leave newProtectedRoles empty and setProtectedRoles = false, which will not update ProtectedRoles
+      if (req.body.hasOwnProperty("newProtectedRoles")){
+        if (req.apiAuth.userProfile.roles.indexOf("admin") != -1){
+          setProtectedRoles = true;
+          newProtectedRoles = req.body.newProtectedRoles;
+
+          setVerified = true;
+          newVerified = true;
+        }
       }
       return cb();
     },
@@ -132,6 +146,10 @@ function post(req, res, next) {
       var upsertId = mongoose.Types.ObjectId(contactFields._id || null);
       delete contactFields._id;
       contactFields._profile = _profile;
+
+      if (setProtectedRoles){
+        contactFields.protectedRoles = newProtectedRoles;
+      }
 
       Contact.update({_id: upsertId}, {'$set': contactFields}, {upsert: true}, function(err) {
         if (err) {
