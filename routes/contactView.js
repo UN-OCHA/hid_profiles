@@ -3,6 +3,7 @@ var Contact = require('../models').Contact;
 function get(req, res, next) {
   var docs = {},
     query = {},
+    range = {skip: 0, limit: 0},
     contactSchema = Contact.schema.paths;
 
   for (var prop in req.query) {
@@ -12,8 +13,10 @@ function get(req, res, next) {
         continue;
       }
 
-      var propArray = prop.split('.');
-      if (prop == '_id' || prop == '_profile') {
+      if (range.hasOwnProperty(prop)) {
+        range[prop] = parseInt(val) || range[prop];
+      }
+      else if (prop == '_id' || prop == '_profile') {
         query[prop] = val;
       }
       else if (prop == 'text') {
@@ -24,7 +27,7 @@ function get(req, res, next) {
           {'organization.name': new RegExp(val, "i")}
         ];
       }
-      else if (recusiveSchemaCheck(contactSchema, propArray)) {
+      else if (recusiveSchemaCheck(contactSchema, prop.split('.'))) {
         query[prop] = val;
       }
     }
@@ -32,26 +35,32 @@ function get(req, res, next) {
   var result = {},
     contacts = [];
 
-  Contact.find(query).sort({nameGiven: 1, nameFamily: 1}).populate('_profile').exec(function (err, _contacts) {
-    if (err) {
-      console.dir(err);
-      result = {status: "error", message: "Query failed for contacts."};
-    }
-    else {
-      if (_contacts && _contacts.length) {
-        contacts = _contacts;
-
-        if (req.query.hasOwnProperty("verified") && req.query.verified) {
-          contacts = _contacts.filter(function (item) {
-            return item._profile && item._profile.verified;
-          });
-        }
+  Contact
+    .find(query)
+    .skip(range.skip)
+    .limit(range.limit)
+    .sort({nameGiven: 1, nameFamily: 1})
+    .populate('_profile')
+    .exec(function (err, _contacts) {
+      if (err) {
+        console.dir(err);
+        result = {status: "error", message: "Query failed for contacts."};
       }
-      result = {status: "ok", contacts: contacts};
-    }
-    res.send(result);
-    next();
-  });
+      else {
+        if (_contacts && _contacts.length) {
+          contacts = _contacts;
+
+          if (req.query.hasOwnProperty("verified") && req.query.verified) {
+            contacts = _contacts.filter(function (item) {
+              return item._profile && item._profile.verified;
+            });
+          }
+        }
+        result = {status: "ok", contacts: contacts};
+      }
+      res.send(result);
+      next();
+    });
 
   // Recursively check schema for properties in array.
   function recusiveSchemaCheck(schema, propArray) {
