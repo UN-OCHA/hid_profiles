@@ -36,7 +36,7 @@ async.series([
   },
   function (cb) {
     // Fetch the functional roles list from HR.info
-    var hrinfoBase = "http://dev1.humanitarianresponse.info/api/v1.0/functional_roles";
+    var hrinfoBase = "http://www.humanitarianresponse.info/api/v1.0/functional_roles";
     var url = hrinfoBase + "/functional_roles";
     var client = restify.createJsonClient({
       url: hrinfoBase,
