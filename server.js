@@ -1,10 +1,17 @@
-var restify = require('restify');
 var _ = require('lodash');
 
 var routes = require('./routes');
 var middleware = require('./middleware');
 var log = require('./log');
 
+// Set http and https default maxSockets to Infinity to avoid artificial
+// constraints in Node < 0.12.
+var http = require('http');
+http.globalAgent.maxSockets = Infinity;
+var https = require('https');
+https.globalAgent.maxSockets = Infinity;
+
+var restify = require('restify');
 var server = restify.createServer();
 
 server.use(restify.queryParser());
