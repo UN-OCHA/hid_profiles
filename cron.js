@@ -6,10 +6,8 @@ var models = require('./models'),
 async.series([
   function (cb) {
     // Fetch the active operations list from HR.info
-    var hrinfoBase = "http://dev1.humanitarianresponse.info";
-    var url = hrinfoBase + "/hid/operations";
     var client = restify.createJsonClient({
-      url: hrinfoBase,
+      url: config.hrinfoBaseUrl,
       version: '*'
     });
     client.get("/hid/operations", function(err, req, res, obj) {
@@ -36,13 +34,11 @@ async.series([
   },
   function (cb) {
     // Fetch the functional roles list from HR.info
-    var hrinfoBase = "http://www.humanitarianresponse.info/api/v1.0/functional_roles";
-    var url = hrinfoBase + "/functional_roles";
     var client = restify.createJsonClient({
-      url: hrinfoBase,
+      url: config.hrinfoBaseUrl,
       version: '*'
     });
-    client.get("", function(err, req, res, obj) {
+    client.get("/api/v1.0/functional_roles", function(err, req, res, obj) {
       if (res.statusCode == 200 && res.body) {
         var obj = JSON.parse(res.body);
         if (!obj) {
@@ -60,7 +56,7 @@ async.series([
         });
       }
       else {
-        console.log("ERROR: Fetched /functional_roles. Did not receive successful response." + res.statusCode + hrinfoBase);
+        console.log("ERROR: Fetched /api/v1.0/functional_roles. Did not receive successful response.");
         return cb();
       }
     });
