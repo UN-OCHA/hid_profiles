@@ -2,6 +2,7 @@ var Profile = require('../models').Profile;
 
 function post(req, res, next) {
   //TODO: refactor and explore reuse of contactSave
+/*
   var profileFields = {};
   for (var prop in req.query) {
     profileFields[prop] = req.query[prop];
@@ -26,6 +27,7 @@ function post(req, res, next) {
       next();
     });
   }
+*/
 }
 
 exports.post = post;
