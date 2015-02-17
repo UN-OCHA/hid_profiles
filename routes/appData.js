@@ -1,6 +1,7 @@
 var async = require('async');
 var roles = require('../lib/roles.js');
 var protectedRoles = require('../lib/protectedRoles.js');
+var log = require('../log');
 
 function getAppData(req, res, next) {
   var appData = {};
@@ -16,10 +17,11 @@ function getAppData(req, res, next) {
         appData.protectedRoles = data;
         return cb();
       });
-    }], function(err, results) {
-          res.send(appData);
-        }
-  );
+    }
+  ], function(err, results) {
+    res.send(appData);
+    log.info({'type': 'getAppData:success', 'message': 'Successfully returned app data'});
+  });
 }
 
 exports.get = getAppData;

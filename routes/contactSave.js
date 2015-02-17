@@ -1,9 +1,10 @@
 var async = require('async'),
   _ = require('lodash'),
+  mongoose = require('../models').mongoose,
   Profile = require('../models').Profile,
   Contact = require('../models').Contact,
   roles = require('../lib/roles.js'),
-  mongoose = require('../models').mongoose;
+  log = require('../log');
 
 // Middleware function to grant/deny access to the profileSave and contactSave
 // routes.
@@ -29,14 +30,14 @@ function postAccess(req, res, next) {
             return next();
           }
         }
-        console.log('User ' + req.apiAuth.userId + ' is not authorized to save contact for ' + req.body.userid);
+        log.warn({'type': 'contactSaveAccess:error', 'message': 'User ' + req.apiAuth.userId + ' is not authorized to save contact for ' + req.body.userid, 'req': req});
         res.send(403, new Error('User not authorized to save contact'));
         return next(false);
       });
       return;
     }
   }
-  console.log('Client not authorized to save contact');
+  log.warn({'type': 'contactSaveAccess:error', 'message': 'Client not authorized to save contact', 'req': req});
   res.send(403, new Error('Client not authorized to save contact'));
   return next(false);
 }
@@ -71,7 +72,7 @@ function post(req, res, next) {
     function (cb) {
       if (!userid || !userid.length) {
         result = {status: "error", message: "No user ID was specified."};
-        console.log('contactSave: invalid request: No user ID was specified.');
+        log.warn({'type': 'contactSave:error', 'message': 'contactSave: invalid request: No user ID was specified.', 'req': req});
         return cb(true);
       }
       else {
@@ -99,15 +100,16 @@ function post(req, res, next) {
       if (contactFields._profile === null || !contactFields._profile || !contactFields._profile.length) {
         Profile.findOne({userid: userid}, function (err, profile) {
           if (err || !profile || !profile._id) {
-            console.log('Creating new profile for userid ' + userid);
+            log.info({'type': 'post', 'message': 'Creating new profile for userid ' + userid});
             Profile.update({_userid: userid}, {userid: userid, status: 1}, {upsert: true}, function(err, profile) {
               if (err) {
-                console.dir(err);
+                log.warn({'type': 'post:error', 'message': 'Error occurred while trying to update/insert profile for user ID ' + userid, 'err': err});
                 result = {status: "error", message: "Could not create profile for user."};
                 return cb(true);
               }
               Profile.findOne({userid: userid}, function (err, profile) {
                 if (err || !profile || !profile._id) {
+                  log.warn({'type': 'post:error', 'message': 'Error occurred or could not find profile for user ' + userid + ' after creating it.', 'err': err});
                   result = {status: "error", message: "Could not find the created profile."};
                   return cb(true);
                 }
@@ -285,15 +287,15 @@ function post(req, res, next) {
 
       Contact.update({_id: upsertId}, {'$set': contactFields}, {upsert: true}, function(err) {
         if (err) {
-          console.dir(err);
+          log.warn({'type': 'contactSave:error', 'message': 'Error occurred while attempting to upsert contact with ID ' + upsertId, 'fields': contactFields, 'err': err});
           result = {status: "error", message: "Could not update contact."};
           return cb(true);
         }
         if (upsertId) {
-          console.log("Updated contact " + upsertId + " for user " + userid);
+          log.info({'type': 'contactSave:success', 'message': "Updated contact " + upsertId + " for user " + userid});
         }
         else {
-          console.log("Created contact for user " + userid);
+          log.info({'type': 'contactSave:success', 'message': "Created contact " + upsertId + " for user " + userid});
         }
         result = {status: "ok", data: contactFields};
         return cb();
@@ -311,7 +313,7 @@ function post(req, res, next) {
               profile.verified = newVerified;
             }
             return profile.save(function (err, profile, num) {
-              console.log("Updated profile " + _profile + " to change admin roles for user " + userid);
+              log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile + " to change admin roles for user " + userid});
               return cb(err);
             });
           }

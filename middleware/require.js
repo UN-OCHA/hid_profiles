@@ -1,7 +1,8 @@
 var restify = require('restify'),
   async = require('async'),
   config = require('../config'),
-  Client = require('../models').Client;
+  Client = require('../models').Client,
+  log = require('../log');
 
 function appOrUser(req, res, next) {
   async.parallel([
@@ -17,7 +18,7 @@ function appOrUser(req, res, next) {
       req.apiAuth = results[0];
       return next();
     }
-    console.log('Invalid security credentials')
+    log.warn({'type': 'appOrUser:error', 'message': 'Request blocked due to invalid security credentials', 'req': req});
     res.send(403, new Error('client or key not accepted'));
     return next(false);
   });
@@ -35,11 +36,11 @@ function valid_security_creds_user(req, cb) {
     });
     client.get('/account.json?access_token=' + access_token, function(err, req, res, obj) {
       if (err) {
-        console.log('Could not confirm API request key/signature using access token ' + access_token);
+        log.warn({'type': 'validateUserCreds:error', 'message': 'Error occurred when verifying access token ' + access_token + ' with HID auth service.', 'err': err})
         cb(err, false);
       }
       else if (obj.user_id && obj.authorized_services) {
-        console.log('Verified API request key/signature from user ' + obj.user_id);
+        log.info({'type': 'validateUserCreds:success', 'message': 'Verified API request access token for user ' + obj.user_id, 'req': req});
         req.apiAuth = {
           mode: "user",
           userId: obj.user_id,
@@ -48,7 +49,7 @@ function valid_security_creds_user(req, cb) {
         cb(null, req.apiAuth);
       }
       else {
-        console.log('Invalid API request key/signature using access token ' + access_token);
+        log.warn({'type': 'validateUserCreds:error', 'message': 'Invalid API request access token ' + access_token + ' provided.', 'req': req});
         cb(null, false);
       }
     });
@@ -70,14 +71,14 @@ function valid_security_creds_app(req, cb) {
     // Step 1: Validate that the client app is allowed
     Client.findOne({clientId: client_id}, function (err, doc) {
       if (err) {
-        console.log('Database query failed when searching for client by ID ' + client_id);
+        log.warn({'type': 'validateAppCreds:error', 'message': 'Error occurred when looking up client by client ID ' + client_id, 'req': req});
         cb(err, false);
       }
       else if (doc && doc.clientSecret && doc.clientSecret.length) {
         // Regenerate the access key using the known client secret.
         var new_access_key = SHA256(flattenValues(req.query, '') + doc.clientSecret);
         if (access_key === new_access_key.toString()) {
-          console.log('Verified API request key/signature from client ' + client_id);
+          log.info({'type': 'validateAppCreds:success', 'message': 'Verified API request for client ID ' + client_id, 'req': req});
           req.apiAuth = {
             mode: "client",
             clientId: client_id,
@@ -86,12 +87,12 @@ function valid_security_creds_app(req, cb) {
           cb(null, req.apiAuth);
         }
         else {
-          console.log('Invalid API request key/signature from client ' + client_id);
+          log.warn({'type': 'validateAppCreds:error', 'message': 'Invalid API request key/secret combination for client ID ' + client_id, 'req': req});
           cb(null, false);
         }
       }
       else {
-        console.log('Invalid client ID provided for API request ' + client_id);
+        log.warn({'type': 'validateAppCreds:error', 'message': 'Invalid API request client ID ' + client_id, 'req': req});
         cb(null, false);
       }
     });
