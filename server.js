@@ -1,13 +1,14 @@
 var restify = require('restify');
-var Logger = require('bunyan');
 var _ = require('lodash');
 
 var routes = require('./routes');
 var middleware = require('./middleware');
+var log = require('./log');
 
 var server = restify.createServer();
 
 server.use(restify.queryParser());
+server.log = log;
 
 server.use(restify.bodyParser({
   maxBodySize: 16384,
@@ -17,15 +18,6 @@ server.use(restify.CORS({
   origins: ['*'],
   credentials: true
 }));
-
-var log = new Logger.createLogger({
-  name: 'contactsid-profiles',
-  serializers: {
-    req: Logger.stdSerializers.req
-  }
-});
-
-server.log = log;
 
 server.pre(function (request, response, next) {
   request.log.info({req: request}, 'REQUEST');

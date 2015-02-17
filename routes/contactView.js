@@ -1,4 +1,5 @@
-var Contact = require('../models').Contact;
+var Contact = require('../models').Contact,
+  log = require('../log');
 
 function get(req, res, next) {
   var docs = {},
@@ -43,7 +44,7 @@ function get(req, res, next) {
     .populate('_profile')
     .exec(function (err, _contacts) {
       if (err) {
-        console.dir(err);
+        log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts.', 'err': err});
         result = {status: "error", message: "Query failed for contacts."};
       }
       else {
@@ -57,6 +58,7 @@ function get(req, res, next) {
           }
         }
         result = {status: "ok", contacts: contacts};
+        log.info({'type': 'contactView:success', 'message': 'Successfully returned data for contactView query.', 'query': query, 'range': range});
       }
       res.send(result);
       next();
@@ -67,7 +69,7 @@ function get(req, res, next) {
     var prop = propArray.shift();
     if (schema.hasOwnProperty(prop)) {
       if (propArray.length  && schema[prop].hasOwnProperty('schema')) {
-        return recusiveSchemaCheck(schema[prop].schema.paths ,propArray);
+        return recusiveSchemaCheck(schema[prop].schema.paths, propArray);
       }
       else {
         return true;

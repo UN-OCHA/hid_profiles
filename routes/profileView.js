@@ -1,6 +1,7 @@
 var async = require('async'),
   Profile = require('../models').Profile,
-  Contact = require('../models').Contact;
+  Contact = require('../models').Contact,
+  log = require('../log');
 
 function get(req, res, next) {
   var docs  = { },
@@ -28,7 +29,7 @@ function get(req, res, next) {
     function (cb) {
       Profile.findOne(query, function (err, _profile) {
         if (err) {
-          console.dir(err);
+          log.warn({'type': 'profileView:error', 'message': 'Error occurred while performing query for profiles.', 'err': err});
           return cb(err);
         }
         if (_profile && _profile._id) {
@@ -43,7 +44,7 @@ function get(req, res, next) {
       if (profile && profile._id) {
         Contact.find({'_profile': profile._id, 'status': 1}, function (err, _contacts) {
           if (err) {
-            console.dir(err);
+            log.warn({'type': 'profileView:error', 'message': 'Error occurred while performing query for contacts related to this profile.', 'err': err});
             return cb(err);
           }
           if (_contacts && _contacts.length) {
@@ -62,6 +63,7 @@ function get(req, res, next) {
         'contacts': contacts
       };
       res.send(account);
+      log.info({'type': 'profileView:success', 'message': 'Successfully returned data for profileView query.', 'query': query});
       return cb();
     }
   ], function (err, results) {
