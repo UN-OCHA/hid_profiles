@@ -1,6 +1,7 @@
-var bunyan = require("bunyan"),
+var bunyan = require('bunyan'),
+  config = require('./config'),
   log = bunyan.createLogger({
-    name: 'contactsid_profiles',
+    name: config.name,
     serializers: {
       req: bunyan.stdSerializers.req
     },
