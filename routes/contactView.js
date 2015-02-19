@@ -1,5 +1,7 @@
 var Contact = require('../models').Contact,
-  log = require('../log');
+  log = require('../log'),
+  stringify = require('csv-stringify'),
+  _ = require('lodash');
 
 function get(req, res, next) {
   var docs = {},
@@ -57,11 +59,68 @@ function get(req, res, next) {
             });
           }
         }
+
+        if (req.query.export && ((req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) || (req.apiAuth.mode === 'user' && req.apiAuth.userId))) {
+          var csvData = '',
+            stringifier = stringify({'quoted': true});
+
+          stringifier.on('readable', function() {
+            while (row = stringifier.read()) {
+              csvData += row;
+            }
+          });
+          stringifier.on('error', function(err) {
+            log.warn({'type': 'contactView:error', 'message': 'Error occurred while reading stringifier to generate CSV.', 'err': err});
+          });
+          stringifier.on('finish', function() {
+            res.charSet('utf-8');
+            res.writeHead(200, {
+              'Content-Length': Buffer.byteLength(csvData),
+              'Content-Type': 'text/csv; charset=utf-8',
+              'Content-Disposition': 'attachment; filename="contacts.csv"'
+            });
+            res.write(csvData);
+            res.end();
+          });
+
+          stringifier.write([
+            'Given Name',
+            'Family Name',
+            'Job Title',
+            'Organization',
+            'Groups',
+            'Country',
+            'Admin Area',
+            'Locality',
+            'Phone',
+            'VOIP',
+            'Email',
+            'URI'
+          ]);
+          _.forEach(contacts, function (item) {
+            console.log(item);
+            stringifier.write([
+              item.nameGiven,
+              item.nameFamily,
+              item.jobtitle,
+              item.organization.map(function (val) { if (val.name) { return val.name; } }).join(', '),
+              item.bundle.join(', '),
+              item.address && item.address[0] && item.address[0].country ? item.address[0].country : '',
+              item.address && item.address[0] && item.address[0].administrative_area ? item.address[0].administrative_area : '',
+              item.address && item.address[0] && item.address[0].locality ? item.address[0].locality : '',
+              item.phone && item.phone[0] && item.phone[0].number ? item.phone[0].number : '',
+              item.voip && item.voip[0] && item.voip[0].number ? item.voip[0].number : '',
+              item.uri && item.uri[0] && item.uri[0] ? item.uri[0] : ''
+            ]);
+          });
+          stringifier.end();
+          return;
+        }
+
         result = {status: "ok", contacts: contacts};
         log.info({'type': 'contactView:success', 'message': 'Successfully returned data for contactView query.', 'query': query, 'range': range});
       }
       res.send(result);
-      next();
     });
 
   // Recursively check schema for properties in array.
