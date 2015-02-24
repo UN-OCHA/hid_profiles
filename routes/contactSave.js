@@ -85,7 +85,7 @@ function post(req, res, next) {
       else if ((!userid || !userid.length) && isNewContact){
         //New contact
         if (!contactFields.email){
-          //This is a ghost account so create a new userid
+          //This is a ghost account (no email) so create a new userid
           userid =  Date.now();
           return cb();
         }
@@ -95,14 +95,15 @@ function post(req, res, next) {
             "email": contactFields.email,
             "nameFirst": contactFields.nameGiven,
             "nameLast": contactFields.nameFamily,
-            'emailFlag': 1
+            "active": 1,
+            'emailFlag': 1 //Orphan email
           };
 
           var new_access_key = middleware.require.getAuthAccessKey(request);
           request["access_key"] = new_access_key;
 
           var client_key = config.authClientId;
-          request.["client_key"] = client_key
+          request["client_key"] = client_key
 
           var client = restify.createJsonClient({
             url: config.authBaseUrl,
@@ -115,7 +116,16 @@ function post(req, res, next) {
               if (obj) {
                 //Set userid to the new auth userid
                 userid =  obj.data.user_id;
-                return cb();
+                //If is_new returns a 0, auth service found an existing user record, so return an error message
+                if (obj.data.is_new === 0){
+                  log.warn({'type': 'contactSave:error', 'message': 'contactSave: Auth profile already exists for user.', 'req': req});
+                  result = {status: "error", message: "Profile aleady exists"};
+                  return cb(true);
+                }
+                else{
+                  return cb();
+                }
+
               }
               else{
                 log.warn({'type': 'contactSave:error', 'message': 'contactSave: Error creating auth profile.', 'req': req});
@@ -125,7 +135,7 @@ function post(req, res, next) {
             }
             else {
               log.warn({'type': 'contactSave:error', 'message': 'contactSave: Error creating auth profile.', 'req': req});
-              result = {status: "error", message: "Error creating auth profile"};
+              result = {status: "error", message: "Error creating profile"};
               return cb(true);
             }
           });
@@ -155,7 +165,7 @@ function post(req, res, next) {
     // If userid is blank (""), assume that it is a new account being created
     function (cb) {
       if (contactFields._profile === null || !contactFields._profile || !contactFields._profile.length) {
-        //If userid is not set, we are creating a new account and need to get one based o
+        //If userid is not set, we are creating a new account
         Profile.findOne({userid: userid}, function (err, profile) {
           if (err || !profile || !profile._id || userid === "") {
             log.info({'type': 'post', 'message': 'Creating new profile for userid ' + userid});
