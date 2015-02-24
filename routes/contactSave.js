@@ -62,7 +62,7 @@ function post(req, res, next) {
     origProfile = null,
     userid = req.body.userid || '',
     _profile = null,
-    profileData = null,veve
+    profileData = null,
     setContactData = false,
     setRoles = false,
     newRoles = [],
@@ -98,9 +98,9 @@ function post(req, res, next) {
             "active": 1,
             'emailFlag': 1 //Orphan email
           };
-
+ 
           var new_access_key = middleware.require.getAuthAccessKey(request);
-          request["access_key"] = new_access_key;
+          request["access_key"] = new_access_key.toString();
 
           var client_key = config.authClientId;
           request["client_key"] = client_key
@@ -125,7 +125,6 @@ function post(req, res, next) {
                 else{
                   return cb();
                 }
-
               }
               else{
                 log.warn({'type': 'contactSave:error', 'message': 'contactSave: Error creating auth profile.', 'req': req});
@@ -162,10 +161,8 @@ function post(req, res, next) {
     },
     // If no profile is specified, first lookup a profile by the userid, and if
     // none is found, then create a new one for the userid.
-    // If userid is blank (""), assume that it is a new account being created
     function (cb) {
       if (contactFields._profile === null || !contactFields._profile || !contactFields._profile.length) {
-        //If userid is not set, we are creating a new account
         Profile.findOne({userid: userid}, function (err, profile) {
           if (err || !profile || !profile._id || userid === "") {
             log.info({'type': 'post', 'message': 'Creating new profile for userid ' + userid});

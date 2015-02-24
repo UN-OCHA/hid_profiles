@@ -106,7 +106,7 @@ module.exports.getAuthAccessKey = function(req){
   //Get client access key
   var access_key = '';
   var SHA256 = require("crypto-js/sha256");
-  var data = req.body;
+  var data = req;
   var valuesList = flattenValues(data, '') + config.authClientSecret;
   access_key = SHA256(valuesList);
 
