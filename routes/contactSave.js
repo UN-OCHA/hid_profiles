@@ -96,7 +96,7 @@ function post(req, res, next) {
             "nameFirst": contactFields.nameGiven,
             "nameLast": contactFields.nameFamily,
             "active": 1,
-            'emailFlag': 1 //Orphan email
+            'emailFlag': '1' //Orphan email
           };
  
           var new_access_key = middleware.require.getAuthAccessKey(request);
