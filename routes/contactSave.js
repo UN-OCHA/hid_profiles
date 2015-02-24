@@ -45,7 +45,7 @@ function postAccess(req, res, next) {
   return next(false);
 }
 
-function post(req, res, next) { 
+function post(req, res, next) {
   var contactFields = {},
     contactModel = (new Contact(req.body)).toObject();
 
@@ -102,7 +102,7 @@ function post(req, res, next) {
           request["access_key"] = new_access_key;
 
           var client_key = config.authClientId;
-          request.client_key = client_key
+          request.["client_key"] = client_key
 
           var client = restify.createJsonClient({
             url: config.authBaseUrl,
