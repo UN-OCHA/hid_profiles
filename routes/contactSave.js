@@ -4,7 +4,10 @@ var async = require('async'),
   Profile = require('../models').Profile,
   Contact = require('../models').Contact,
   roles = require('../lib/roles.js'),
-  log = require('../log');
+  log = require('../log'),
+  config = require('../config'),
+  restify = require('restify'),
+  middleware = require('../middleware');
 
 // Middleware function to grant/deny access to the profileSave and contactSave
 // routes.
@@ -42,7 +45,7 @@ function postAccess(req, res, next) {
   return next(false);
 }
 
-function post(req, res, next) {
+function post(req, res, next) { 
   var contactFields = {},
     contactModel = (new Contact(req.body)).toObject();
 
@@ -52,12 +55,14 @@ function post(req, res, next) {
     }
   }
 
+  var isNewContact = req.body.isNewContact || false;
+
   var result = {},
     origContact = null,
     origProfile = null,
     userid = req.body.userid || '',
     _profile = null,
-    profileData = null,
+    profileData = null,veve
     setContactData = false,
     setRoles = false,
     newRoles = [],
@@ -68,12 +73,63 @@ function post(req, res, next) {
     newProtectedRoles = [];
 
   async.series([
-    // Ensure the userid is specified
+    //Check to see if userid is set - if isNewContact is false, return an error
+    //If isNewContact and no email is specified for the new profile, we are creating a ghost account so create a random user id
+    //If isNewContact and email does exist, we are creating an orphan account and will need to create an auth record for the new account
     function (cb) {
-      if (!userid || !userid.length) {
+      if ((!userid || !userid.length) && !isNewContact) {
         result = {status: "error", message: "No user ID was specified."};
         log.warn({'type': 'contactSave:error', 'message': 'contactSave: invalid request: No user ID was specified.', 'req': req});
         return cb(true);
+      }
+      else if ((!userid || !userid.length) && isNewContact){
+        //New contact
+        if (!contactFields.email){
+          //This is a ghost account so create a new userid
+          userid =  Date.now();
+          return cb();
+        }
+        else{
+          //Create a new auth record for the new profile
+          var request = {
+            "email": contactFields.email,
+            "nameFirst": contactFields.nameGiven,
+            "nameLast": contactFields.nameFamily,
+            'emailFlag': 1
+          };
+
+          var new_access_key = middleware.require.getAuthAccessKey(request);
+          request["access_key"] = new_access_key;
+
+          var client_key = config.authClientId;
+          request.client_key = client_key
+
+          var client = restify.createJsonClient({
+            url: config.authBaseUrl,
+            version: '*'
+          });
+
+          client.post("/api/register", request, function(err, req, res, data) {
+            if (res.statusCode == 200 && res.body) {
+              var obj = JSON.parse(res.body);
+              if (obj) {
+                //Set userid to the new auth userid
+                userid =  obj.data.user_id;
+                return cb();
+              }
+              else{
+                log.warn({'type': 'contactSave:error', 'message': 'contactSave: Error creating auth profile.', 'req': req});
+                result = {status: "error", message: "Error creating auth profile"};
+                return cb(true);
+              }
+            }
+            else {
+              log.warn({'type': 'contactSave:error', 'message': 'contactSave: Error creating auth profile.', 'req': req});
+              result = {status: "error", message: "Error creating auth profile"};
+              return cb(true);
+            }
+          });
+        }
       }
       else {
         return cb();
@@ -96,10 +152,12 @@ function post(req, res, next) {
     },
     // If no profile is specified, first lookup a profile by the userid, and if
     // none is found, then create a new one for the userid.
+    // If userid is blank (""), assume that it is a new account being created
     function (cb) {
       if (contactFields._profile === null || !contactFields._profile || !contactFields._profile.length) {
+        //If userid is not set, we are creating a new account and need to get one based o
         Profile.findOne({userid: userid}, function (err, profile) {
-          if (err || !profile || !profile._id) {
+          if (err || !profile || !profile._id || userid === "") {
             log.info({'type': 'post', 'message': 'Creating new profile for userid ' + userid});
             Profile.update({_userid: userid}, {userid: userid, status: 1}, {upsert: true}, function(err, profile) {
               if (err) {

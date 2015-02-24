@@ -102,6 +102,17 @@ function valid_security_creds_app(req, cb) {
   }
 }
 
+module.exports.getAuthAccessKey = function(req){
+  //Get client access key
+  var access_key = '';
+  var SHA256 = require("crypto-js/sha256");
+  var data = req.body;
+  var valuesList = flattenValues(data, '') + config.authClientSecret;
+  access_key = SHA256(valuesList);
+
+  return access_key;
+}
+
 function flattenValues(q, strlist) {
   var tempList = '';
   for (var key in q) {
