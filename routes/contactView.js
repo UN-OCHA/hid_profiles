@@ -27,6 +27,7 @@ function get(req, res, next) {
           {jobtitle: new RegExp(val, "i")},
           {nameGiven: new RegExp(val, "i")},
           {nameFamily: new RegExp(val, "i")},
+          {notes: new RegExp(val, "i")},
           {'organization.name': new RegExp(val, "i")}
         ];
       }
