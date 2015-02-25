@@ -98,7 +98,6 @@ function get(req, res, next) {
             'URI'
           ]);
           _.forEach(contacts, function (item) {
-            console.log(item);
             stringifier.write([
               item.nameGiven,
               item.nameFamily,
@@ -110,6 +109,7 @@ function get(req, res, next) {
               item.address && item.address[0] && item.address[0].locality ? item.address[0].locality : '',
               item.phone && item.phone[0] && item.phone[0].number ? item.phone[0].number : '',
               item.voip && item.voip[0] && item.voip[0].number ? item.voip[0].number : '',
+              item.email && item.email[0] && item.email[0].address ? item.email[0].address : '',
               item.uri && item.uri[0] && item.uri[0] ? item.uri[0] : ''
             ]);
           });
