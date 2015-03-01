@@ -8,6 +8,7 @@ var async = require('async'),
   config = require('../config'),
   restify = require('restify'),
   middleware = require('../middleware');
+  mail = require('../mail');
 
 // Middleware function to grant/deny access to the profileSave and contactSave
 // routes.
@@ -56,6 +57,7 @@ function post(req, res, next) {
   }
 
   var isNewContact = req.body.isNewContact || false;
+  var notifyEmail = req.body.notifyEmail || null;
 
   var result = {},
     origContact = null,
@@ -387,6 +389,69 @@ function post(req, res, next) {
           }
         });
         return;
+      }
+      else {
+        return cb();
+      }
+    },
+    // Send emails (if applicable)
+    function (cb) {
+      if (notifyEmail) {
+        if (notifyEmail.type == 'notify_checkout'){
+          var mailText = notifyEmail.adminName + ' done checked you out of ' + notifyEmail.locationName;
+          var mailOptions = {
+
+           // from: req.app.get('title') + ' <' + req.app.get('emailFrom') + '>',
+            from: 'info@humanitarian.id',
+            to: notifyEmail.to,  //contactFields.email
+            subject: 'Humanitarian ID check-out notification', // + req.app.get('title'),
+            text: mailText
+          };
+
+          // Send mail
+          mail.sendMail(mailOptions, function (err, info) {
+            if (err) {
+             // message = 'Verify email sending failed. Please try again or contact administrators.';
+              //log.warn({'type': 'registerEmail:error', 'message': 'Registration verification email sending failed to ' + data.email + '.', 'err': err, 'info': info});
+              return cb(true);
+            }
+            else {
+             // message = 'Verify email sent successful! Check your email and follow the included link to verify your account.';
+             // log.info({'type': 'registerEmail:success', 'message': 'Registration verification email sending successful to ' + data.email + '.', 'info': info, 'resetUrl': reset_url});
+              options = {};
+              return cb();
+            }
+          });
+        }
+        else if (notifyEmail.type == 'notify_checkin'){
+          var mailText = notifyEmail.adminName + ' done checked you in ' + notifyEmail.locationName;
+          var mailOptions = {
+
+           // from: req.app.get('title') + ' <' + req.app.get('emailFrom') + '>',
+            from: 'info@humanitarian.id',
+            to: notifyEmail.to,  //contactFields.email
+            subject: 'Humanitarian ID check-out notification', // + req.app.get('title'),
+            text: mailText
+          };
+
+          // Send mail
+          mail.sendMail(mailOptions, function (err, info) {
+            if (err) {
+             // message = 'Verify email sending failed. Please try again or contact administrators.';
+              //log.warn({'type': 'registerEmail:error', 'message': 'Registration verification email sending failed to ' + data.email + '.', 'err': err, 'info': info});
+              return cb(true);
+            }
+            else {
+             // message = 'Verify email sent successful! Check your email and follow the included link to verify your account.';
+             // log.info({'type': 'registerEmail:success', 'message': 'Registration verification email sending successful to ' + data.email + '.', 'info': info, 'resetUrl': reset_url});
+              options = {};
+              return cb();
+            }
+          });
+        }
+        else{
+           return cb();
+        }
       }
       else {
         return cb();
