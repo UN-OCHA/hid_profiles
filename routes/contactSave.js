@@ -494,5 +494,36 @@ function post(req, res, next) {
   });
 }
 
+function resetPasswordPost(req, res, next) {
+  // Issue a request for a password reset to the auth system.
+  var request = {
+    'email': req.body.email || '',
+    'emailFlag': req.body.emailFlag || null
+  };
+
+  var new_access_key = middleware.require.getAuthAccessKey(request);
+  request["access_key"] = new_access_key.toString();
+
+  var client_key = config.authClientId;
+  request["client_key"] = client_key
+
+  var client = restify.createJsonClient({
+    url: config.authBaseUrl,
+    version: '*'
+  });
+
+  client.post("/api/resetpw", request, function(err, req, res, data) {
+    if (res.statusCode == 200 && res.body && res.body.status === 'ok') {
+      log.info({'type': 'resetPassword:success', 'message': 'Successfully requested reset password email for user with email ' + request.email, 'req': req});
+      return cb();
+    }
+    else {
+      log.warn({'type': 'resetPassword:error', 'message': 'Could not request reset password email. Received message: ' + res.body.message, 'req': req, 'res': res});
+      return cb(true);
+    }
+  });
+}
+
 exports.post = post;
 exports.postAccess = postAccess;
+exports.resetPasswordPost = resetPasswordPost;
