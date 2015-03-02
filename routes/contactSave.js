@@ -101,7 +101,7 @@ function post(req, res, next) {
             "active": 1,
             'emailFlag': '1' //Orphan email
           };
- 
+
           var new_access_key = middleware.require.getAuthAccessKey(request);
           request["access_key"] = new_access_key.toString();
 
@@ -116,30 +116,16 @@ function post(req, res, next) {
           client.post("/api/register", request, function(err, req, res, data) {
             if (res.statusCode == 200 && res.body) {
               var obj = JSON.parse(res.body);
-              if (obj) {
-                //Set userid to the new auth userid
-                userid =  obj.data.user_id;
-                //If is_new returns a 0, auth service found an existing user record, so return an error message
-                if (obj.data.is_new === 0){
-                  log.warn({'type': 'contactSave:error', 'message': 'contactSave: Auth profile already exists for user.', 'req': req});
-                  result = {status: "error", message: "Profile aleady exists"};
-                  return cb(true);
-                }
-                else{
-                  return cb();
-                }
-              }
-              else{
-                log.warn({'type': 'contactSave:error', 'message': 'contactSave: Error creating auth profile.', 'req': req});
-                result = {status: "error", message: "Error creating auth profile"};
-                return cb(true);
+              if (obj && obj.data && obj.data.user_id) {
+                // Set userid to the userid returned from the auth service
+                userid = obj.data.user_id;
+                return cb();
               }
             }
-            else {
-              log.warn({'type': 'contactSave:error', 'message': 'contactSave: Error creating auth profile.', 'req': req});
-              result = {status: "error", message: "Error creating profile"};
-              return cb(true);
-            }
+
+            log.warn({'type': 'contactSave:error', 'message': 'contactSave: An unsuccessful response was received when trying to create a user account on the authentication service.', 'req': req, 'res': res});
+            result = {status: "error", message: "Could not create user account. Please try again or contact an administrator."};
+            return cb(true);
           });
         }
       }
@@ -271,7 +257,7 @@ function post(req, res, next) {
       // Allow setting protectedRoles if the user is an admin or a manager in
       // the location of this profile. Also, set the user to verified if any
       // protected roles are granted.
-      if (req.body.hasOwnProperty("newProtectedRoles") && (isAPI || isAdmin || (isManager && isManagersEditorsLocation))) {
+      if (req.body.hasOwnProperty("newProtectedRoles") && (isAPI || isAdmin || ((isManager || isEditor) && isManagersEditorsLocation))) {
         setProtectedRoles = true;
         newProtectedRoles = req.body.newProtectedRoles;
 
@@ -281,10 +267,9 @@ function post(req, res, next) {
         }
       }
 
-      // Allow admins to change all roles, allow managers to only assign
-      // managers/editors within their location, and allow editors to only
-      // assign editors within own location.
-      if (newRoles.length && (isAPI || isAdmin || isManager || isEditor)) {
+      // Allow admins to change all roles, and allow managers to only assign
+      // managers/editors within their location.
+      if ((newRoles.length || origProfile.roles.length) && (isAPI || isAdmin || isManager)) {
         setRoles = true;
 
         var addRoles = _.difference(newRoles, origProfile.roles),
@@ -299,7 +284,7 @@ function post(req, res, next) {
           else if (roleParts && roleParts[1] === 'manager' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]))) {
             return;
           }
-          else if (roleParts && roleParts[1] === 'editor' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]) || roles.has(req.apiAuth.userProfile, 'editor:' + roleParts[2]))) {
+          else if (roleParts && roleParts[1] === 'editor' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]))) {
             return;
           }
 
@@ -318,7 +303,7 @@ function post(req, res, next) {
           else if (roleParts && roleParts[1] === 'manager' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]))) {
             return;
           }
-          else if (roleParts && roleParts[1] === 'editor' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]) || roles.has(req.apiAuth.userProfile, 'editor:' + roleParts[2]))) {
+          else if (roleParts && roleParts[1] === 'editor' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]))) {
             return;
           }
 
