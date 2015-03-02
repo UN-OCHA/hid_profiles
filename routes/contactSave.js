@@ -201,7 +201,6 @@ function post(req, res, next) {
           else {
             setRoles = false;
           }
-
           return cb();
         });
       }
