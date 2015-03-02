@@ -264,10 +264,9 @@ function post(req, res, next) {
         }
       }
 
-      // Allow admins to change all roles, allow managers to only assign
-      // managers/editors within their location, and allow editors to only
-      // assign editors within own location.
-      if ((newRoles.length || origProfile.roles.length) && (isAPI || isAdmin || isManager || isEditor)) {
+      // Allow admins to change all roles, and allow managers to only assign
+      // managers/editors within their location.
+      if ((newRoles.length || origProfile.roles.length) && (isAPI || isAdmin || isManager)) {
         setRoles = true;
 
         var addRoles = _.difference(newRoles, origProfile.roles),
@@ -282,7 +281,7 @@ function post(req, res, next) {
           else if (roleParts && roleParts[1] === 'manager' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]))) {
             return;
           }
-          else if (roleParts && roleParts[1] === 'editor' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]) || roles.has(req.apiAuth.userProfile, 'editor:' + roleParts[2]))) {
+          else if (roleParts && roleParts[1] === 'editor' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]))) {
             return;
           }
 
@@ -301,7 +300,7 @@ function post(req, res, next) {
           else if (roleParts && roleParts[1] === 'manager' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]))) {
             return;
           }
-          else if (roleParts && roleParts[1] === 'editor' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]) || roles.has(req.apiAuth.userProfile, 'editor:' + roleParts[2]))) {
+          else if (roleParts && roleParts[1] === 'editor' && (isAPI || isAdmin || roles.has(req.apiAuth.userProfile, 'manager:' + roleParts[2]))) {
             return;
           }
 
