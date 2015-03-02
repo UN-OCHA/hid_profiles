@@ -254,7 +254,7 @@ function post(req, res, next) {
       // Allow setting protectedRoles if the user is an admin or a manager in
       // the location of this profile. Also, set the user to verified if any
       // protected roles are granted.
-      if (req.body.hasOwnProperty("newProtectedRoles") && (isAPI || isAdmin || (isManager && isManagersEditorsLocation))) {
+      if (req.body.hasOwnProperty("newProtectedRoles") && (isAPI || isAdmin || ((isManager || isEditor) && isManagersEditorsLocation))) {
         setProtectedRoles = true;
         newProtectedRoles = req.body.newProtectedRoles;
 
