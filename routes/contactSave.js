@@ -58,6 +58,7 @@ function post(req, res, next) {
 
   var isNewContact = req.body.isNewContact || false;
   var notifyEmail = req.body.notifyEmail || null;
+  var message = null;
 
   var result = {},
     origContact = null,
@@ -398,52 +399,60 @@ function post(req, res, next) {
     function (cb) {
       if (notifyEmail) {
         if (notifyEmail.type == 'notify_checkout'){
-          var mailText = notifyEmail.adminName + ' done checked you out of ' + notifyEmail.locationName;
-          var mailOptions = {
+          var mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nWe wanted to let you know that you have been removed from the contact list in ' + notifyEmail.locationName + ' by one of our locally based managers, ' + notifyEmail.adminName + '.';
+          mailText += '\r\n\r\nIf you feel that this action was not correct, simply log into your Humanitarian ID account and modify your profile for ' + notifyEmail.locationName + '.';
+          mailText += '\r\n\r\nThe Humanitarian ID team\r\nhttp://humanitarian.id';
+          mailText += '\r\n\r\n\r\n';
+          mailText += 'Bonjour ' + notifyEmail.recipientFirstName + ', \r\n\r\nVous avez été ajoutés sur Humanitarian ID en' + notifyEmail.locationName + ' par un de nos gestionnaires sur place, ' + notifyEmail.adminName;
+          mailText += '\r\n\r\nEn cas ou ceci n’est pas correct, on vous prie de bien vouloir vous connecter sur Humanitarian ID et modifier votre profile pour ' + notifyEmail.locationName + '.';
+          mailText += '\r\n\r\nL’équipe Humanitarian ID\r\nhttp://humanitarian.id';
 
-           // from: req.app.get('title') + ' <' + req.app.get('emailFrom') + '>',
-            from: 'info@humanitarian.id',
-            to: notifyEmail.to,  //contactFields.email
-            subject: 'Humanitarian ID check-out notification', // + req.app.get('title'),
+          var mailOptions = {
+            from:  'Humanitarian ID<info@humanitarian.id>',
+            to: notifyEmail.recipientEmail,  
+            subject: 'Humanitarian ID check-out notification', 
             text: mailText
           };
 
           // Send mail
           mail.sendMail(mailOptions, function (err, info) {
             if (err) {
-             // message = 'Verify email sending failed. Please try again or contact administrators.';
-              //log.warn({'type': 'registerEmail:error', 'message': 'Registration verification email sending failed to ' + data.email + '.', 'err': err, 'info': info});
+              log.warn({'type': 'notifyCheckoutEmail:error', 'message': 'Check-out notification email sending failed to ' + notifyEmail.to + '.', 'err': err});
               return cb(true);
             }
             else {
-             // message = 'Verify email sent successful! Check your email and follow the included link to verify your account.';
-             // log.info({'type': 'registerEmail:success', 'message': 'Registration verification email sending successful to ' + data.email + '.', 'info': info, 'resetUrl': reset_url});
+              log.info({'type': 'notifyCheckoutEmail:success', 'message': 'Check-out notification email sending successful to ' + notifyEmail.to});
               options = {};
               return cb();
             }
           });
         }
         else if (notifyEmail.type == 'notify_checkin'){
-          var mailText = notifyEmail.adminName + ' done checked you in ' + notifyEmail.locationName;
-          var mailOptions = {
+          var mailText = 'Dear ' + notifyEmail.recipientFirstName+ ', \r\n\r\nIt seems that you have joined the humanitarian response in ' + notifyEmail.locationName + '. ';
+          mailText += 'Therefore, you have been checked-in by one of our locally based managers, ' + notifyEmail.adminName + ', and are now part of the respective contact list.';
+          mailText += '\r\n\r\nNote that in the future you are able to quickly check-in and out of any disaster using your global Humanitarian ID profile. By doing so, you can control your details on the contact list, enable others to find you, and search for other responders.';
+          mailText += '\r\n\r\nThe Humanitarian ID team\r\nhttp://humanitarian.id';
+          mailText += '\r\n\r\n\r\n';
+          mailText += 'Bonjour ' + notifyEmail.recipientFirstName + ', \r\n\r\nIl semble que vous répondez à la crise humanitaire en ' + notifyEmail.locationName + '. ';
+          mailText += 'De ce fait vous avez été enregistré par le gestionnaire, ' + notifyEmail.adminName + ', sur place. A partir de maintenant vous faites partie du liste de contacts.';
+          mailText += '\r\n\r\nVous pouvez vous enregistrer et déconnecter d’une liste des contacts humanitaires en modifiant votre profil global sur Humanitarian ID. Cela vous permet de contrôler vos coordonnées et d’aider aux autres de vous trouver et vice versa.';
+          mailText += '\r\n\r\nL’équipe Humanitarian ID\r\nhttp://humanitarian.id';
 
-           // from: req.app.get('title') + ' <' + req.app.get('emailFrom') + '>',
-            from: 'info@humanitarian.id',
-            to: notifyEmail.to,  //contactFields.email
-            subject: 'Humanitarian ID check-out notification', // + req.app.get('title'),
+          var mailOptions = {
+            from:  'Humanitarian ID<info@humanitarian.id>',
+            to: notifyEmail.recipientEmail, 
+            subject: 'Humanitarian ID check-in notification', 
             text: mailText
           };
 
           // Send mail
           mail.sendMail(mailOptions, function (err, info) {
             if (err) {
-             // message = 'Verify email sending failed. Please try again or contact administrators.';
-              //log.warn({'type': 'registerEmail:error', 'message': 'Registration verification email sending failed to ' + data.email + '.', 'err': err, 'info': info});
+              log.warn({'type': 'notifyCheckinEmail:error', 'message': 'Check-in notification email sending failed to ' + notifyEmail.to + '.', 'err': err});
               return cb(true);
             }
             else {
-             // message = 'Verify email sent successful! Check your email and follow the included link to verify your account.';
-             // log.info({'type': 'registerEmail:success', 'message': 'Registration verification email sending successful to ' + data.email + '.', 'info': info, 'resetUrl': reset_url});
+              log.info({'type': 'notifyCheckinEmail:success', 'message': 'Check-in notification email sending successful to ' + notifyEmail.to});
               options = {};
               return cb();
             }
