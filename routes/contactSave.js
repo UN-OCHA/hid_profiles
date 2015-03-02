@@ -98,7 +98,7 @@ function post(req, res, next) {
             "active": 1,
             'emailFlag': '1' //Orphan email
           };
- 
+
           var new_access_key = middleware.require.getAuthAccessKey(request);
           request["access_key"] = new_access_key.toString();
 
@@ -267,7 +267,7 @@ function post(req, res, next) {
       // Allow admins to change all roles, allow managers to only assign
       // managers/editors within their location, and allow editors to only
       // assign editors within own location.
-      if (newRoles.length && (isAPI || isAdmin || isManager || isEditor)) {
+      if ((newRoles.length || origProfile.roles.length) && (isAPI || isAdmin || isManager || isEditor)) {
         setRoles = true;
 
         var addRoles = _.difference(newRoles, origProfile.roles),
