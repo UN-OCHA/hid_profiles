@@ -37,7 +37,20 @@ function get(req, res, next) {
     }
   }
   var result = {},
-    contacts = [];
+    contacts = [],
+    count = 0;
+
+  Contact
+    .count(query)
+    .exec(function (err, _count) {
+      if (err) {
+        log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts count.', 'err': err});
+        result = {status: "error", message: "Query failed for contacts count."};
+      }
+      else {
+        count = _count
+      }
+    });
 
   Contact
     .find(query)
@@ -118,7 +131,7 @@ function get(req, res, next) {
           return;
         }
 
-        result = {status: "ok", contacts: contacts};
+        result = {status: "ok", contacts: contacts, count: count};
         log.info({'type': 'contactView:success', 'message': 'Successfully returned data for contactView query.', 'query': query, 'range': range});
       }
       res.send(result);
