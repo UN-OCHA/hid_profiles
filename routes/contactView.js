@@ -131,8 +131,6 @@ function get(req, res, next) {
           return;
         }
 
-
-
         result = {status: "ok", contacts: contacts, count: count};
         log.info({'type': 'contactView:success', 'message': 'Successfully returned data for contactView query.', 'query': query, 'range': range});
       }
