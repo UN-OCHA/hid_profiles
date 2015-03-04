@@ -155,21 +155,21 @@ function get(req, res, next) {
               item.nameGiven,
               item.nameFamily,
               item.jobtitle,
-              item.organization.map(function (val) { if (val.name) { return val.name; } }).join(', '),
-              item.bundle.join(', '),
+              item.organization.map(function (val) { if (val.name) { return val.name; } }).join('; '),
+              item.bundle.join('; '),
               item.address && item.address[0] && item.address[0].country ? item.address[0].country : '',
               item.address && item.address[0] && item.address[0].administrative_area ? item.address[0].administrative_area : '',
               item.address && item.address[0] && item.address[0].locality ? item.address[0].locality : '',
-              multiValues.phone.types['Landline'].join(', '),
-              multiValues.phone.types['Mobile'].join(', '),
-              multiValues.phone.types['Fax'].join(', '),
-              multiValues.phone.types['Satellite'].join(', '),
-              multiValues.voip.types['Voip'].join(', '),
-              multiValues.email.types['Email'].join(', '),
-              multiValues.email.types['Work'].join(', '),
-              multiValues.email.types['Personal'].join(', '),
-              multiValues.email.types['Other'].join(', '),
-              item.uri ? item.uri.join(', '): ''
+              multiValues.phone.types['Landline'].join('; '),
+              multiValues.phone.types['Mobile'].join('; '),
+              multiValues.phone.types['Fax'].join('; '),
+              multiValues.phone.types['Satellite'].join('; '),
+              multiValues.voip.types['Voip'].join('; '),
+              multiValues.email.types['Email'].join('; '),
+              multiValues.email.types['Work'].join('; '),
+              multiValues.email.types['Personal'].join('; '),
+              multiValues.email.types['Other'].join('; '),
+              item.uri ? item.uri.join('; '): ''
             ]);
           });
 
