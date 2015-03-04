@@ -106,27 +106,73 @@ function get(req, res, next) {
             'Country',
             'Admin Area',
             'Locality',
-            'Phone',
+            'Phone:Landline',
+            'Phone:Mobile',
+            'Phone:Fax',
+            'Phone:Satellite',
             'VOIP',
             'Email',
+            'Email:Work',
+            'Email:Personal',
+            'Email:Other',
             'URI'
           ]);
+
+
           _.forEach(contacts, function (item) {
+            var multiValues = {
+                  email: {
+                    key: 'address',
+                    types: {'Email':[], 'Work':[],'Personal':[], 'Other':[]}
+                  },
+                  phone: {
+                    key: 'number',
+                    types:{'Landline':[], 'Mobile':[], 'Fax':[], 'Satellite':[]}
+                  },
+                  voip: {
+                    key: 'number',
+                    types: {'Voip': []}
+                  }
+                }
+
+            _.forEach(multiValues, function(value, fieldType) {
+              _.forEach(item[fieldType], function(fieldEntry) {
+                if (typeof fieldEntry[value.key] !== 'undefined') {
+                  if (typeof fieldEntry.type !== 'undefined' && typeof value.types[fieldEntry.type] !==  'undefined') {
+                    multiValues[fieldType].types[fieldEntry.type].push(fieldEntry[value.key])
+                  }
+                  else {
+                    var capKey = fieldType.charAt(0).toUpperCase() + fieldType.slice(1)
+                        fieldValue = (typeof fieldEntry.type === 'undefined') ? fieldEntry[value.key] : fieldEntry.type + ": " + fieldEntry[value.key];
+
+                    multiValues[fieldType].types[capKey].push(fieldValue);
+                  }
+                }
+              });
+            });
+
             stringifier.write([
               item.nameGiven,
               item.nameFamily,
               item.jobtitle,
-              item.organization.map(function (val) { if (val.name) { return val.name; } }).join(', '),
-              item.bundle.join(', '),
+              item.organization.map(function (val) { if (val.name) { return val.name; } }).join('; '),
+              item.bundle.join('; '),
               item.address && item.address[0] && item.address[0].country ? item.address[0].country : '',
               item.address && item.address[0] && item.address[0].administrative_area ? item.address[0].administrative_area : '',
               item.address && item.address[0] && item.address[0].locality ? item.address[0].locality : '',
-              item.phone && item.phone[0] && item.phone[0].number ? item.phone[0].number : '',
-              item.voip && item.voip[0] && item.voip[0].number ? item.voip[0].number : '',
-              item.email && item.email[0] && item.email[0].address ? item.email[0].address : '',
-              item.uri && item.uri[0] && item.uri[0] ? item.uri[0] : ''
+              multiValues.phone.types['Landline'].join('; '),
+              multiValues.phone.types['Mobile'].join('; '),
+              multiValues.phone.types['Fax'].join('; '),
+              multiValues.phone.types['Satellite'].join('; '),
+              multiValues.voip.types['Voip'].join('; '),
+              multiValues.email.types['Email'].join('; '),
+              multiValues.email.types['Work'].join('; '),
+              multiValues.email.types['Personal'].join('; '),
+              multiValues.email.types['Other'].join('; '),
+              item.uri ? item.uri.join('; '): ''
             ]);
           });
+
           stringifier.end();
           return;
         }
