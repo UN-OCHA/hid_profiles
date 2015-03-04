@@ -13,11 +13,12 @@
     "crypto-js": "~3.1.2",
     "lodash": "~3.0.1",
     "csv-stringify": "0.0.6",
-    "nodemailer": "^1.3.0"
+    "nodemailer": "^1.3.0",
+    "pm2": "~0.12.7"
   },
   "engine": "node 0.6.x",
   "scripts": {
-    "start": "./node_modules/.bin/nodemon server.js",
+    "start": "./node_modules/.bin/pm2 start server.js --no-daemon --watch",
     "_start": "./node_modules/.bin/nodemon ./node_modules/.bin/node-debug server.js"
   },
   "main": "server.js",
