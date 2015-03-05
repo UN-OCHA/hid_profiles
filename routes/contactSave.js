@@ -385,12 +385,12 @@ function post(req, res, next) {
     function (cb) {
       if (notifyEmail) {
         if (notifyEmail.type == 'notify_checkout'){
-          var mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nWe wanted to let you know that you have been removed from the contact list in ' + notifyEmail.locationName + ' by one of our locally based managers, ' + notifyEmail.adminName + '.';
-          mailText += '\r\n\r\nIf you feel that this action was not correct, simply log into your Humanitarian ID account and modify your profile for ' + notifyEmail.locationName + '.';
+          var mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nIt seems that you have left ' + notifyEmail.locationName + ' as a humanitarian responder. Therefore you have been checked out by one of our locally based managers (' + notifyEmail.adminName + ') and are no longer part of the respective contact list.';
+          mailText += '\r\n\r\nNote that in the future you are able to quickly check-in and out of any disasters using your global Humanitarian ID profile. By doing so, you can control your details on the contact list when responding and remove your details when you leave.';
           mailText += '\r\n\r\nThe Humanitarian ID team\r\nhttp://humanitarian.id';
           mailText += '\r\n\r\n\r\n';
-          mailText += 'Bonjour ' + notifyEmail.recipientFirstName + ', \r\n\r\nVous avez été ajoutés sur Humanitarian ID en' + notifyEmail.locationName + ' par un de nos gestionnaires sur place, ' + notifyEmail.adminName;
-          mailText += '\r\n\r\nEn cas ou ceci n’est pas correct, on vous prie de bien vouloir vous connecter sur Humanitarian ID et modifier votre profile pour ' + notifyEmail.locationName + '.';
+          mailText += 'Bonjour ' + notifyEmail.recipientFirstName + ', \r\n\r\nIl semble que vous ne répondez plus à la crise humanitaire en ' + notifyEmail.locationName + '. De ce fait vous le gestionnaire, ' + notifyEmail.adminName + ', sur place vous a déconnecté ce qui fait que vous avez été enlevé de la liste de contact en question.';
+          mailText += '\r\n\r\nVous pouvez vous enregistrer et déconnecter d’une liste des contacts humanitaires en modifiant votre profil global sur Humanitarian ID. Cela vous permet de contrôler vos coordonnées et d’aider aux autres de vous trouver et vice versa.';
           mailText += '\r\n\r\nL’équipe Humanitarian ID\r\nhttp://humanitarian.id';
 
           var mailOptions = {
