@@ -123,29 +123,38 @@ function get(req, res, next) {
             var multiValues = {
                   email: {
                     key: 'address',
+                    defaultType: 'Email',
                     types: {'Email':[], 'Work':[],'Personal':[], 'Other':[]}
                   },
                   phone: {
                     key: 'number',
+                    defaultType: 'Landline',
                     types:{'Landline':[], 'Mobile':[], 'Fax':[], 'Satellite':[]}
                   },
                   voip: {
                     key: 'number',
+                    defaultType: 'Voip',
                     types: {'Voip': []}
                   }
-                }
+                };
 
             _.forEach(multiValues, function(value, fieldType) {
               _.forEach(item[fieldType], function(fieldEntry) {
+                console.log('fieldEntry', fieldEntry)
+                // Make sure actual value is defined.
                 if (typeof fieldEntry[value.key] !== 'undefined') {
+                  // Type is defined and is one of the predefined accepted values.
                   if (typeof fieldEntry.type !== 'undefined' && typeof value.types[fieldEntry.type] !==  'undefined') {
-                    multiValues[fieldType].types[fieldEntry.type].push(fieldEntry[value.key])
+                    multiValues[fieldType].types[fieldEntry.type].push(fieldEntry[value.key]);
                   }
+                  // If type is defined but not one of the accepted values,
+                  // append it to the field value and add it to the default array.
+                  else if (typeof fieldEntry.type !== 'undefined') {
+                    multiValues[fieldType].types[value.defaultType].push(fieldEntry.type + ": " + fieldEntry[value.key] );
+                  }
+                  // Otherwise add value to default array.
                   else {
-                    var capKey = fieldType.charAt(0).toUpperCase() + fieldType.slice(1)
-                        fieldValue = (typeof fieldEntry.type === 'undefined') ? fieldEntry[value.key] : fieldEntry.type + ": " + fieldEntry[value.key];
-
-                    multiValues[fieldType].types[capKey].push(fieldValue);
+                    multiValues[fieldType].types[value.defaultType].push(fieldEntry[value.key]);
                   }
                 }
               });
