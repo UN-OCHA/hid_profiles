@@ -87,15 +87,16 @@ function post(req, res, next) {
       }
       else if ((!userid || !userid.length) && isNewContact){
         //New contact
-        if (!contactFields.email){
+        if (!contactFields.email[0].address || !contactFields.email[0].address.length){
           //This is a ghost account (no email) so create a new userid
           userid =  Date.now();
           return cb();
         }
         else{
+          var authEmail = contactFields.email[0].address;
           //Create a new auth record for the new profile
           var request = {
-            "email": contactFields.email,
+            "email": authEmail,
             "nameFirst": contactFields.nameGiven,
             "nameLast": contactFields.nameFamily,
             "active": 1,
