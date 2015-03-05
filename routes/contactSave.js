@@ -194,8 +194,8 @@ function post(req, res, next) {
     },
     // If new roles are set, filter them by the valid roles list.
     function (cb) {
-      newRoles = req.body.adminRoles || [];
-      if (newRoles.length) {
+      newRoles = req.body.adminRoles || null;
+      if (newRoles && newRoles.length) {
         roles.get(function (err, rolesList) {
           if (!err && rolesList && rolesList.length) {
             validRoles = rolesList.map(function (val, idx, arr) { return val.id; });
@@ -269,7 +269,7 @@ function post(req, res, next) {
 
       // Allow admins to change all roles, and allow managers to only assign
       // managers/editors within their location.
-      if ((newRoles.length || origProfile.roles.length) && (isAPI || isAdmin || isManager)) {
+      if (newRoles && (newRoles.length || origProfile.roles.length) && (isAPI || isAdmin || isManager)) {
         setRoles = true;
 
         var addRoles = _.difference(newRoles, origProfile.roles),
