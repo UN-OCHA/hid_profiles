@@ -58,6 +58,7 @@ function post(req, res, next) {
 
   var isNewContact = req.body.isNewContact || false;
   var notifyEmail = req.body.notifyEmail || null;
+  var adminName = req.body.adminName || null;
   var message = null;
 
   var result = {},
@@ -99,6 +100,7 @@ function post(req, res, next) {
             "email": authEmail,
             "nameFirst": contactFields.nameGiven,
             "nameLast": contactFields.nameFamily,
+            "adminName": adminName,
             "active": 1,
             'emailFlag': '1' //Orphan email
           };
