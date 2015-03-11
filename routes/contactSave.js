@@ -60,7 +60,6 @@ function post(req, res, next) {
   var notifyEmail = req.body.notifyEmail || null;
   var adminName = req.body.adminName || null;
   var message = null;
-  var localContactExists = false;
   var isGhost = false;
   var authEmail;
 
