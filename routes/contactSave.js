@@ -60,8 +60,11 @@ function post(req, res, next) {
   var notifyEmail = req.body.notifyEmail || null;
   var adminName = req.body.adminName || null;
   var message = null;
+  var isGhost = false;
+  var authEmail;
 
   var result = {},
+    contactExists = false,
     origContact = null,
     origProfile = null,
     userid = req.body.userid || '',
@@ -91,10 +94,11 @@ function post(req, res, next) {
         if (!contactFields.email[0].address || !contactFields.email[0].address.length){
           //This is a ghost account (no email) so create a new userid
           userid =  Date.now();
+          isGhost = true;
           return cb();
         }
         else{
-          var authEmail = contactFields.email[0].address;
+          authEmail = contactFields.email[0].address;
           //Create a new auth record for the new profile
           var request = {
             "email": authEmail,
@@ -121,11 +125,27 @@ function post(req, res, next) {
               var obj = JSON.parse(res.body);
               if (obj && obj.data && obj.data.user_id) {
                 // Set userid to the userid returned from the auth service
-                userid = obj.data.user_id;
-                return cb();
+                userid =  obj.data.user_id;
+
+                //If is_new returns a 0, auth service found an existing user record and no notification was sent
+                //Create a notify_checkin email to notify of the user being checked into a location
+                if (obj.data.is_new === 0){
+                  var email = {
+                    type: 'notify_checkin',
+                    recipientFirstName: contactFields.nameGiven,
+                    recipientLastName: contactFields.nameFamily,
+                    recipientEmail: contactFields.email[0].address,
+                    adminName: adminName,
+                    locationName: contactFields.location
+                  };
+                  notifyEmail = email;
+                  return cb();
+                }
+                else{
+                  return cb();
+                }
               }
             }
-
             log.warn({'type': 'contactSave:error', 'message': 'contactSave: An unsuccessful response was received when trying to create a user account on the authentication service.', 'req': req, 'res': res});
             result = {status: "error", message: "Could not create user account. Please try again or contact an administrator."};
             return cb(true);
@@ -148,7 +168,21 @@ function post(req, res, next) {
         });
       }
       else {
-        return cb();
+        //If isNewContact is true and its not a ghost account, verify that no existing contact record exists with new contact's email
+        if (isNewContact && !isGhost){
+          //See if contact record exists for new contact request - if so, return original contact record
+          Contact.findOne({'email.address': authEmail}, function (err, doc) {
+            if (!err && doc && doc._id) {
+              result.origContact = doc;
+              result.contactExists = true;
+              return cb(true);
+            }
+            return cb();
+          });
+        }
+        else{
+          return cb();
+        }
       }
     },
     // If no profile is specified, first lookup a profile by the userid, and if
@@ -353,7 +387,7 @@ function post(req, res, next) {
         else {
           log.info({'type': 'contactSave:success', 'message': "Created contact " + upsertId + " for user " + userid});
         }
-        result = {status: "ok", data: contactFields};
+        result = {status: "ok", data: contactFields, "_id": upsertId};
         return cb();
       });
     },
