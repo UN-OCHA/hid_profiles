@@ -60,7 +60,6 @@ function post(req, res, next) {
   var notifyEmail = req.body.notifyEmail || null;
   var adminName = req.body.adminName || null;
   var message = null;
-  var authExists = false;
   var localContactExists = false;
   var isGhost = false;
   var authEmail;
@@ -128,12 +127,19 @@ function post(req, res, next) {
               if (obj && obj.data && obj.data.user_id) {
                 // Set userid to the userid returned from the auth service
                 userid =  obj.data.user_id;
-                //If is_new returns a 0, auth service found an existing user record, so set authExists = true
+
+                //If is_new returns a 0, auth service found an existing user record and no notification was sent
+                //Create a notify_checkin email to notify of the user being checked into a location
                 if (obj.data.is_new === 0){
-                  // log.warn({'type': 'contactSave:error', 'message': 'contactSave: Auth profile already exists for user.', 'req': req});
-                  // result = {status: "error", message: "Profile aleady exists"};
-                  // return cb(true);
-                  authExists = true;
+                  var email = {
+                    type: 'notify_checkin',
+                    recipientFirstName: contactFields.nameGiven,
+                    recipientLastName: contactFields.nameFamily,
+                    recipientEmail: contactFields.email[0].address,
+                    adminName: adminName,
+                    locationName: contactFields.location
+                  };
+                  notifyEmail = email;
                   return cb();
                 }
                 else{
