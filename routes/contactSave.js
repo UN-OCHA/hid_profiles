@@ -192,7 +192,7 @@ function post(req, res, next) {
         Profile.findOne({userid: userid}, function (err, profile) {
           if (err || !profile || !profile._id || userid === "") {
             log.info({'type': 'post', 'message': 'Creating new profile for userid ' + userid});
-            Profile.update({_userid: userid}, {userid: userid, status: 1}, {upsert: true}, function(err, profile) {
+            Profile.update({userid: userid}, {userid: userid, status: 1}, {upsert: true}, function(err, profile) {
               if (err) {
                 log.warn({'type': 'post:error', 'message': 'Error occurred while trying to update/insert profile for user ID ' + userid, 'err': err});
                 result = {status: "error", message: "Could not create profile for user."};
@@ -393,7 +393,7 @@ function post(req, res, next) {
     },
     // Update the related profile
     function (cb) {
-      if (setRoles || setVerified) {
+      if (setRoles || setVerified || (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid)) {
         Profile.findOne({_id: _profile}, function (err, profile) {
           if (!err && profile) {
             if (setRoles) {
@@ -401,6 +401,9 @@ function post(req, res, next) {
             }
             if (setVerified) {
               profile.verified = newVerified;
+            }
+            if (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid) {
+              profile.firstUpdate = Date.now();
             }
             return profile.save(function (err, profile, num) {
               log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile + " to change admin roles for user " + userid});

@@ -9,6 +9,7 @@ var profileSchema = new mongoose.Schema({
   ochaContent:  { topics: [ String ] },
   created:      Number, // timestamp
   revised:      Number, // timestamp
+  firstUpdate:  Number, // timestamp
   status:       Boolean,
   _contacts:    [{ type: Schema.Types.ObjectId, ref: 'Contact' }],
   roles:        [ String ],
