@@ -512,15 +512,15 @@ function resetPasswordPost(req, res, next) {
     version: '*'
   });
 
-  client.post("/api/resetpw", request, function(err, req, res, data) {
-    if (res.statusCode == 200 && res.body && res.body.status === 'ok') {
-      log.info({'type': 'resetPassword:success', 'message': 'Successfully requested reset password email for user with email ' + request.email, 'req': req});
-      return cb();
+  client.post("/api/resetpw", request, function(err, authReq, authRes, data) {
+    if (authRes.statusCode == 200 && data.status === 'ok') {
+      log.info({'type': 'resetPassword:success', 'message': 'Successfully requested reset password email for user with email ' + request.email, 'requestData': request, 'responseData': data});
     }
     else {
-      log.warn({'type': 'resetPassword:error', 'message': 'Could not request reset password email. Received message: ' + res.body.message, 'req': req, 'res': res});
-      return cb(true);
+      log.warn({'type': 'resetPassword:error', 'message': 'Could not request reset password email. Received message: ' + data.message, 'requestData': request, 'responseData': data});
     }
+    res.send(data);
+    next();
   });
 }
 
