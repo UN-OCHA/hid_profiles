@@ -46,6 +46,8 @@ server.post(versionPrefix + 'contact/view', middleware.require.appOrUser, routes
 
 server.post(versionPrefix + 'contact/save', middleware.require.appOrUser, routes.contactSave.postAccess, routes.contactSave.post);
 
+server.post(versionPrefix + 'contact/resetpw', middleware.require.appOrUser, routes.contactSave.postAccess, routes.contactSave.resetPasswordPost);
+
 // Provide handling for OPTIONS requests for CORS.
 server.opts('.*', function(req, res, next) {
   var requestMethod,

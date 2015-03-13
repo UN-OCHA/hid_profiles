@@ -192,7 +192,7 @@ function post(req, res, next) {
         Profile.findOne({userid: userid}, function (err, profile) {
           if (err || !profile || !profile._id || userid === "") {
             log.info({'type': 'post', 'message': 'Creating new profile for userid ' + userid});
-            Profile.update({_userid: userid}, {userid: userid, status: 1}, {upsert: true}, function(err, profile) {
+            Profile.update({userid: userid}, {userid: userid, status: 1}, {upsert: true}, function(err, profile) {
               if (err) {
                 log.warn({'type': 'post:error', 'message': 'Error occurred while trying to update/insert profile for user ID ' + userid, 'err': err});
                 result = {status: "error", message: "Could not create profile for user."};
@@ -393,7 +393,7 @@ function post(req, res, next) {
     },
     // Update the related profile
     function (cb) {
-      if (setRoles || setVerified) {
+      if (setRoles || setVerified || (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid)) {
         Profile.findOne({_id: _profile}, function (err, profile) {
           if (!err && profile) {
             if (setRoles) {
@@ -401,6 +401,9 @@ function post(req, res, next) {
             }
             if (setVerified) {
               profile.verified = newVerified;
+            }
+            if (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid) {
+              profile.firstUpdate = Date.now();
             }
             return profile.save(function (err, profile, num) {
               log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile + " to change admin roles for user " + userid});
@@ -494,5 +497,36 @@ function post(req, res, next) {
   });
 }
 
+function resetPasswordPost(req, res, next) {
+  // Issue a request for a password reset to the auth system.
+  var request = {
+    'email': req.body.email || '',
+    'emailFlag': req.body.emailFlag || null
+  };
+
+  var new_access_key = middleware.require.getAuthAccessKey(request);
+  request["access_key"] = new_access_key.toString();
+
+  var client_key = config.authClientId;
+  request["client_key"] = client_key
+
+  var client = restify.createJsonClient({
+    url: config.authBaseUrl,
+    version: '*'
+  });
+
+  client.post("/api/resetpw", request, function(err, authReq, authRes, data) {
+    if (authRes.statusCode == 200 && data.status === 'ok') {
+      log.info({'type': 'resetPassword:success', 'message': 'Successfully requested reset password email for user with email ' + request.email, 'requestData': request, 'responseData': data});
+    }
+    else {
+      log.warn({'type': 'resetPassword:error', 'message': 'Could not request reset password email. Received message: ' + data.message, 'requestData': request, 'responseData': data});
+    }
+    res.send(data);
+    next();
+  });
+}
+
 exports.post = post;
 exports.postAccess = postAccess;
+exports.resetPasswordPost = resetPasswordPost;
