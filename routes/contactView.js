@@ -23,12 +23,17 @@ function get(req, res, next) {
         query[prop] = val;
       }
       else if (prop == 'text') {
+        var exp = {
+          $regex: val.replace(/\s{1,}/g, '|'),
+          $options: 'i'
+        };
+
         query['$or'] = [
-          {jobtitle: new RegExp(val, "i")},
-          {nameGiven: new RegExp(val, "i")},
-          {nameFamily: new RegExp(val, "i")},
-          {notes: new RegExp(val, "i")},
-          {'organization.name': new RegExp(val, "i")}
+          {jobtitle: exp},
+          {nameGiven: exp},
+          {nameFamily: exp},
+          {notes: exp},
+          {'organization.name': exp}
         ];
       }
       else if (recusiveSchemaCheck(contactSchema, prop.split('.'))) {
