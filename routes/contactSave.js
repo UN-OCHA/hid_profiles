@@ -30,7 +30,7 @@ function postAccess(req, res, next) {
           if (req.apiAuth.userId === req.body.userid) {
             return next();
           }
-          else if (roles.has(userProfile, /[^admin$|^manager:|^editor:]/)) {
+          else if (userProfile.roles && userProfile.roles.length && roles.has(userProfile, /[^admin$|^manager:|^editor:]/)) {
             return next();
           }
         }
