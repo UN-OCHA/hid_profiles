@@ -501,7 +501,8 @@ function resetPasswordPost(req, res, next) {
   // Issue a request for a password reset to the auth system.
   var request = {
     'email': req.body.email || '',
-    'emailFlag': req.body.emailFlag || null
+    'emailFlag': req.body.emailFlag || null,
+    'adminName': req.body.adminName || null
   };
 
   var new_access_key = middleware.require.getAuthAccessKey(request);
