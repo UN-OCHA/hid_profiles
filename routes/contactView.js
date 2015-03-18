@@ -29,11 +29,20 @@ function get(req, res, next) {
         };
 
         query['$or'] = [
+          {'address.administrative_area': exp},
+          {'address.country': exp},
+          {'address.locality': exp},
+          {bundle: exp},
+          {'email.address': exp},
           {jobtitle: exp},
           {nameGiven: exp},
           {nameFamily: exp},
           {notes: exp},
-          {'organization.name': exp}
+          {'organization.name': exp},
+          {'phone.number': exp},
+          {protectedRoles: exp},
+          {uri: exp},
+          {'voip.number': exp}
         ];
       }
       else if (recusiveSchemaCheck(contactSchema, prop.split('.'))) {
