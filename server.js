@@ -37,15 +37,13 @@ server.get(versionPrefix + 'app/data', middleware.require.appOrUser, routes.appD
 
 server.get(versionPrefix + 'profile/view', middleware.require.appOrUser, routes.profileView.get);
 server.post(versionPrefix + 'profile/view', middleware.require.appOrUser, routes.profileView.get);
-
+server.post(versionPrefix + 'profile/delete', middleware.require.appOrUser, routes.profileDelete.postAccess, routes.profileDelete.post);
 // Disabled until this is refactored/combined with contactSave.post.
 //server.post(versionPrefix + 'profile/save/:uid', middleware.require.appOrUser, routes.contactSave.postAccess, routes.profileSave.post);
 
 server.get(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
 server.post(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
-
 server.post(versionPrefix + 'contact/save', middleware.require.appOrUser, routes.contactSave.postAccess, routes.contactSave.post);
-
 server.post(versionPrefix + 'contact/resetpw', middleware.require.appOrUser, routes.contactSave.postAccess, routes.contactSave.resetPasswordPost);
 
 // Provide handling for OPTIONS requests for CORS.
