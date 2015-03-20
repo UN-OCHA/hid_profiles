@@ -212,6 +212,7 @@ function get(req, res, next) {
             if (err) throw err;
             var template = Handlebars.compile(String(data)),
               tokens = {
+                appBaseUrl: config.appBaseUrl,
                 location: (query.type === 'global' || !query.locationId || !query.locationId.length) ? 'Global' : query.locationId,
                 queryCount: contacts.length,
                 dateGenerated: moment().format('LL'),
