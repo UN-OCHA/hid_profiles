@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title translate="">Humanitarian ID</title>
+<base href="http://app.contactsid.vm/index.html">
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Noto+Serif:400,700,400italic|Open+Sans:700,400">
+<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700,800">
+<link rel="stylesheet" href="/libraries/angular-spinkit/build/angular-spinkit.min.css">
+<link rel="stylesheet" href="/libraries/angular-busy/angular-busy.css">
+<link rel="stylesheet" href="/libraries/angular-spinkit/build/angular-spinkit.min.css">
+<link rel="stylesheet" href="/libraries/angucomplete-alt/angucomplete-alt.css">
+<link rel="stylesheet" href="/libraries/angular-ui-select/dist/select.min.css">
+<link rel="stylesheet" href="/libraries/intl-tel-input/build/css/intlTelInput.css">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+</head>
+<body ng-app="contactsId" class="break960 ng-animate print pdf">
+  <div id="contactsid-app-view-wrapper">
+    <div id="contactsid-app" class="contactsid-app">
+      <!-- ngInclude: undefined --><ng-include src="'partials/header.html'" class="ng-scope"><div class="header ng-scope" ng-controller="HeaderCtrl">
+  <div class="utility navbar" ng-show="externalLinks || breakpoint.class !== 'smallscreen'">
+    <div class="affiliate-logos pull-left">
+      <div class="affiliate-logo-wrapper"><a href="http://www.humanitarianresponse.info" target="_blank"><div class="affiliate-logo humanitarian-response"></div></a></div>
+      <div class="affiliate-logo-wrapper"><a href="http://reliefweb.int/" target="_blank"><div class="affiliate-logo relief-web"></div></a></div>
+      <div class="affiliate-logo-wrapper"><a href="https://data.hdx.rwlabs.org" target="_blank"><div class="affiliate-logo hdx"></div></a></div>
+    </div>
+
+    <div class="navbar-form login-controls">
+      <div class="form-group">
+        <!-- ngIf: isAuthenticated --><div class="login-controls-name hidden-xs ng-scope" ng-if="isAuthenticated"><span translate=""><span class="ng-scope">Welcome</span></span>, <span ng-bind="nameGiven" class="ng-binding">Joe</span> <span ng-bind="nameFamily" class="ng-binding">Turgeon</span></div><!-- end ngIf: isAuthenticated -->
+        <!-- ngIf: !isAuthenticated -->
+        <!-- ngIf: isAuthenticated --><a class="btn-login-controls btn hidden-xs ng-scope" ng-if="isAuthenticated" href="#/logout"><span translate=""><span class="ng-scope">Logout</span></span> <span class="text-highlight">H</span>ID</a><!-- end ngIf: isAuthenticated -->
+        <select name="language" ng-change="switchLanguage()" ng-model="language" ng-show="breakpoint.class !== 'smallscreen' || !isAuthenticated" class="form-control input-sm ng-pristine ng-untouched ng-valid">
+          <option value="en">English</option>
+          <option value="ar">العربية</option>
+          <option value="de">Deutsch</option>
+          <option value="fr">Français</option>
+          <option value="tl">Tagalog</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-bar">
+    <div class="container">
+      <div class="row">
+        <div class="col-sm-12">
+          <a href="#/dashboard"><div class="logo"><img src="http://app.contactsid.vm/images/hid-logo-print.jpg" width="420" height="66" /></div></a>
+        </div>
+        <div class="col-sm-12">
+          <div class="primary-nav">
+            <span ng-click="menuToggle()" class="touch-button"><i class="fa fa-bars"></i></span>
+            <ul ng-show="(mainMenu &amp;&amp; !externalLinks) || breakpoint.class !== 'smallscreen'">
+              <li class="visible-xs">
+                <div class="form-group">
+                  <select name="language" ng-change="switchLanguage()" ng-model="language" class="form-control input-sm ng-pristine ng-untouched ng-valid">
+                    <option value="en">English</option>
+                    <option value="ar">العربية</option>
+                    <option value="de">Deutsch</option>
+                    <option value="fr">Français</option>
+                    <option value="tl">Tagalog</option>
+                  </select>
+                </div>
+              </li>
+              <!-- ngIf: !isAuthenticated -->
+              <!-- ngIf: isAuthenticated --><li ng-if="isAuthenticated" class="ng-scope"><a active-link="active" href="#/dashboard"><span translate=""><span class="ng-scope">Dashboard</span></span></a></li><!-- end ngIf: isAuthenticated -->
+              <li><a active-link="active" href="#/about"><span translate=""><span class="ng-scope">About</span></span></a></li>
+              <li class="visible-xs" ng-click="externalLinks = !externalLinks"><a href=""><span translate=""><span class="ng-scope">External Links</span></span></a></li>
+              <li class="visible-xs"><a href="#/logout"><span translate=""><span class="ng-scope">Logout</span></span></a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</ng-include>
+      <!-- ngView:  --><div id="contactsid-app-view" class="container ng-scope" ng-view=""><div class="page-list print ng-scope">
+  <div class="row masthead">
+    <div class="col-xs-12">
+      <!-- ngIf: !supported -->
+
+      <h2 class="heading-contact-list">
+        <span class="location">{{location}}</span> Contact List<br/>
+        <small class="ng-binding">{{dateGenerated}}</small></br>
+        <small>{{queryCount}} Contacts</small>
+      </h2>
+
+      <div class="logo pull-right">
+        <img src="http://app.contactsid.vm/images/hid-logo-print.png" width="420" height="66" />
+      </div>
+    </div>
+  </div>
+
+  <div class="row main">
+    <div class="col-xs-12 filters-param-list-wrapper ng-hide" ng-show="filtersParams.length">
+      <div class="filters-param-list">
+        <div class="filters-param-label" translate=""><span class="ng-scope">Filter Criteria</span></div>
+        <!-- ngRepeat: param in filtersParams -->
+      </div>
+    </div>
+    <div class="active-contacts col-xs-12">
+      <table class="table table-striped" cg-busy="contactsPromise" style="position: relative;">
+        <thead>
+          <tr>
+            <th translate=""><span class="ng-scope">Name</span></th>
+            <!-- ngIf: locationId !== 'global' --><th ng-if="locationId !== 'global'" translate="" class="ng-scope"><span class="ng-scope">Group*</span></th><!-- end ngIf: locationId !== 'global' -->
+            <th translate=""><span class="ng-scope">Organization</span></th>
+            <th translate=""><span class="ng-scope">Job Title</span></th>
+            <th translate=""><span class="ng-scope">Phone</span></th>
+            <th translate=""><span class="ng-scope">Email</span></th>
+            <th translate=""><span class="ng-scope">Location</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- ngRepeat: contact in contacts | orderBy: ['organization[0].name', 'nameGiven', 'nameFamily'] -->
+
+{{#each contacts}}
+          <tr class="profile-item ng-scope">
+            <td class="title-cell"><div class="avoid ng-binding">{{nameGiven}}<br><span class="name-family ng-binding">{{nameFamily}}</span></div></td>
+            <!-- ngIf: locationId !== 'global' --><td ng-if="locationId !== 'global'" class="ng-scope">
+              <div class="avoid"><!-- ngRepeat: bundle in contact.bundle | orderBy --><span ng-repeat="bundle in contact.bundle | orderBy" class="ng-binding ng-scope">Cash Voucher, </span><!-- end ngRepeat: bundle in contact.bundle | orderBy --><span ng-repeat="bundle in contact.bundle | orderBy" class="ng-binding ng-scope">Food Security and Agriculture, </span><!-- end ngRepeat: bundle in contact.bundle | orderBy --><span ng-repeat="bundle in contact.bundle | orderBy" class="ng-binding ng-scope">Protection</span><!-- end ngRepeat: bundle in contact.bundle | orderBy --></div>
+            </td><!-- end ngIf: locationId !== 'global' -->
+            <td><div class="avoid ng-binding">United Nations Office for the Coordination of Humanitarian Affairs</div></td>
+            <td><div class="avoid ng-binding">My Afghan Title</div></td>
+            <td>
+              <div class="avoid">
+                <!-- ngRepeat: phone in contact.phone --><span ng-repeat="phone in contact.phone" class="ng-binding ng-scope">001-612-501-4642 (M), </span><!-- end ngRepeat: phone in contact.phone --><span ng-repeat="phone in contact.phone" class="ng-binding ng-scope">+9312 (L)</span><!-- end ngRepeat: phone in contact.phone -->
+              </div>
+            </td>
+            <td>
+              <div class="avoid">
+                <!-- ngRepeat: email in contact.email --><span ng-repeat="email in contact.email" class="ng-binding ng-scope"><a href="mailto:jturgeon@phase2technology.com" class="ng-binding">jturgeon@phase2technology.com</a> (W), </span><!-- end ngRepeat: email in contact.email --><span ng-repeat="email in contact.email" class="ng-binding ng-scope"><a href="mailto:arithmetric@gmail.com" class="ng-binding">arithmetric@gmail.com</a> (P)</span><!-- end ngRepeat: email in contact.email -->
+              </div>
+            </td>
+            <td>
+              <div class="avoid">
+                <!-- ngIf: locationId !== 'global' && contact.address[0].locality --><span ng-if="locationId !== 'global' &amp;&amp; contact.address[0].locality" class="ng-binding ng-scope">Daykundi, </span><!-- end ngIf: locationId !== 'global' && contact.address[0].locality -->
+                <!-- ngIf: locationId !== 'global' && contact.address[0].administrative_area --><span ng-if="locationId !== 'global' &amp;&amp; contact.address[0].administrative_area" class="ng-binding ng-scope">Central Highland</span><!-- end ngIf: locationId !== 'global' && contact.address[0].administrative_area -->
+                <!-- ngIf: locationId === 'global' && contact.address[0].country -->
+              </div>
+            </td>
+          </tr><!-- end ngRepeat: contact in contacts | orderBy: ['organization[0].name', 'nameGiven', 'nameFamily'] -->
+{{/each}}
+
+        </tbody>
+</table>
+
+
+      <!-- ngIf: contacts.length == 0 && contactsCreated -->
+    </div>
+  </div>
+  <div id="print-footer">
+    <div class="message"><span translate=""><span class="ng-scope">Powered by</span></span> <span class="title-humanitarian">Humanitarian</span> <span class="title-id">Id</span> - <span translate=""><span class="ng-scope">to update your information, check in to</span></span> <a href="http://humanitarian.id">http://humanitarian.id</a><br>
+    <!-- ngIf: locationId !== 'global' --><span ng-if="locationId !== 'global'" translate="" class="ng-scope"><span class="ng-scope">*the term GROUP equals clusters, sectors, working groups are any other thematic</span></span><!-- end ngIf: locationId !== 'global' --></div>
+  </div>
+</div>
+</div>
+    </div>
+  </div>
+
+</body>
+</html>

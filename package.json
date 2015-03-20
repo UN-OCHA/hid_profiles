@@ -6,7 +6,7 @@
   "dependencies": {
     "mongoose": "^3.8.8",
     "bcrypt": "^0.7.7",
-    "jade": "*",
+    "handlebars": "~3.0.0",
     "restify": "^2.8.3",
     "async": "^0.9.0",
     "bunyan": "^1.0.1",
@@ -14,6 +14,7 @@
     "lodash": "~3.0.1",
     "csv-stringify": "0.0.6",
     "nodemailer": "^1.3.0",
+    "moment": "~2.9.0",
     "pm2": "~0.12.7"
   },
   "engine": "node 0.6.x",
