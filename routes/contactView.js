@@ -1,8 +1,11 @@
 var Contact = require('../models').Contact,
+  Cache = require('../models').Cache,
   config = require('../config'),
   log = require('../log'),
+  protectedRoles = require('../lib/protectedRoles'),
   stringify = require('csv-stringify'),
   _ = require('lodash'),
+  async = require('async'),
   fs = require('fs'),
   Handlebars = require('handlebars'),
   restify = require('restify'),
@@ -206,15 +209,76 @@ function get(req, res, next) {
           return;
         }
         else if (req.query.export && req.query.export === 'pdf' && ((req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) || (req.apiAuth.mode === 'user' && req.apiAuth.userId))) {
-          // Load the printList.html template, compile it with Handlebars, and
-          // generate HTML output for the list.
-          fs.readFile('views/printList.html', function (err, data) {
-            if (err) throw err;
-            var template = Handlebars.compile(String(data)),
+          var listTitle = '',
+            protectedRolesData = null,
+            templateData = null;
+
+          async.series([
+            function (cb) {
+              if (query.type !== 'global' && query.locationId && query.locationId !== 'global') {
+                Cache.findOne({"name": "operations"}, function (err, doc) {
+                  _.forEach(doc.data, function (item) {
+                    _.forEach(item, function (operation, opId) {
+                      if (opId.length && opId == query.locationId && operation.name && operation.name.length) {
+                        listTitle = operation.name;
+                      }
+                    });
+                  });
+                  return cb();
+                });
+              }
+              else {
+                listTitle = 'Global';
+                return cb();
+              }
+            },
+            function (cb) {
+              // Load protected roles data
+              protectedRoles.get(function (err, roles) {
+                protectedRolesData = roles;
+                cb();
+              });
+            },
+            function (cb) {
+              // Load the printList.html template, compile it with Handlebars, and
+              // generate HTML output for the list.
+              fs.readFile('views/printList.html', function (err, data) {
+                if (err) throw err;
+                templateData = data;
+                cb();
+              });
+            }
+          ], function (err, results) {
+            var filters = [];
+            if (req.query.hasOwnProperty('text') && req.query.text.length) {
+              filters.push(req.query.text);
+            }
+            _.each(query, function (val, key) {
+              if (['address.administrative_area', 'address.locality', 'bundle', 'organization.name'].indexOf(key) !== -1) {
+                filters.push(query[key]);
+              }
+              else if (key == 'protectedRoles') {
+                var prIndex = _.findIndex(protectedRolesData, function (item) {
+                  return (item.id == val);
+                });
+                filters.push(protectedRolesData[prIndex].name);
+              }
+            });
+            if (req.query.hasOwnProperty('keyContact') && req.query.keyContact) {
+              filters.push('Key Contact');
+            }
+            if (req.query.hasOwnProperty('verified') && req.query.verified) {
+              filters.push('Verified User');
+            }
+
+            var template = Handlebars.compile(String(templateData)),
+              isGlobal = (query.type === 'global' || !query.locationId || !query.locationId.length),
               tokens = {
                 appBaseUrl: config.appBaseUrl,
-                location: (query.type === 'global' || !query.locationId || !query.locationId.length) ? 'Global' : query.locationId,
+                listTitle: listTitle,
+                isGlobal: isGlobal,
                 queryCount: contacts.length,
+                filters: filters,
                 dateGenerated: moment().format('LL'),
                 contacts: contacts
               },

@@ -85,7 +85,7 @@
       <!-- ngIf: !supported -->
 
       <h2 class="heading-contact-list">
-        <span class="location">{{location}}</span> Contact List<br/>
+        <span class="location">{{listTitle}}</span> Contact List<br/>
         <small class="ng-binding">{{dateGenerated}}</small></br>
         <small>{{queryCount}} Contacts</small>
       </h2>
@@ -100,7 +100,10 @@
     <div class="col-xs-12 filters-param-list-wrapper ng-hide" ng-show="filtersParams.length">
       <div class="filters-param-list">
         <div class="filters-param-label" translate=""><span class="ng-scope">Filter Criteria</span></div>
-        <!-- ngRepeat: param in filtersParams -->
+        {{#each filters}}
+          {{~#if @index}},{{/if}}
+          <div class="filters-param">{{this}}</div>
+        {{/each}}
       </div>
     </div>
     <div class="active-contacts col-xs-12">
@@ -108,7 +111,9 @@
         <thead>
           <tr>
             <th translate=""><span class="ng-scope">Name</span></th>
-            <!-- ngIf: locationId !== 'global' --><th ng-if="locationId !== 'global'" translate="" class="ng-scope"><span class="ng-scope">Group*</span></th><!-- end ngIf: locationId !== 'global' -->
+            {{#unless isGlobal}}
+              <th ng-if="locationId !== 'global'" translate="" class="ng-scope"><span class="ng-scope">Group*</span></th>
+            {{/unless}}
             <th translate=""><span class="ng-scope">Organization</span></th>
             <th translate=""><span class="ng-scope">Job Title</span></th>
             <th translate=""><span class="ng-scope">Phone</span></th>
@@ -117,46 +122,52 @@
           </tr>
         </thead>
         <tbody>
-          <!-- ngRepeat: contact in contacts | orderBy: ['organization[0].name', 'nameGiven', 'nameFamily'] -->
-
-{{#each contacts}}
-          <tr class="profile-item ng-scope">
-            <td class="title-cell"><div class="avoid ng-binding">{{nameGiven}}<br><span class="name-family ng-binding">{{nameFamily}}</span></div></td>
-            <!-- ngIf: locationId !== 'global' --><td ng-if="locationId !== 'global'" class="ng-scope">
-              <div class="avoid"><!-- ngRepeat: bundle in contact.bundle | orderBy --><span ng-repeat="bundle in contact.bundle | orderBy" class="ng-binding ng-scope">Cash Voucher, </span><!-- end ngRepeat: bundle in contact.bundle | orderBy --><span ng-repeat="bundle in contact.bundle | orderBy" class="ng-binding ng-scope">Food Security and Agriculture, </span><!-- end ngRepeat: bundle in contact.bundle | orderBy --><span ng-repeat="bundle in contact.bundle | orderBy" class="ng-binding ng-scope">Protection</span><!-- end ngRepeat: bundle in contact.bundle | orderBy --></div>
-            </td><!-- end ngIf: locationId !== 'global' -->
-            <td><div class="avoid ng-binding">United Nations Office for the Coordination of Humanitarian Affairs</div></td>
-            <td><div class="avoid ng-binding">My Afghan Title</div></td>
-            <td>
-              <div class="avoid">
-                <!-- ngRepeat: phone in contact.phone --><span ng-repeat="phone in contact.phone" class="ng-binding ng-scope">001-612-501-4642 (M), </span><!-- end ngRepeat: phone in contact.phone --><span ng-repeat="phone in contact.phone" class="ng-binding ng-scope">+9312 (L)</span><!-- end ngRepeat: phone in contact.phone -->
-              </div>
-            </td>
-            <td>
-              <div class="avoid">
-                <!-- ngRepeat: email in contact.email --><span ng-repeat="email in contact.email" class="ng-binding ng-scope"><a href="mailto:jturgeon@phase2technology.com" class="ng-binding">jturgeon@phase2technology.com</a> (W), </span><!-- end ngRepeat: email in contact.email --><span ng-repeat="email in contact.email" class="ng-binding ng-scope"><a href="mailto:arithmetric@gmail.com" class="ng-binding">arithmetric@gmail.com</a> (P)</span><!-- end ngRepeat: email in contact.email -->
-              </div>
-            </td>
-            <td>
-              <div class="avoid">
-                <!-- ngIf: locationId !== 'global' && contact.address[0].locality --><span ng-if="locationId !== 'global' &amp;&amp; contact.address[0].locality" class="ng-binding ng-scope">Daykundi, </span><!-- end ngIf: locationId !== 'global' && contact.address[0].locality -->
-                <!-- ngIf: locationId !== 'global' && contact.address[0].administrative_area --><span ng-if="locationId !== 'global' &amp;&amp; contact.address[0].administrative_area" class="ng-binding ng-scope">Central Highland</span><!-- end ngIf: locationId !== 'global' && contact.address[0].administrative_area -->
-                <!-- ngIf: locationId === 'global' && contact.address[0].country -->
-              </div>
-            </td>
-          </tr><!-- end ngRepeat: contact in contacts | orderBy: ['organization[0].name', 'nameGiven', 'nameFamily'] -->
-{{/each}}
-
+          {{#each contacts}}
+            <tr class="profile-item ng-scope">
+              <td class="title-cell"><div class="avoid ng-binding">{{nameGiven}}<br><span class="name-family ng-binding">{{nameFamily}}</span></div></td>
+              {{#unless ../isGlobal}}
+                <td ng-if="locationId !== 'global'" class="ng-scope">
+                  {{#each bundle}}
+                    {{~#if @index}},{{/if}}
+                    {{this~}}
+                  {{/each}}
+                </td>
+              {{/unless}}
+              <td><div class="avoid ng-binding">{{organization.[0].name}}</div></td>
+              <td><div class="avoid ng-binding">{{jobtitle}}</div></td>
+              <td>
+                {{#each phone}}
+                  {{~#if @index}},{{/if}}
+                  {{number~}}
+                  {{#if type}} ({{type}}){{/if~}}
+                {{/each}}
+              </td>
+              <td>
+                {{#each email}}
+                  {{~#if @index}},{{/if}}
+                  <a href="mailto:{{address}}">{{address}}</a>
+                  {{#if type}} ({{type}}){{/if~}}
+                {{/each}}
+              </td>
+              <td>
+                {{address.[0].locality~}}
+                {{~#if address.[0].locality}},{{/if}}
+                {{address.[0].administrative_area~}}
+                {{~#if address.[0].administrative_area}},{{/if}}
+                {{address.[0].country}}</div>
+              </td>
+            </tr>
+          {{/each}}
         </tbody>
-</table>
-
-
-      <!-- ngIf: contacts.length == 0 && contactsCreated -->
+      </table>
     </div>
   </div>
   <div id="print-footer">
     <div class="message"><span translate=""><span class="ng-scope">Powered by</span></span> <span class="title-humanitarian">Humanitarian</span> <span class="title-id">Id</span> - <span translate=""><span class="ng-scope">to update your information, check in to</span></span> <a href="http://humanitarian.id">http://humanitarian.id</a><br>
-    <!-- ngIf: locationId !== 'global' --><span ng-if="locationId !== 'global'" translate="" class="ng-scope"><span class="ng-scope">*the term GROUP equals clusters, sectors, working groups are any other thematic</span></span><!-- end ngIf: locationId !== 'global' --></div>
+    {{#unless isGlobal}}
+      <span class="ng-scope">*the term GROUP equals clusters, sectors, working groups are any other thematic</span>
+    {{/unless}}
+    </div>
   </div>
 </div>
 </div>
