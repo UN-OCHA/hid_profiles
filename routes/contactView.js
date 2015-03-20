@@ -1,7 +1,12 @@
 var Contact = require('../models').Contact,
+  config = require('../config'),
   log = require('../log'),
   stringify = require('csv-stringify'),
-  _ = require('lodash');
+  _ = require('lodash'),
+  fs = require('fs'),
+  Handlebars = require('handlebars'),
+  restify = require('restify'),
+  moment = require('moment');
 
 function get(req, res, next) {
   var docs = {},
@@ -88,7 +93,7 @@ function get(req, res, next) {
           }
         }
 
-        if (req.query.export && ((req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) || (req.apiAuth.mode === 'user' && req.apiAuth.userId))) {
+        if (req.query.export && req.query.export === 'csv' && ((req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) || (req.apiAuth.mode === 'user' && req.apiAuth.userId))) {
           var csvData = '',
             stringifier = stringify({'quoted': true});
 
@@ -109,6 +114,7 @@ function get(req, res, next) {
             });
             res.write(csvData);
             res.end();
+            log.info({'type': 'contactViewCSV:success', 'message': 'Successfully generated CSV data for contactView query.', 'query': query, 'range': range});
           });
 
           stringifier.write([
@@ -197,6 +203,78 @@ function get(req, res, next) {
           });
 
           stringifier.end();
+          return;
+        }
+        else if (req.query.export && req.query.export === 'pdf' && ((req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) || (req.apiAuth.mode === 'user' && req.apiAuth.userId))) {
+          // Load the printList.html template, compile it with Handlebars, and
+          // generate HTML output for the list.
+          fs.readFile('views/printList.html', function (err, data) {
+            if (err) throw err;
+            var template = Handlebars.compile(String(data)),
+              tokens = {
+                location: (query.type === 'global' || !query.locationId || !query.locationId.length) ? 'Global' : query.locationId,
+                queryCount: contacts.length,
+                dateGenerated: moment().format('LL'),
+                contacts: contacts
+              },
+              result = template(tokens),
+              postData = require('querystring').stringify({
+                'html' : result
+              }),
+              options = {
+                hostname: config.wkhtmltopdfHost,
+                path: '/htmltopdf',
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  'Content-Length': postData.length
+                }
+              },
+              http = require('http'),
+              clientReq;
+
+            // Send the HTML to the wkhtmltopdf service to generate a PDF, and
+            // return the output.
+            clientReq = http.request(options, function(clientRes) {
+              if (clientRes && clientRes.statusCode == 200) {
+                clientRes.setEncoding('binary');
+
+                var pdfSize = parseInt(clientRes.header("Content-Length")),
+                  pdfBuffer = new Buffer(pdfSize),
+                  bytes = 0;
+
+                clientRes.on("data", function(chunk) {
+                  pdfBuffer.write(chunk, bytes, "binary");
+                  bytes += chunk.length;
+                });
+
+                clientRes.on("end", function() {
+                  res.writeHead(200, {
+                    'Content-Length': bytes,
+                    'Content-Type': 'application/pdf'
+                  });
+                  res.end(pdfBuffer);
+                  log.info({'type': 'contactViewPDF:success', 'message': 'Successfully generated PDF data for contactView query.', 'query': query, 'range': range});
+                });
+              }
+              else {
+                log.warn({'type': 'contactViewPDF:error', 'message': 'An error occured while generating PDF.', 'clientRes': clientRes});
+                res.send(500, "An error occured while generating PDF.");
+                res.end();
+              }
+            });
+
+            // Handle errors with the HTTP request.
+            clientReq.on('error', function(e) {
+              log.warn({'type': 'contactViewPDF:error', 'message': 'An error occured while requesting the PDF generation: ' + e.message, 'error': e});
+              res.send(500, "An error occurred while requesting the PDF generation.");
+              res.end();
+            });
+
+            // Write post data containing the rendered HTML.
+            clientReq.write(postData);
+            clientReq.end();
+          });
           return;
         }
 
