@@ -21,65 +21,7 @@
 <body ng-app="contactsId" class="break960 ng-animate print pdf">
   <div id="contactsid-app-view-wrapper">
     <div id="contactsid-app" class="contactsid-app">
-      <!-- ngInclude: undefined --><ng-include src="'partials/header.html'" class="ng-scope"><div class="header ng-scope" ng-controller="HeaderCtrl">
-  <div class="utility navbar" ng-show="externalLinks || breakpoint.class !== 'smallscreen'">
-    <div class="affiliate-logos pull-left">
-      <div class="affiliate-logo-wrapper"><a href="http://www.humanitarianresponse.info" target="_blank"><div class="affiliate-logo humanitarian-response"></div></a></div>
-      <div class="affiliate-logo-wrapper"><a href="http://reliefweb.int/" target="_blank"><div class="affiliate-logo relief-web"></div></a></div>
-      <div class="affiliate-logo-wrapper"><a href="https://data.hdx.rwlabs.org" target="_blank"><div class="affiliate-logo hdx"></div></a></div>
-    </div>
-
-    <div class="navbar-form login-controls">
-      <div class="form-group">
-        <!-- ngIf: isAuthenticated --><div class="login-controls-name hidden-xs ng-scope" ng-if="isAuthenticated"><span translate=""><span class="ng-scope">Welcome</span></span>, <span ng-bind="nameGiven" class="ng-binding">Joe</span> <span ng-bind="nameFamily" class="ng-binding">Turgeon</span></div><!-- end ngIf: isAuthenticated -->
-        <!-- ngIf: !isAuthenticated -->
-        <!-- ngIf: isAuthenticated --><a class="btn-login-controls btn hidden-xs ng-scope" ng-if="isAuthenticated" href="#/logout"><span translate=""><span class="ng-scope">Logout</span></span> <span class="text-highlight">H</span>ID</a><!-- end ngIf: isAuthenticated -->
-        <select name="language" ng-change="switchLanguage()" ng-model="language" ng-show="breakpoint.class !== 'smallscreen' || !isAuthenticated" class="form-control input-sm ng-pristine ng-untouched ng-valid">
-          <option value="en">English</option>
-          <option value="ar">العربية</option>
-          <option value="de">Deutsch</option>
-          <option value="fr">Français</option>
-          <option value="tl">Tagalog</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <div class="logo-bar">
-    <div class="container">
-      <div class="row">
-        <div class="col-sm-12">
-          <a href="#/dashboard"><div class="logo"><img src="{{appBaseUrl}}/images/hid-logo-print.jpg" width="420" height="66" /></div></a>
-        </div>
-        <div class="col-sm-12">
-          <div class="primary-nav">
-            <span ng-click="menuToggle()" class="touch-button"><i class="fa fa-bars"></i></span>
-            <ul ng-show="(mainMenu &amp;&amp; !externalLinks) || breakpoint.class !== 'smallscreen'">
-              <li class="visible-xs">
-                <div class="form-group">
-                  <select name="language" ng-change="switchLanguage()" ng-model="language" class="form-control input-sm ng-pristine ng-untouched ng-valid">
-                    <option value="en">English</option>
-                    <option value="ar">العربية</option>
-                    <option value="de">Deutsch</option>
-                    <option value="fr">Français</option>
-                    <option value="tl">Tagalog</option>
-                  </select>
-                </div>
-              </li>
-              <!-- ngIf: !isAuthenticated -->
-              <!-- ngIf: isAuthenticated --><li ng-if="isAuthenticated" class="ng-scope"><a active-link="active" href="#/dashboard"><span translate=""><span class="ng-scope">Dashboard</span></span></a></li><!-- end ngIf: isAuthenticated -->
-              <li><a active-link="active" href="#/about"><span translate=""><span class="ng-scope">About</span></span></a></li>
-              <li class="visible-xs" ng-click="externalLinks = !externalLinks"><a href=""><span translate=""><span class="ng-scope">External Links</span></span></a></li>
-              <li class="visible-xs"><a href="#/logout"><span translate=""><span class="ng-scope">Logout</span></span></a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-</ng-include>
-      <!-- ngView:  --><div id="contactsid-app-view" class="container ng-scope" ng-view=""><div class="page-list print ng-scope">
+<div id="contactsid-app-view" class="container ng-scope" ng-view=""><div class="page-list print pdf ng-scope">
   <div class="row masthead">
     <div class="col-xs-12">
       <!-- ngIf: !supported -->
@@ -97,6 +39,7 @@
   </div>
 
   <div class="row main">
+    {{#if filters}}
     <div class="col-xs-12 filters-param-list-wrapper ng-hide" ng-show="filtersParams.length">
       <div class="filters-param-list">
         <div class="filters-param-label" translate=""><span class="ng-scope">Filter Criteria</span></div>
@@ -106,6 +49,7 @@
         {{/each}}
       </div>
     </div>
+    {{/if}}
     <div class="active-contacts col-xs-12">
       <table class="table table-striped" cg-busy="contactsPromise" style="position: relative;">
         <thead>
@@ -128,8 +72,8 @@
               {{#unless ../isGlobal}}
                 <td ng-if="locationId !== 'global'" class="ng-scope">
                   {{#each bundle}}
-                    {{~#if @index}},{{/if}}
-                    {{this~}}
+                    {{this}}
+                    {{~#unless @last}},{{/unless}}
                   {{/each}}
                 </td>
               {{/unless}}
@@ -137,16 +81,20 @@
               <td><div class="avoid ng-binding">{{jobtitle}}</div></td>
               <td>
                 {{#each phone}}
-                  {{~#if @index}},{{/if}}
-                  {{number~}}
-                  {{#if type}} ({{type}}){{/if~}}
+                  <div>
+                    {{number~}}
+                    {{#if type}} ({{type}}){{/if}}
+                    {{~#unless @last}},{{/unless}}
+                  </div>
                 {{/each}}
               </td>
               <td>
                 {{#each email}}
-                  {{~#if @index}},{{/if}}
-                  <a href="mailto:{{address}}">{{address}}</a>
-                  {{#if type}} ({{type}}){{/if~}}
+                  <div>
+                    <a href="mailto:{{address}}">{{address}}</a>
+                    {{#if type}} ({{type}}){{/if}}
+                    {{~#unless @last}},{{/unless}}
+                  </div>
                 {{/each}}
               </td>
               <td>
@@ -165,7 +113,7 @@
   <div id="print-footer">
     <div class="message"><span translate=""><span class="ng-scope">Powered by</span></span> <span class="title-humanitarian">Humanitarian</span> <span class="title-id">Id</span> - <span translate=""><span class="ng-scope">to update your information, check in to</span></span> <a href="http://humanitarian.id">http://humanitarian.id</a><br>
     {{#unless isGlobal}}
-      <span class="ng-scope">*the term GROUP equals clusters, sectors, working groups are any other thematic</span>
+      <span class="ng-scope">* Groups include clusters, sectors, working group or similar.</span>
     {{/unless}}
     </div>
   </div>
