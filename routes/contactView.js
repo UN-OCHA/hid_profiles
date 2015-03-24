@@ -9,7 +9,9 @@ var Contact = require('../models').Contact,
   fs = require('fs'),
   Handlebars = require('handlebars'),
   restify = require('restify'),
-  moment = require('moment');
+  moment = require('moment'),
+  qs = require('querystring'),
+  http = require('http');
 
 function get(req, res, next) {
   var docs = {},
@@ -283,7 +285,7 @@ function get(req, res, next) {
                 contacts: contacts
               },
               result = template(tokens),
-              postData = require('querystring').stringify({
+              postData = qs.stringify({
                 'html' : result
               }),
               options = {
@@ -295,7 +297,6 @@ function get(req, res, next) {
                   'Content-Length': postData.length
                 }
               },
-              http = require('http'),
               clientReq;
 
             // Send the HTML to the wkhtmltopdf service to generate a PDF, and
