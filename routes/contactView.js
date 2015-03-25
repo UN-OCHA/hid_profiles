@@ -290,6 +290,7 @@ function get(req, res, next) {
               }),
               options = {
                 hostname: config.wkhtmltopdfHost,
+                port: config.wkhtmltopdfPort || 80,
                 path: '/htmltopdf',
                 method: 'POST',
                 headers: {
