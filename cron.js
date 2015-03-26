@@ -1,5 +1,6 @@
 var models = require('./models'),
   config = require('./config'),
+  disasters = require('./lib/disasters'),
   async = require('async'),
   restify = require('restify');
 
@@ -61,7 +62,8 @@ async.series([
       }
     });
   },
-
+  disasters.buildCache,
+  disasters.collateOperationsDisasters
 ],
 function (err, results) {
   console.log("Finished hid_profiles cron run.");
