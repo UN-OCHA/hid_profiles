@@ -1,25 +1,14 @@
-var async = require('async');
-var roles = require('../lib/roles.js');
-var protectedRoles = require('../lib/protectedRoles.js');
+var models = require('../models');
 var log = require('../log');
 
 function getAppData(req, res, next) {
-  var appData = {};
-  async.series([
-    function (cb) {
-      roles.get(function (err, data) {
-        appData.roles = data;
-        return cb();
-      });
-    },
-    function (cb) {
-      protectedRoles.get(function (err, data) {
-        appData.protectedRoles = data;
-        return cb();
-      });
+  models.Cache.findOne({"name": "appData"}, function (err, doc) {
+    if (err || !doc || !doc.data) {
+      res.send(500, "An error occurred while preparing app data.");
+      return cb(err);
     }
-  ], function(err, results) {
-    res.send(appData);
+
+    res.send(doc.data);
     log.info({'type': 'getAppData:success', 'message': 'Successfully returned app data'});
   });
 }
