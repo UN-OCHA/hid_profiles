@@ -43,6 +43,7 @@ function get(req, res, next) {
           {'address.country': exp},
           {'address.locality': exp},
           {bundle: exp},
+          {'disasters.name': exp},
           {'email.address': exp},
           {jobtitle: exp},
           {nameGiven: exp},
