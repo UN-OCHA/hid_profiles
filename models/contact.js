@@ -4,6 +4,12 @@ var Profile = mongoose.model('Profile');
 
 
 // Define sub-schemas
+var disasterSchema = new Schema({
+  remote_id:  String,
+  glide_id:   String,
+  name:       String
+});
+
 var emailSchema = new Schema({
   address:  String,
   type:     String,
@@ -40,6 +46,7 @@ var contactSchema = new mongoose.Schema({
   type:               String, // "local" or "global"
   location:           String, // "Liberia - Ebola crisis" or "Global"
   locationId:         String,
+  disasters:          [ disasterSchema ],
   nameGiven:          String,
   nameFamily:         String,
   email:              [ emailSchema ],
