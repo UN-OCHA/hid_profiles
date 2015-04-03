@@ -1,4 +1,5 @@
 var Contact = require('../models').Contact,
+  Profile = require('../models').Profile,
   Cache = require('../models').Cache,
   config = require('../config'),
   log = require('../log'),
@@ -11,7 +12,72 @@ var Contact = require('../models').Contact,
   restify = require('restify'),
   moment = require('moment'),
   qs = require('querystring'),
-  http = require('http');
+  http = require('http'),
+  operations = require('../lib/operations'),
+  lockedOperation = false,
+  verifiedUser = false;
+
+// Middleware function to grant/deny access to the contactView routes 
+// and to set properties for limiting queries when necessary
+function getAccess(req, res, next) {
+  async.series([
+    function (cb) {
+      // Trusted API clients are allowed read access to all contacts.  
+      if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+        //Bypass the rest of the series 
+        return next();
+      }
+      return cb();
+    },
+    function (cb) {
+       // If the crisis is local check to see if it is locked
+      if (req.query.type && req.query.type === 'local'){
+        if (req.query.locationId){
+          //Check to see if crisis (operation) is locked
+          operations.get(req.query.locationId, function (err, operation) {
+            if (operation.hid_access && operation.hid_access != 'open'){
+              lockedOperation = true;
+            }
+            return cb();
+          });
+        }
+      }
+      else {
+        return cb();
+      }
+    },
+    function (cb){
+      //Check to see if the requesting user is verified 
+      if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
+        Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
+          if (!err && profile && profile._id) {
+            req.apiAuth.userProfile = profile;
+            if (profile.verified === true){
+              verifiedUser = true;
+            }
+          }
+          return cb();
+        });
+      }
+      else {
+        return cb();
+      }
+    },
+    function (cb){
+      //Limit the query to active status
+      //We may want to modify this to allow admin access to disabled profiles in the future
+      req.query.status = 1;
+      return cb();
+    },
+  ],function (err, results) {
+      //If the operation is locked and user isn't verified then limit their query to their own profile
+      if (lockedOperation && !verifiedUser) {
+        req.query._profile = req.apiAuth.userProfile.id;
+      }
+      return next();
+    }
+  );
+}
 
 function get(req, res, next) {
   var docs = {},
@@ -370,3 +436,4 @@ function get(req, res, next) {
 }
 
 exports.get = get;
+exports.getAccess = getAccess;
