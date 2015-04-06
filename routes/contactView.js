@@ -35,7 +35,7 @@ function getAccess(req, res, next) {
         if (req.query.locationId){
           //Check to see if crisis (operation) is locked
           operations.get(req.query.locationId, function (err, operation) {
-            if (operation.hid_access && operation.hid_access != 'open'){
+            if (operation.hid_access && operation.hid_access == 'closed'){
               lockedOperation = true;
             }
             return cb();
