@@ -41,6 +41,12 @@ var organizationSchema = new Schema({
   name:       String
 });
 
+var imageSchema = new Schema({
+  type:           String,
+  socialMediaId:  String,
+  url:            String
+});
+
 var contactSchema = new mongoose.Schema({
   _profile:           { type: Schema.Types.ObjectId, ref: 'Profile' }, // links to "parent" Profile document (required)
   type:               String, // "local" or "global"
@@ -62,7 +68,8 @@ var contactSchema = new mongoose.Schema({
   revised:            Number, // timestamp
   status:             Boolean,
   keyContact:         Boolean,
-  protectedRoles:     [ String ]
+  protectedRoles:     [ String ],
+  image:              [ imageSchema ]
 });
 
 mongoose.model('Contact', contactSchema);
