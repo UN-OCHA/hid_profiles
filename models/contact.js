@@ -69,7 +69,8 @@ var contactSchema = new mongoose.Schema({
   status:             Boolean,
   keyContact:         Boolean,
   protectedRoles:     [ String ],
-  image:              [ imageSchema ]
+  image:              [ imageSchema ],
+  office:             [ organizationSchema ]
 });
 
 mongoose.model('Contact', contactSchema);

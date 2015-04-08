@@ -115,6 +115,7 @@ function get(req, res, next) {
           {nameGiven: exp},
           {nameFamily: exp},
           {notes: exp},
+          {'office.name': exp},
           {'organization.name': exp},
           {'phone.number': exp},
           {protectedRoles: exp},
