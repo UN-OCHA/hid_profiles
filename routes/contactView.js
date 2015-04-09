@@ -38,6 +38,9 @@ function getAccess(req, res, next) {
             if (operation.hid_access && operation.hid_access == 'closed'){
               lockedOperation = true;
             }
+            else {
+              lockedOperation = false;
+            }
             return cb();
           });
         }
