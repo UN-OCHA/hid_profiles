@@ -59,6 +59,7 @@ function post(req, res, next) {
   var isNewContact = req.body.isNewContact || false;
   var notifyEmail = req.body.notifyEmail || null;
   var adminName = req.body.adminName || null;
+  var adminEmail = req.body.adminEmail || null;
   var message = null;
   var isGhost = false;
   var authEmail;
@@ -105,6 +106,8 @@ function post(req, res, next) {
             "nameFirst": contactFields.nameGiven,
             "nameLast": contactFields.nameFamily,
             "adminName": adminName,
+            "adminEmail": adminEmail,
+            "location": contactFields.location,
             "active": 1,
             'emailFlag': '1' //Orphan email
           };
@@ -434,8 +437,8 @@ function post(req, res, next) {
 
           var mailOptions = {
             from:  'Humanitarian ID<info@humanitarian.id>',
-            to: notifyEmail.recipientEmail,  
-            subject: 'Humanitarian ID check-out notification', 
+            to: notifyEmail.recipientEmail,
+            subject: 'Humanitarian ID check-out notification',
             text: mailText
           };
 
@@ -465,8 +468,8 @@ function post(req, res, next) {
 
           var mailOptions = {
             from:  'Humanitarian ID<info@humanitarian.id>',
-            to: notifyEmail.recipientEmail, 
-            subject: 'Humanitarian ID check-in notification', 
+            to: notifyEmail.recipientEmail,
+            subject: 'Humanitarian ID check-in notification',
             text: mailText
           };
 
