@@ -17,14 +17,14 @@ var Contact = require('../models').Contact,
   lockedOperation = false,
   verifiedUser = false;
 
-// Middleware function to grant/deny access to the contactView routes 
+// Middleware function to grant/deny access to the contactView routes
 // and to set properties for limiting queries when necessary
 function getAccess(req, res, next) {
   async.series([
     function (cb) {
-      // Trusted API clients are allowed read access to all contacts.  
+      // Trusted API clients are allowed read access to all contacts.
       if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
-        //Bypass the rest of the series 
+        //Bypass the rest of the series
         return next();
       }
       return cb();
@@ -47,7 +47,7 @@ function getAccess(req, res, next) {
       }
     },
     function (cb){
-      //Check to see if the requesting user is verified 
+      //Check to see if the requesting user is verified
       if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
         Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
           if (!err && profile && profile._id) {
@@ -253,6 +253,13 @@ function get(req, res, next) {
               });
             });
 
+            // Tack on a semicolon to the end of all phone number,
+            // having them displayed as a string in excel.
+            _.forEach(multiValues.phone.types, function(value, type){
+              var nums = value.join('; ');
+              multiValues.phone.types[type] = nums.length ? nums + ';' : nums;
+            });
+
             stringifier.write([
               item.nameGiven,
               item.nameFamily,
@@ -262,10 +269,10 @@ function get(req, res, next) {
               item.address && item.address[0] && item.address[0].country ? item.address[0].country : '',
               item.address && item.address[0] && item.address[0].administrative_area ? item.address[0].administrative_area : '',
               item.address && item.address[0] && item.address[0].locality ? item.address[0].locality : '',
-              multiValues.phone.types['Landline'].join('; '),
-              multiValues.phone.types['Mobile'].join('; '),
-              multiValues.phone.types['Fax'].join('; '),
-              multiValues.phone.types['Satellite'].join('; '),
+              multiValues.phone.types['Landline'],
+              multiValues.phone.types['Mobile'],
+              multiValues.phone.types['Fax'],
+              multiValues.phone.types['Satellite'],
               multiValues.voip.types['Voip'].join('; '),
               multiValues.email.types['Email'].join('; '),
               multiValues.email.types['Work'].join('; '),
