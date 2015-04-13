@@ -296,14 +296,10 @@ function get(req, res, next) {
           async.series([
             function (cb) {
               if (query.type !== 'global' && query.locationId && query.locationId !== 'global') {
-                Cache.findOne({"name": "operations"}, function (err, doc) {
-                  _.forEach(doc.data, function (item) {
-                    _.forEach(item, function (operation, opId) {
-                      if (opId.length && opId == query.locationId && operation.name && operation.name.length) {
-                        listTitle = operation.name;
-                      }
-                    });
-                  });
+                operations.get(query.locationId, function (err, operation) {
+                  if (operation && operation.name && operation.name.length) {
+                    listTitle = operation.name;
+                  }
                   return cb();
                 });
               }
