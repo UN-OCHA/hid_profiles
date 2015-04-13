@@ -308,7 +308,7 @@ function get(req, res, next) {
                 });
               }
               else {
-                listTitle = 'Global';
+                listTitle = 'Global Contact List';
                 return cb();
               }
             },
