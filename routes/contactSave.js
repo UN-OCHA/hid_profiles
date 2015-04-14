@@ -408,6 +408,10 @@ function post(req, res, next) {
             if (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid) {
               profile.firstUpdate = Date.now();
             }
+            if (req.body.orgEditorRoles){
+              profile.orgEditorRoles = req.body.orgEditorRoles;
+            }
+
             return profile.save(function (err, profile, num) {
               log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile + " to change admin roles for user " + userid});
               return cb(err);
