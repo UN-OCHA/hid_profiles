@@ -31,15 +31,13 @@ function getAccess(req, res, next) {
     },
     function (cb) {
        // If the crisis is local check to see if it is locked
+      lockedOperation = false;
       if (req.query.type && req.query.type === 'local'){
         if (req.query.locationId){
           //Check to see if crisis (operation) is locked
           operations.get(req.query.locationId, function (err, operation) {
             if (operation.hid_access && operation.hid_access == 'closed'){
               lockedOperation = true;
-            }
-            else {
-              lockedOperation = false;
             }
             return cb();
           });
@@ -51,6 +49,7 @@ function getAccess(req, res, next) {
     },
     function (cb){
       //Check to see if the requesting user is verified
+      verifiedUser = false;
       if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
         Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
           if (!err && profile && profile._id) {
