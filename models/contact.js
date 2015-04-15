@@ -70,7 +70,8 @@ var contactSchema = new mongoose.Schema({
   keyContact:         Boolean,
   protectedRoles:     [ String ],
   image:              [ imageSchema ],
-  office:             [ organizationSchema ]
+  office:             [ organizationSchema ],
+  departureDate:      Date
 });
 
 mongoose.model('Contact', contactSchema);
