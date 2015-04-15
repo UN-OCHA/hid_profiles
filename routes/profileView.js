@@ -1,12 +1,14 @@
 var async = require('async'),
   Profile = require('../models').Profile,
   Contact = require('../models').Contact,
+  operations = require('../lib/operations'),
   log = require('../log');
 
 function get(req, res, next) {
   var docs  = { },
       query = { },
-      queryContactId = false;
+      queryContactId = false,
+      userCanViewAllContacts = false;
 
   for (var prop in req.query) {
     if (!req.query.hasOwnProperty(prop)) {
@@ -29,6 +31,28 @@ function get(req, res, next) {
   var profile = {},
     contacts = [];
   async.series([
+    // Check permissions
+    function (cb) {
+      // Trusted API clients are allowed read access to all contacts.
+      if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+        userCanViewAllContacts = true;
+        return cb();
+      }
+      // Users are allowed to see all of their own contacts.
+      else if (req.apiAuth.mode === 'user' && req.apiAuth.userId && query.userid === req.apiAuth.userId) {
+        userCanViewAllContacts = true;
+        return cb();
+      }
+      // Admins and verified users are allowed to see anyone's contacts.
+      else {
+        Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
+          if (!err && profile && profile._id && profile.verified) {
+            userCanViewAllContacts = true;
+          }
+          return cb();
+        });
+      }
+    },
     // Allow searching for a profile by the ID of a contact that references it.
     function (cb) {
       if (!queryContactId) {
@@ -67,6 +91,17 @@ function get(req, res, next) {
           if (_contacts && _contacts.length) {
             contacts = _contacts;
           }
+          return cb();
+        });
+      }
+      else {
+        return cb();
+      }
+    },
+    function (cb) {
+      if (!userCanViewAllContacts) {
+        operations.filterLockedOperations(contacts, function (err, filteredContacts) {
+          contacts = filteredContacts;
           return cb();
         });
       }
