@@ -5,7 +5,8 @@ var async = require('async'),
 
 function get(req, res, next) {
   var docs  = { },
-      query = { };
+      query = { },
+      queryContactId = false;
 
   for (var prop in req.query) {
     if (!req.query.hasOwnProperty(prop)) {
@@ -17,6 +18,9 @@ function get(req, res, next) {
     if (prop == 'userid') {
       query[prop] = val;
     }
+    else if (prop === 'contactId') {
+      queryContactId = val;
+    }
     else {
       query[prop] = val;
     }
@@ -25,6 +29,19 @@ function get(req, res, next) {
   var profile = {},
     contacts = [];
   async.series([
+    // Allow searching for a profile by the ID of a contact that references it.
+    function (cb) {
+      if (!queryContactId) {
+        return cb();
+      }
+
+      Contact.findOne({'_id': queryContactId}, function (err, contact) {
+        if (contact && contact._id && contact._profile) {
+          query._id = contact._profile;
+        }
+        return cb();
+      });
+    },
     // Get the profile
     function (cb) {
       Profile.findOne(query, function (err, _profile) {
