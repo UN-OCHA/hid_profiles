@@ -111,6 +111,7 @@ function get(req, res, next) {
           {'address.country': exp},
           {'address.locality': exp},
           {bundle: exp},
+          {protectedBundles: exp},
           {'disasters.name': exp},
           {'email.address': exp},
           {jobtitle: exp},
