@@ -63,6 +63,7 @@ var contactSchema = new mongoose.Schema({
   organization:       [ organizationSchema ],
   jobtitle:           String,
   bundle:             [ String ],
+  protectedBundles:   [ String ],
   notes:              String,
   created:            Number, // timestamp
   revised:            Number, // timestamp

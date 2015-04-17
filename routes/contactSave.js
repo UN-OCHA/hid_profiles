@@ -78,7 +78,9 @@ function post(req, res, next) {
     newVerified = false,
     setKeyContact = false,
     setProtectedRoles = false,
-    newProtectedRoles = [];
+    newProtectedRoles = [],
+    setProtectedBundles = false,
+    newProtectedBundles = [];
 
   async.series([
     //Check to see if userid is set - if isNewContact is false, return an error
@@ -307,6 +309,13 @@ function post(req, res, next) {
         }
       }
 
+      // Allow setting protectedBundles if the user is an admin or a manager in
+      // the location of this profile.
+      if (req.body.hasOwnProperty("newProtectedBundles") && (isAPI || isAdmin || ((isManager || isEditor) && isManagersEditorsLocation))) {
+        setProtectedBundles = true;
+        newProtectedBundles = req.body.newProtectedBundles;
+      }
+
       // Allow admins to change all roles, and allow managers to only assign
       // managers/editors within their location.
       if (newRoles && (newRoles.length || origProfile.roles.length) && (isAPI || isAdmin || isManager)) {
@@ -371,6 +380,9 @@ function post(req, res, next) {
       }
       if (setProtectedRoles) {
         contactFields.protectedRoles = newProtectedRoles;
+      }
+      if (setProtectedBundles) {
+        contactFields.protectedBundles = newProtectedBundles;
       }
 
       // If no contact fields should be updated, continue to check the profile
