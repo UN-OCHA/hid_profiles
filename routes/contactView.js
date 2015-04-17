@@ -13,424 +13,180 @@ var Contact = require('../models').Contact,
   moment = require('moment'),
   qs = require('querystring'),
   http = require('http'),
-  operations = require('../lib/operations'),
-  lockedOperation = false,
-  verifiedUser = false;
+  operations = require('../lib/operations');
 
-// Middleware function to grant/deny access to the contactView routes
-// and to set properties for limiting queries when necessary
-function getAccess(req, res, next) {
-  async.series([
-    function (cb) {
-      // Trusted API clients are allowed read access to all contacts.
-      if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
-        //Bypass the rest of the series
-        return next();
-      }
-      return cb();
-    },
-    function (cb) {
-       // If the crisis is local check to see if it is locked
-      lockedOperation = false;
-      if (req.query.type && req.query.type === 'local'){
-        if (req.query.locationId){
-          //Check to see if crisis (operation) is locked
-          operations.get(req.query.locationId, function (err, operation) {
-            if (operation.hid_access && operation.hid_access == 'closed'){
-              lockedOperation = true;
-            }
-            return cb();
-          });
-        }
-      }
-      else {
-        return cb();
-      }
-    },
-    function (cb){
-      //Check to see if the requesting user is verified
-      verifiedUser = false;
-      if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
-        Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
-          if (!err && profile && profile._id) {
-            req.apiAuth.userProfile = profile;
-            if (profile.verified === true){
-              verifiedUser = true;
-            }
-          }
-          return cb();
-        });
-      }
-      else {
-        return cb();
-      }
-    },
-    function (cb){
-      //Limit the query to active status
-      //We may want to modify this to allow admin access to disabled profiles in the future
-      req.query.status = 1;
-      return cb();
-    },
-  ],function (err, results) {
-      //If the operation is locked and user isn't verified then limit their query to their own profile
-      if (lockedOperation && !verifiedUser) {
-        req.query._profile = req.apiAuth.userProfile.id;
-      }
-      return next();
-    }
-  );
-}
-
-function get(req, res, next) {
-  var docs = {},
+function get(req, res) {
+  // Initialize variables for get() scope.
+  var lockedOperations = [],
     query = {},
-    range = {skip: 0, limit: 0},
-    contactSchema = Contact.schema.paths;
+    range = {skip: 0, limit: 0};
 
-  for (var prop in req.query) {
-    if (req.query.hasOwnProperty(prop) && req.query[prop]) {
-      var val = typeof req.query[prop] === 'String' ? req.query[prop] : String(req.query[prop]);
-      if (!val || !val.length) {
-        continue;
-      }
+  // Initialize permissions and profile ID
+  req.userCanViewAllContacts = false;
+  req.userCanExport = false;
+  req.userProfileId = null;
 
-      if (range.hasOwnProperty(prop)) {
-        range[prop] = parseInt(val) || range[prop];
-      }
-      else if (prop == '_id' || prop == '_profile') {
-        query[prop] = val;
-      }
-      else if (prop == 'text') {
-        var exp = {
-          $regex: val.replace(/\s{1,}/g, '|'),
-          $options: 'i'
-        };
+  function access(callback) {
+    // Trusted API clients are allowed read access to all contacts.
+    if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+      req.userCanExport = true;
+      req.userCanViewAllContacts = true;
+      return callback(null);
+    }
+    // For users, we need to check their profile.
+    else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
+      Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
+        if (!err && profile && profile._id) {
+          // All users can export data.
+          req.userCanExport = true;
 
-        query['$or'] = [
-          {'address.administrative_area': exp},
-          {'address.country': exp},
-          {'address.locality': exp},
-          {bundle: exp},
-          {protectedBundles: exp},
-          {'disasters.name': exp},
-          {'email.address': exp},
-          {jobtitle: exp},
-          {nameGiven: exp},
-          {nameFamily: exp},
-          {notes: exp},
-          {'office.name': exp},
-          {'organization.name': exp},
-          {'phone.number': exp},
-          {protectedRoles: exp},
-          {uri: exp},
-          {'voip.number': exp}
-        ];
-      }
-      else if (recusiveSchemaCheck(contactSchema, prop.split('.'))) {
-        query[prop] = val;
-      }
+          // Set the profile ID for this user for use in a query later.
+          req.userProfileId = profile._id;
+
+          // Verified users can view all contacts.
+          if (profile.verified) {
+            req.userCanViewAllContacts = true;
+          }
+          return callback(null);
+        }
+        else {
+          return callback(err);
+        }
+      });
     }
   }
-  var result = {},
-    contacts = [],
-    count = 0;
 
-  Contact
-    .count(query)
-    .exec(function (err, _count) {
-      if (err) {
-        log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts count.', 'err': err});
-        result = {status: "error", message: "Query failed for contacts count."};
-      }
-      else {
-        count = _count
-      }
+  function preFetch(callback) {
+    if (req.userCanViewAllContacts) {
+      return callback();
+    }
+    operations.getLockedOperations(function (err, _lockedOperations) {
+      lockedOperations = _lockedOperations;
+      callback();
     });
+  }
 
-  Contact
-    .find(query)
-    .skip(range.skip)
-    .limit(range.limit)
-    .sort({nameGiven: 1, nameFamily: 1})
-    .populate('_profile')
-    .exec(function (err, _contacts) {
-      if (err) {
-        log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts.', 'err': err});
-        result = {status: "error", message: "Query failed for contacts."};
+  function fetch(callback) {
+    var docs = {},
+      contactSchema = Contact.schema.paths;
+
+    for (var prop in req.query) {
+      if (req.query.hasOwnProperty(prop) && req.query[prop]) {
+        var val = typeof req.query[prop] === 'String' ? req.query[prop] : String(req.query[prop]);
+        if (!val || !val.length) {
+          continue;
+        }
+
+        if (range.hasOwnProperty(prop)) {
+          range[prop] = parseInt(val) || range[prop];
+        }
+        else if (prop == '_id' || prop == '_profile') {
+          query[prop] = val;
+        }
+        else if (prop == 'text') {
+          var exp = {
+            $regex: val.replace(/\s{1,}/g, '|'),
+            $options: 'i'
+          };
+
+          query['$or'] = [
+            {'address.administrative_area': exp},
+            {'address.country': exp},
+            {'address.locality': exp},
+            {bundle: exp},
+            {protectedBundles: exp},
+            {'disasters.name': exp},
+            {'email.address': exp},
+            {jobtitle: exp},
+            {nameGiven: exp},
+            {nameFamily: exp},
+            {notes: exp},
+            {'office.name': exp},
+            {'organization.name': exp},
+            {'phone.number': exp},
+            {protectedRoles: exp},
+            {uri: exp},
+            {'voip.number': exp}
+          ];
+        }
+        else if (recursiveSchemaCheck(contactSchema, prop.split('.'))) {
+          query[prop] = val;
+        }
+      }
+    }
+
+    // Add locked operation exclusions
+    if (lockedOperations.length) {
+      var queryLock = {
+        '$or': [
+          {'locationId': {'$nin': lockedOperations}},
+          {'_profile': req.userProfileId || null}
+        ]
+      };
+      if (query.hasOwnProperty('$or')) {
+        query['$and'] = [
+          {'$or': query['$or']},
+          {'$or': queryLock['$or']}
+        ];
       }
       else {
-        if (_contacts && _contacts.length) {
-          contacts = _contacts;
+        query['$or'] = queryLock['$or'];
+      }
+    }
 
-          if (req.query.hasOwnProperty("verified") && req.query.verified) {
-            contacts = _contacts.filter(function (item) {
-              return item._profile && item._profile.verified;
-            });
+    // Set query defaults: Limit the query to active status.
+    query.status = 1;
+
+    var result = {},
+      contacts = [],
+      count = 0;
+
+    Contact
+      .count(query)
+      .exec(function (err, _count) {
+        if (err) {
+          log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts count.', 'err': err});
+          result = {status: "error", message: "Query failed for contacts count."};
+        }
+        else {
+          count = _count
+        }
+      });
+
+    Contact
+      .find(query)
+      .skip(range.skip)
+      .limit(range.limit)
+      .sort({nameGiven: 1, nameFamily: 1})
+      .populate('_profile')
+      .exec(function (err, _contacts) {
+        if (err) {
+          log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts.', 'err': err});
+          result = {status: "error", message: "Query failed for contacts."};
+          res.send(result);
+          return callback(err);
+        }
+        else {
+          if (_contacts && _contacts.length) {
+            contacts = _contacts;
+
+            if (req.query.hasOwnProperty("verified") && req.query.verified) {
+              contacts = _contacts.filter(function (item) {
+                return item._profile && item._profile.verified;
+              });
+            }
           }
+          return callback(null, contacts, count);
         }
-
-        if (req.query.export && req.query.export === 'csv' && ((req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) || (req.apiAuth.mode === 'user' && req.apiAuth.userId))) {
-          var csvData = '',
-            stringifier = stringify({'quoted': true});
-
-          stringifier.on('readable', function() {
-            while (row = stringifier.read()) {
-              csvData += row;
-            }
-          });
-          stringifier.on('error', function(err) {
-            log.warn({'type': 'contactView:error', 'message': 'Error occurred while reading stringifier to generate CSV.', 'err': err});
-          });
-          stringifier.on('finish', function() {
-            res.charSet('utf-8');
-            res.writeHead(200, {
-              'Content-Length': Buffer.byteLength(csvData),
-              'Content-Type': 'text/csv; charset=utf-8',
-              'Content-Disposition': 'attachment; filename="contacts.csv"'
-            });
-            res.write(csvData);
-            res.end();
-            log.info({'type': 'contactViewCSV:success', 'message': 'Successfully generated CSV data for contactView query.', 'query': query, 'range': range});
-          });
-
-          stringifier.write([
-            'Given Name',
-            'Family Name',
-            'Job Title',
-            'Organization',
-            'Groups',
-            'Country',
-            'Admin Area',
-            'Locality',
-            'Phone:Landline',
-            'Phone:Mobile',
-            'Phone:Fax',
-            'Phone:Satellite',
-            'VOIP',
-            'Email',
-            'Email:Work',
-            'Email:Personal',
-            'Email:Other',
-            'URI'
-          ]);
-
-
-          _.forEach(contacts, function (item) {
-            var multiValues = {
-                  email: {
-                    key: 'address',
-                    defaultType: 'Email',
-                    types: {'Email':[], 'Work':[],'Personal':[], 'Other':[]}
-                  },
-                  phone: {
-                    key: 'number',
-                    defaultType: 'Landline',
-                    types:{'Landline':[], 'Mobile':[], 'Fax':[], 'Satellite':[]}
-                  },
-                  voip: {
-                    key: 'number',
-                    defaultType: 'Voip',
-                    types: {'Voip': []}
-                  }
-                };
-
-            _.forEach(multiValues, function(value, fieldType) {
-              _.forEach(item[fieldType], function(fieldEntry) {
-                console.log('fieldEntry', fieldEntry)
-                // Make sure actual value is defined.
-                if (typeof fieldEntry[value.key] !== 'undefined') {
-                  // Type is defined and is one of the predefined accepted values.
-                  if (typeof fieldEntry.type !== 'undefined' && typeof value.types[fieldEntry.type] !==  'undefined') {
-                    multiValues[fieldType].types[fieldEntry.type].push(fieldEntry[value.key]);
-                  }
-                  // If type is defined but not one of the accepted values,
-                  // append it to the field value and add it to the default array.
-                  else if (typeof fieldEntry.type !== 'undefined') {
-                    multiValues[fieldType].types[value.defaultType].push(fieldEntry.type + ": " + fieldEntry[value.key] );
-                  }
-                  // Otherwise add value to default array.
-                  else {
-                    multiValues[fieldType].types[value.defaultType].push(fieldEntry[value.key]);
-                  }
-                }
-              });
-            });
-
-            // Tack on a semicolon to the end of all phone number,
-            // having them displayed as a string in excel.
-            _.forEach(multiValues.phone.types, function(value, type){
-              var nums = value.join('; ');
-              multiValues.phone.types[type] = nums.length ? nums + ';' : nums;
-            });
-
-            stringifier.write([
-              item.nameGiven,
-              item.nameFamily,
-              item.jobtitle,
-              item.organization.map(function (val) { if (val.name) { return val.name; } }).join('; '),
-              item.bundle.join('; '),
-              item.address && item.address[0] && item.address[0].country ? item.address[0].country : '',
-              item.address && item.address[0] && item.address[0].administrative_area ? item.address[0].administrative_area : '',
-              item.address && item.address[0] && item.address[0].locality ? item.address[0].locality : '',
-              multiValues.phone.types['Landline'],
-              multiValues.phone.types['Mobile'],
-              multiValues.phone.types['Fax'],
-              multiValues.phone.types['Satellite'],
-              multiValues.voip.types['Voip'].join('; '),
-              multiValues.email.types['Email'].join('; '),
-              multiValues.email.types['Work'].join('; '),
-              multiValues.email.types['Personal'].join('; '),
-              multiValues.email.types['Other'].join('; '),
-              item.uri ? item.uri.join('; '): ''
-            ]);
-          });
-
-          stringifier.end();
-          return;
-        }
-        else if (req.query.export && req.query.export === 'pdf' && ((req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) || (req.apiAuth.mode === 'user' && req.apiAuth.userId))) {
-          var listTitle = '',
-            protectedRolesData = null,
-            templateData = null;
-
-          async.series([
-            function (cb) {
-              if (query.type !== 'global' && query.locationId && query.locationId !== 'global') {
-                operations.get(query.locationId, function (err, operation) {
-                  if (operation && operation.name && operation.name.length) {
-                    listTitle = operation.name;
-                  }
-                  return cb();
-                });
-              }
-              else {
-                listTitle = 'Global Contact List';
-                return cb();
-              }
-            },
-            function (cb) {
-              // Load protected roles data
-              protectedRoles.get(function (err, roles) {
-                protectedRolesData = roles;
-                cb();
-              });
-            },
-            function (cb) {
-              // Load the printList.html template, compile it with Handlebars, and
-              // generate HTML output for the list.
-              fs.readFile('views/printList.html', function (err, data) {
-                if (err) throw err;
-                templateData = data;
-                cb();
-              });
-            }
-          ], function (err, results) {
-            var filters = [];
-            if (req.query.hasOwnProperty('text') && req.query.text.length) {
-              filters.push(req.query.text);
-            }
-            _.each(query, function (val, key) {
-              if (['address.administrative_area', 'address.locality', 'bundle', 'organization.name'].indexOf(key) !== -1) {
-                filters.push(query[key]);
-              }
-              else if (key == 'protectedRoles') {
-                var prIndex = _.findIndex(protectedRolesData, function (item) {
-                  return (item.id == val);
-                });
-                filters.push(protectedRolesData[prIndex].name);
-              }
-            });
-            if (req.query.hasOwnProperty('keyContact') && req.query.keyContact) {
-              filters.push('Key Contact');
-            }
-            if (req.query.hasOwnProperty('verified') && req.query.verified) {
-              filters.push('Verified User');
-            }
-
-            var template = Handlebars.compile(String(templateData)),
-              isGlobal = (query.type === 'global' || !query.locationId || !query.locationId.length),
-              tokens = {
-                appBaseUrl: config.appBaseUrl,
-                listTitle: listTitle,
-                isGlobal: isGlobal,
-                queryCount: contacts.length,
-                filters: filters,
-                dateGenerated: moment().format('LL'),
-                contacts: contacts
-              },
-              result = template(tokens),
-              postData = qs.stringify({
-                'html' : result
-              }),
-              options = {
-                hostname: config.wkhtmltopdfHost,
-                port: config.wkhtmltopdfPort || 80,
-                path: '/htmltopdf',
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded',
-                  'Content-Length': postData.length
-                }
-              },
-              clientReq;
-
-            // Send the HTML to the wkhtmltopdf service to generate a PDF, and
-            // return the output.
-            clientReq = http.request(options, function(clientRes) {
-              if (clientRes && clientRes.statusCode == 200) {
-                clientRes.setEncoding('binary');
-
-                var pdfSize = parseInt(clientRes.header("Content-Length")),
-                  pdfBuffer = new Buffer(pdfSize),
-                  bytes = 0;
-
-                clientRes.on("data", function(chunk) {
-                  pdfBuffer.write(chunk, bytes, "binary");
-                  bytes += chunk.length;
-                });
-
-                clientRes.on("end", function() {
-                  res.writeHead(200, {
-                    'Content-Length': bytes,
-                    'Content-Type': 'application/pdf'
-                  });
-                  res.end(pdfBuffer);
-                  log.info({'type': 'contactViewPDF:success', 'message': 'Successfully generated PDF data for contactView query.', 'query': query, 'range': range});
-                });
-              }
-              else {
-                log.warn({'type': 'contactViewPDF:error', 'message': 'An error occured while generating PDF.', 'clientRes': clientRes});
-                res.send(500, "An error occured while generating PDF.");
-                res.end();
-              }
-            });
-
-            // Handle errors with the HTTP request.
-            clientReq.on('error', function(e) {
-              log.warn({'type': 'contactViewPDF:error', 'message': 'An error occured while requesting the PDF generation: ' + e.message, 'error': e});
-              res.send(500, "An error occurred while requesting the PDF generation.");
-              res.end();
-            });
-
-            // Write post data containing the rendered HTML.
-            clientReq.write(postData);
-            clientReq.end();
-          });
-          return;
-        }
-
-        result = {status: "ok", contacts: contacts, count: count};
-        log.info({'type': 'contactView:success', 'message': 'Successfully returned data for contactView query.', 'query': query, 'range': range});
-      }
-      res.send(result);
-    });
+      });
+  }
 
   // Recursively check schema for properties in array.
-  function recusiveSchemaCheck(schema, propArray) {
+  function recursiveSchemaCheck(schema, propArray) {
     var prop = propArray.shift();
     if (schema.hasOwnProperty(prop)) {
       if (propArray.length  && schema[prop].hasOwnProperty('schema')) {
-        return recusiveSchemaCheck(schema[prop].schema.paths, propArray);
+        return recursiveSchemaCheck(schema[prop].schema.paths, propArray);
       }
       else {
         return true;
@@ -440,7 +196,294 @@ function get(req, res, next) {
       return false;
     }
   }
+
+  function getReturnJSON(contacts, count, callback) {
+    var result = {status: "ok", contacts: contacts, count: count};
+    log.info({'type': 'contactView:success', 'message': 'Successfully returned data for contactView query.', 'query': query, 'range': range});
+    res.send(result);
+    callback();
+  }
+
+  function getReturnCSV(contacts, count, callback) {
+    if (!req.userCanExport) {
+      log.warn({'type': 'contactViewPDF:error', 'message': 'User attempted to fetch the PDF export from a contact list, but is not authorized to do so.'});
+      res.send(403, "Access Denied");
+      res.end();
+      return callback(true);
+    }
+
+    var csvData = '',
+      stringifier = stringify({'quoted': true});
+
+    stringifier.on('readable', function() {
+      while (row = stringifier.read()) {
+        csvData += row;
+      }
+    });
+    stringifier.on('error', function(err) {
+      log.warn({'type': 'contactView:error', 'message': 'Error occurred while reading stringifier to generate CSV.', 'err': err});
+    });
+    stringifier.on('finish', function() {
+      res.charSet('utf-8');
+      res.writeHead(200, {
+        'Content-Length': Buffer.byteLength(csvData),
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="contacts.csv"'
+      });
+      res.write(csvData);
+      res.end();
+      log.info({'type': 'contactViewCSV:success', 'message': 'Successfully generated CSV data for contactView query.'});//, 'query': query, 'range': range});
+    });
+
+    stringifier.write([
+      'Given Name',
+      'Family Name',
+      'Job Title',
+      'Organization',
+      'Groups',
+      'Country',
+      'Admin Area',
+      'Locality',
+      'Phone:Landline',
+      'Phone:Mobile',
+      'Phone:Fax',
+      'Phone:Satellite',
+      'VOIP',
+      'Email',
+      'Email:Work',
+      'Email:Personal',
+      'Email:Other',
+      'URI'
+    ]);
+
+
+    _.forEach(contacts, function (item) {
+      var multiValues = {
+            email: {
+              key: 'address',
+              defaultType: 'Email',
+              types: {'Email':[], 'Work':[],'Personal':[], 'Other':[]}
+            },
+            phone: {
+              key: 'number',
+              defaultType: 'Landline',
+              types:{'Landline':[], 'Mobile':[], 'Fax':[], 'Satellite':[]}
+            },
+            voip: {
+              key: 'number',
+              defaultType: 'Voip',
+              types: {'Voip': []}
+            }
+          };
+
+      _.forEach(multiValues, function(value, fieldType) {
+        _.forEach(item[fieldType], function(fieldEntry) {
+          // Make sure actual value is defined.
+          if (typeof fieldEntry[value.key] !== 'undefined') {
+            // Type is defined and is one of the predefined accepted values.
+            if (typeof fieldEntry.type !== 'undefined' && typeof value.types[fieldEntry.type] !== 'undefined') {
+              multiValues[fieldType].types[fieldEntry.type].push(fieldEntry[value.key]);
+            }
+            // If type is defined but not one of the accepted values,
+            // append it to the field value and add it to the default array.
+            else if (typeof fieldEntry.type !== 'undefined') {
+              multiValues[fieldType].types[value.defaultType].push(fieldEntry.type + ": " + fieldEntry[value.key] );
+            }
+            // Otherwise add value to default array.
+            else {
+              multiValues[fieldType].types[value.defaultType].push(fieldEntry[value.key]);
+            }
+          }
+        });
+      });
+
+      // Tack on a semicolon to the end of all phone number,
+      // having them displayed as a string in excel.
+      _.forEach(multiValues.phone.types, function(value, type){
+        var nums = value.join('; ');
+        multiValues.phone.types[type] = nums.length ? nums + ';' : nums;
+      });
+
+      stringifier.write([
+        item.nameGiven,
+        item.nameFamily,
+        item.jobtitle,
+        item.organization.map(function (val) { if (val.name) { return val.name; } }).join('; '),
+        item.bundle.join('; '),
+        item.address && item.address[0] && item.address[0].country ? item.address[0].country : '',
+        item.address && item.address[0] && item.address[0].administrative_area ? item.address[0].administrative_area : '',
+        item.address && item.address[0] && item.address[0].locality ? item.address[0].locality : '',
+        multiValues.phone.types['Landline'],
+        multiValues.phone.types['Mobile'],
+        multiValues.phone.types['Fax'],
+        multiValues.phone.types['Satellite'],
+        multiValues.voip.types['Voip'].join('; '),
+        multiValues.email.types['Email'].join('; '),
+        multiValues.email.types['Work'].join('; '),
+        multiValues.email.types['Personal'].join('; '),
+        multiValues.email.types['Other'].join('; '),
+        item.uri ? item.uri.join('; '): ''
+      ]);
+    });
+
+    stringifier.end();
+  }
+
+  function getReturnPDF(contacts, count, callback) {
+    if (!req.userCanExport) {
+      log.warn({'type': 'contactViewPDF:error', 'message': 'User attempted to fetch the PDF export from a contact list, but is not authorized to do so.'});
+      res.send(403, "Access Denied");
+      res.end();
+      return callback(true);
+    }
+
+    var listTitle = '',
+      protectedRolesData = null,
+      templateData = null;
+
+    async.series([
+      function (cb) {
+        if (query.type !== 'global' && query.locationId && query.locationId !== 'global') {
+          operations.get(query.locationId, function (err, operation) {
+            if (operation && operation.name && operation.name.length) {
+              listTitle = operation.name;
+            }
+            return cb();
+          });
+        }
+        else {
+          listTitle = 'Global Contact List';
+          return cb();
+        }
+      },
+      function (cb) {
+        // Load protected roles data
+        protectedRoles.get(function (err, roles) {
+          protectedRolesData = roles;
+          cb();
+        });
+      },
+      function (cb) {
+        // Load the printList.html template, compile it with Handlebars, and
+        // generate HTML output for the list.
+        fs.readFile('views/printList.html', function (err, data) {
+          if (err) throw err;
+          templateData = data;
+          cb();
+        });
+      }
+    ], function (err, results) {
+      var filters = [];
+      if (req.query.hasOwnProperty('text') && req.query.text.length) {
+        filters.push(req.query.text);
+      }
+      _.each(query, function (val, key) {
+        if (['address.administrative_area', 'address.locality', 'bundle', 'organization.name'].indexOf(key) !== -1) {
+          filters.push(query[key]);
+        }
+        else if (key == 'protectedRoles') {
+          var prIndex = _.findIndex(protectedRolesData, function (item) {
+            return (item.id == val);
+          });
+          filters.push(protectedRolesData[prIndex].name);
+        }
+      });
+      if (req.query.hasOwnProperty('keyContact') && req.query.keyContact) {
+        filters.push('Key Contact');
+      }
+      if (req.query.hasOwnProperty('verified') && req.query.verified) {
+        filters.push('Verified User');
+      }
+
+      var template = Handlebars.compile(String(templateData)),
+        isGlobal = (query.type === 'global' || !query.locationId || !query.locationId.length),
+        tokens = {
+          appBaseUrl: config.appBaseUrl,
+          listTitle: listTitle,
+          isGlobal: isGlobal,
+          queryCount: contacts.length,
+          filters: filters,
+          dateGenerated: moment().format('LL'),
+          contacts: contacts
+        },
+        result = template(tokens),
+        postData = qs.stringify({
+          'html' : result
+        }),
+        options = {
+          hostname: config.wkhtmltopdfHost,
+          port: config.wkhtmltopdfPort || 80,
+          path: '/htmltopdf',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': postData.length
+          }
+        },
+        clientReq;
+
+      // Send the HTML to the wkhtmltopdf service to generate a PDF, and
+      // return the output.
+      clientReq = http.request(options, function(clientRes) {
+        if (clientRes && clientRes.statusCode == 200) {
+          clientRes.setEncoding('binary');
+
+          var pdfSize = parseInt(clientRes.header("Content-Length")),
+            pdfBuffer = new Buffer(pdfSize),
+            bytes = 0;
+
+          clientRes.on("data", function(chunk) {
+            pdfBuffer.write(chunk, bytes, "binary");
+            bytes += chunk.length;
+          });
+
+          clientRes.on("end", function() {
+            res.writeHead(200, {
+              'Content-Length': bytes,
+              'Content-Type': 'application/pdf'
+            });
+            res.end(pdfBuffer);
+            log.info({'type': 'contactViewPDF:success', 'message': 'Successfully generated PDF data for contactView query.'});//, 'query': query, 'range': range});
+          });
+        }
+        else {
+          log.warn({'type': 'contactViewPDF:error', 'message': 'An error occured while generating PDF.', 'clientRes': clientRes});
+          res.send(500, "An error occured while generating PDF.");
+          res.end();
+        }
+      });
+
+      // Handle errors with the HTTP request.
+      clientReq.on('error', function(e) {
+        log.warn({'type': 'contactViewPDF:error', 'message': 'An error occured while requesting the PDF generation: ' + e.message, 'error': e});
+        res.send(500, "An error occurred while requesting the PDF generation.");
+        res.end();
+      });
+
+      // Write post data containing the rendered HTML.
+      clientReq.write(postData);
+      clientReq.end();
+    });
+  }
+
+  // Define workflow.
+  var steps = [
+    access,
+    preFetch,
+    fetch
+  ];
+  if (req.query.export && req.query.export === 'pdf') {
+    steps.push(getReturnPDF);
+  }
+  else if (req.query.export && req.query.export === 'csv') {
+    steps.push(getReturnCSV);
+  }
+  else {
+    steps.push(getReturnJSON);
+  }
+
+  // Execute workflow with async pattern.
+  async.waterfall(steps);
 }
 
 exports.get = get;
-exports.getAccess = getAccess;
