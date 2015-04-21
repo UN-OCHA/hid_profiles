@@ -55,7 +55,7 @@ function post(req, res, next) {
       contactFields[prop] = req.body[prop];
     }
   }
-
+  var body = req.body;
   var isNewContact = req.body.isNewContact || false;
   var notifyEmail = req.body.notifyEmail || null;
   var adminName = req.body.adminName || null;
@@ -450,14 +450,14 @@ function post(req, res, next) {
           mailText += 'Bonjour ' + notifyEmail.recipientFirstName + ', \r\n\r\nIl semble que vous ne répondez plus à la crise humanitaire en ' + notifyEmail.locationName + '. De ce fait vous le gestionnaire, ' + notifyEmail.adminName + ', sur place vous a déconnecté ce qui fait que vous avez été enlevé de la liste de contact en question.';
           mailText += '\r\n\r\nVous pouvez vous enregistrer et déconnecter d’une liste des contacts humanitaires en modifiant votre profil global sur Humanitarian ID. Cela vous permet de contrôler vos coordonnées et d’aider aux autres de vous trouver et vice versa.';
           mailText += '\r\n\r\nL’équipe Humanitarian ID\r\nhttp://humanitarian.id';
-
+//
           var mailOptions = {
             from:  'Humanitarian ID<info@humanitarian.id>',
             to: notifyEmail.recipientEmail,
             subject: 'Humanitarian ID check-out notification',
             text: mailText
           };
-
+//
           // Send mail
           mail.sendMail(mailOptions, function (err, info) {
             if (err) {
@@ -481,14 +481,14 @@ function post(req, res, next) {
           mailText += 'De ce fait vous avez été enregistré par le gestionnaire, ' + notifyEmail.adminName + ', sur place. A partir de maintenant vous faites partie du liste de contacts.';
           mailText += '\r\n\r\nVous pouvez vous enregistrer et déconnecter d’une liste des contacts humanitaires en modifiant votre profil global sur Humanitarian ID. Cela vous permet de contrôler vos coordonnées et d’aider aux autres de vous trouver et vice versa.';
           mailText += '\r\n\r\nL’équipe Humanitarian ID\r\nhttp://humanitarian.id';
-
+//
           var mailOptions = {
             from:  'Humanitarian ID<info@humanitarian.id>',
             to: notifyEmail.recipientEmail,
             subject: 'Humanitarian ID check-in notification',
             text: mailText
           };
-
+//
           // Send mail
           mail.sendMail(mailOptions, function (err, info) {
             if (err) {
@@ -502,6 +502,88 @@ function post(req, res, next) {
             }
           });
         }
+        //if (notifyEmail.type == 'notify_edit' || notifyEmail.type == 'notify_checkin' || notifyEmail.type == 'notify_checkout') {
+        //  var mailText, mailOptions, mailWarning, mailInfo, actionsEN, actionsFR;
+//
+        //  actionsEN = '';
+        //  actionsFR = '';
+//
+        //  switch(notifyEmail.type) {
+        //    case 'notify_checkin':
+        //      mailWarning = {'type': 'notifyCheckinEmail:error', 'message': 'Check-in notification email sending failed to ' + notifyEmail.to + '.'};
+        //      mailInfo = {'type': 'notifyCheckinEmail:success', 'message': 'Check-in notification email sending successful to ' + notifyEmail.to + '.'};
+        //      actionsEN += '\r\n  • Added to contact list.';
+        //      actionsFR += '\r\n  • ajouté à la liste des contacts.';
+        //      break;
+        //    case 'notify_checkout':
+        //      mailWarning = {'type': 'notifyCheckoutEmail:error', 'message': 'Check-out notification email sending failed to ' + notifyEmail.to + '.'};
+        //      mailInfo = {'type': 'notifyCheckoutEmail:success', 'message': 'Check-out notification email sending successful to ' + notifyEmail.to + '.'};
+        //      actionsEN += '\r\n  • Removed from contact list.';
+        //      actionsFR += '\r\n  • enlevé à la liste des contacts.';
+        //      break;
+        //    case 'notify_edit':
+        //      mailWarning = {'type': 'notifyEditEmail:error', 'message': 'Edit notification email sending failed to ' + notifyEmail.to + '.'};
+        //      mailInfo = {'type': 'notifyEditEmail:success', 'message': 'Edit notification email sending successful to ' + notifyEmail.to + '.'};
+        //      break;
+        //  }
+//
+        //  if (notifyEmail.addedGroups && notifyEmail.addedGroups.length) {
+        //    notifyEmail.addedGroups.forEach(function(value) {
+        //      actionsEN += '\r\n  • Added to ' + value + ' in ' + notifyEmail.locationName + '.';
+        //      actionsFR += '\r\n  • ajouté a ' + value + ' en/au ' + notifyEmail.locationName + '.';
+        //    });
+        //  }
+//
+        //  if (notifyEmail.removedGroups && notifyEmail.removedGroups.length) {
+        //    notifyEmail.removedGroups.forEach(function(value) {
+        //      actionsEN += '\r\n  • Removed from ' + value + ' in ' + notifyEmail.locationName + '.';
+        //      actionsFR += '\r\n  • enlevé a ' + value + ' en/au ' + notifyEmail.locationName + '.';
+        //    });
+        //  }
+//
+        //  if (notifyEmail.type === 'notify_edit') {
+        //    actionsEN += '\r\n  • [Contact edited placeholder message (EN)]';
+        //    actionsFR += '\r\n  • [Contact edited placeholder message (FR)]';
+        //  }
+//
+        //  mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nWe wanted to let you know that your Humanitarian ID profile for ' + notifyEmail.locationName + ' has been updated by one of our locally based managers ' + notifyEmail.adminName + ' as follows:';
+        //  mailText += actionsEN;
+        //  mailText += '\r\n\r\nIf you feel that this action was not correct, simply log into your Humanitarian ID account and modify your profile for' + notifyEmail.locationName + '.';
+        //  mailText += '\r\n\r\nThe Humanitarian ID team';
+        //  mailText += '\r\nhttp://humanitarian.id';
+//
+        //  mailText += '\r\n\r\n—\r\n\r\n';
+//
+        //  mailText += 'Bonjour ' + notifyEmail.recipientFirstName + ', \r\n\r\nOn aimerait bien vous informer que votre profil sur Humanitarian ID en/au ' + notifyEmail.locationName + 'a été modifié par un de nos gestionnaires sur place' + notifyEmail.adminName + ':';
+        //  mailText += actionsFR;
+        //  mailText += '\r\n\r\nEn cas ou ceci n’est pas correct, on vous prie de bien vouloir vous connecter sur Humanitarian ID et modifier votre profile pour ' + notifyEmail.locationName  + '.'
+        //  mailText += '\r\n\r\nL’équipe Humanitarian ID';
+        //  mailText += '\r\nhttp://humanitarian.id';
+//
+        //  mailOptions = {
+        //    from:  'Humanitarian ID<info@humanitarian.id>',
+        //    to: notifyEmail.recipientEmail,
+        //    subject: 'Humanitarian ID check-in notification',
+        //    text: mailText
+        //  };
+        //  if (notifyEmail.adminEmail) {
+        //    mailOptions.cc = !notifyEmail.adminName ? notifyEmail.adminEmail : notifyEmail.adminName + '<' + notifyEmail.adminEmail + '>';
+        //  }
+//
+        //  // Send mail
+        //  mail.sendMail(mailOptions, function (err, info) {
+        //    if (err) {
+        //      mailWarning.err = err;
+        //      log.warn(mailWarning);
+        //      return cb(true);
+        //    }
+        //    else {
+        //      log.info(mailInfo);
+        //      options = {};
+        //      return cb();
+        //    }
+        //  });
+        //}
         else{
            return cb();
         }
