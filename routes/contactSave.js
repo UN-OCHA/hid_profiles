@@ -55,7 +55,6 @@ function post(req, res, next) {
       contactFields[prop] = req.body[prop];
     }
   }
-  var body = req.body;
   var isNewContact = req.body.isNewContact || false;
   var notifyEmail = req.body.notifyEmail || null;
   var adminName = req.body.adminName || null;
