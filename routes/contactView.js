@@ -26,6 +26,7 @@ function get(req, res) {
   req.userCanExport = false;
   req.userProfileId = null;
 
+  // Determines user privileges for get operation.
   function access(callback) {
     // Trusted API clients are allowed read access to all contacts.
     if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
@@ -56,6 +57,7 @@ function get(req, res) {
     }
   }
 
+  // Fetches data necessary for preparing the contacts view query.
   function preFetch(callback) {
     if (req.userCanViewAllContacts) {
       return callback();
@@ -66,9 +68,11 @@ function get(req, res) {
     });
   }
 
+  // Performs query to fetch contacts that match the query parameters.
   function fetch(callback) {
     var docs = {},
-      contactSchema = Contact.schema.paths;
+      contactSchema = Contact.schema.paths,
+      skipCount = 0;
 
     for (var prop in req.query) {
       if (req.query.hasOwnProperty(prop) && req.query[prop]) {
@@ -137,22 +141,35 @@ function get(req, res) {
     // Set query defaults: Limit the query to active status.
     query.status = 1;
 
+    // Skip the count query and disable skip and limit values if the query
+    // requires filtering after execution (includes filters for verified,
+    // role, ghost, or orphan).
+    if (req.query.hasOwnProperty("verified") || req.query.hasOwnProperty("role") || req.query.hasOwnProperty("ghost") || req.query.hasOwnProperty("orphan")) {
+      skipCount = 1;
+      range.skip = 0;
+      range.limit = 0;
+    }
+
     var result = {},
       contacts = [],
       count = 0;
 
-    Contact
-      .count(query)
-      .exec(function (err, _count) {
-        if (err) {
-          log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts count.', 'err': err});
-          result = {status: "error", message: "Query failed for contacts count."};
-        }
-        else {
-          count = _count
-        }
-      });
+    // Perform a count query to determine total number of matching contacts.
+    if (!skipCount) {
+      Contact
+        .count(query)
+        .exec(function (err, _count) {
+          if (err) {
+            log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts count.', 'err': err});
+            result = {status: "error", message: "Query failed for contacts count."};
+          }
+          else {
+            count = _count
+          }
+        });
+    }
 
+    // Perform query with populate to include associated profile documents.
     Contact
       .find(query)
       .skip(range.skip)
@@ -171,9 +188,31 @@ function get(req, res) {
             contacts = _contacts;
 
             if (req.query.hasOwnProperty("verified") && req.query.verified) {
-              contacts = _contacts.filter(function (item) {
+              contacts = contacts.filter(function (item) {
                 return item._profile && item._profile.verified;
               });
+            }
+
+            if (req.query.hasOwnProperty("role") && req.query.role.length) {
+              contacts = contacts.filter(function (item) {
+                return item._profile && item._profile.roles && item._profile.roles.indexOf(req.query.role) >= 0;
+              });
+            }
+
+            if (req.query.hasOwnProperty("ghost") && req.query.ghost) {
+              contacts = contacts.filter(function (item) {
+                return item._profile && item._profile.userid && !item._profile.userid.match(/^.+@.+_\d+$/);
+              });
+            }
+
+            if (req.query.hasOwnProperty("orphan") && req.query.orphan) {
+              contacts = contacts.filter(function (item) {
+                return item._profile && item._profile.hasOwnProperty('firstUpdate') && !item._profile.firstUpdate;
+              });
+            }
+
+            if (skipCount) {
+              count = contacts.length;
             }
           }
           return callback(null, contacts, count);
@@ -197,6 +236,7 @@ function get(req, res) {
     }
   }
 
+  // Returns query results in JSON format.
   function getReturnJSON(contacts, count, callback) {
     var result = {status: "ok", contacts: contacts, count: count};
     log.info({'type': 'contactView:success', 'message': 'Successfully returned data for contactView query.', 'query': query, 'range': range});
@@ -204,6 +244,7 @@ function get(req, res) {
     callback();
   }
 
+  // Returns query results in CSV format.
   function getReturnCSV(contacts, count, callback) {
     if (!req.userCanExport) {
       log.warn({'type': 'contactViewPDF:error', 'message': 'User attempted to fetch the PDF export from a contact list, but is not authorized to do so.'});
@@ -329,6 +370,7 @@ function get(req, res) {
     stringifier.end();
   }
 
+  // Returns query results in PDF format from generated HTML output.
   function getReturnPDF(contacts, count, callback) {
     if (!req.userCanExport) {
       log.warn({'type': 'contactViewPDF:error', 'message': 'User attempted to fetch the PDF export from a contact list, but is not authorized to do so.'});
