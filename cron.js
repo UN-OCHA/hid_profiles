@@ -14,6 +14,11 @@ async.auto({
   appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'disasters', operations.buildAppData]
 },
 function (err, results) {
-  console.log("Finished hid_profiles cron run.");
-  process.exit();
+  if (err) {
+    console.log("hid_profiles cron run failed.");
+  }
+  else {
+    console.log("Finished hid_profiles cron run successfully.");
+  }
+  process.exit(err);
 });
