@@ -207,7 +207,7 @@ function get(req, res) {
 
             if (req.query.hasOwnProperty("orphan") && req.query.orphan) {
               contacts = contacts.filter(function (item) {
-                return item._profile && item._profile.hasOwnProperty('firstUpdate') && !item._profile.firstUpdate;
+                return item._profile && (!item._profile.hasOwnProperty('firstUpdate') || !item._profile.firstUpdate);
               });
             }
 
