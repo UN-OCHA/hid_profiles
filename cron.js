@@ -20,5 +20,5 @@ function (err, results) {
   else {
     console.log("Finished hid_profiles cron run successfully.");
   }
-  process.exit(err);
+  process.exit(err ? 1 : 0);
 });
