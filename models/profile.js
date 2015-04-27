@@ -2,8 +2,9 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var orgEditorRoleSchema = new Schema({
-  location:       String,
-  organization:   String
+  locationId:         String,
+  organizationId:     String,
+  organizationName:   String,
 });
 
 var profileSchema = new mongoose.Schema({
