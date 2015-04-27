@@ -483,11 +483,6 @@ function post(req, res, next) {
             });
           }
 
-          if (notifyEmail.type === 'notify_edit') {
-            actionsEN += '\r\n  • [Contact edited placeholder message (EN)]';
-            actionsFR += '\r\n  • [Contact edited placeholder message (FR)]';
-          }
-
           mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nWe wanted to let you know that your Humanitarian ID profile for ' + notifyEmail.locationName + ' has been updated by one of our locally based managers ' + notifyEmail.adminName + ' as follows:';
           mailText += actionsEN;
           mailText += '\r\n\r\nIf you feel that this action was not correct, simply log into your Humanitarian ID account and modify your profile for ' + notifyEmail.locationName + '.';
