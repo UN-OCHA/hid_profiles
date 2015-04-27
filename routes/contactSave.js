@@ -125,6 +125,8 @@ function post(req, res, next) {
           });
 
           client.post("/api/register", request, function(err, req, res, data) {
+            client.close();
+
             if (res.statusCode == 200 && res.body) {
               var obj = JSON.parse(res.body);
               if (obj && obj.data && obj.data.user_id) {
@@ -555,6 +557,8 @@ function resetPasswordPost(req, res, next) {
   });
 
   client.post("/api/resetpw", request, function(err, authReq, authRes, data) {
+    client.close();
+
     if (authRes.statusCode == 200 && data.status === 'ok') {
       log.info({'type': 'resetPassword:success', 'message': 'Successfully requested reset password email for user with email ' + request.email, 'requestData': request, 'responseData': data});
     }

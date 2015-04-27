@@ -35,6 +35,8 @@ function valid_security_creds_user(req, cb) {
       url: config.authBaseUrl
     });
     client.get('/account.json?access_token=' + access_token, function(err, req, res, obj) {
+      client.close();
+
       if (err) {
         log.warn({'type': 'validateUserCreds:error', 'message': 'Error occurred when verifying access token ' + access_token + ' with HID auth service.', 'err': err})
         cb(err, false);
