@@ -245,6 +245,26 @@ function get(req, res) {
     callback();
   }
 
+  // Returns query results in JSON format of email data.
+  function getReturnEmailsJSON(contacts, count, callback) {
+    var emailContacts, result;
+
+    emailContacts = [];
+    _.forEach(contacts, function(cont){
+      if (cont.email && cont.email[0] && cont.email[0].address) {
+        emailContacts.push({
+          email: cont.email[0].address,
+          name: cont.nameGiven + " " + cont.nameFamily
+        });
+      }
+    });
+
+    result = {status: "ok", contacts: emailContacts, count: emailContacts.length};
+    log.info({'type': 'contactView:success', 'message': 'Successfully returned email data for contactView query.', 'query': query, 'range': range});
+    res.send(result);
+    callback();
+  }
+
   // Returns query results in CSV format.
   function getReturnCSV(contacts, count, callback) {
     if (!req.userCanExport) {
@@ -520,6 +540,9 @@ function get(req, res) {
   }
   else if (req.query.export && req.query.export === 'csv') {
     steps.push(getReturnCSV);
+  }
+  else if (req.query.export && req.query.export === 'email') {
+    steps.push(getReturnEmailsJSON);
   }
   else {
     steps.push(getReturnJSON);
