@@ -33,6 +33,9 @@ function postAccess(req, res, next) {
           else if (userProfile.roles && userProfile.roles.length && roles.has(userProfile, /[^admin$|^manager:|^editor:]/)) {
             return next();
           }
+          else if (req.body.isOrganizationEditor){
+            return next();
+          }
         }
         log.warn({'type': 'contactSaveAccess:error', 'message': 'User ' + req.apiAuth.userId + ' is not authorized to save contact for ' + req.body.userid, 'req': req});
         res.send(403, new Error('User not authorized to save contact'));
