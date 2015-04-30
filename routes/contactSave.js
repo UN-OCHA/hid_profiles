@@ -8,7 +8,8 @@ var async = require('async'),
   config = require('../config'),
   restify = require('restify'),
   middleware = require('../middleware');
-  mail = require('../mail');
+  mail = require('../mail'),
+  orgEditor = false;
 
 // Middleware function to grant/deny access to the profileSave and contactSave
 // routes.
@@ -33,7 +34,9 @@ function postAccess(req, res, next) {
           else if (userProfile.roles && userProfile.roles.length && roles.has(userProfile, /[^admin$|^manager:|^editor:]/)) {
             return next();
           }
-          else if (req.body.isOrganizationEditor){
+          else if (userProfile.orgEditorRoles && req.body.organization){
+            //The user is an orgEditor and is updating the user's organization
+            orgEditor = true;
             return next();
           }
         }
@@ -371,6 +374,35 @@ function post(req, res, next) {
         }
       }
       return cb();
+    },
+    function (cb) {
+      //Verify that the orgEditor has rights to update the contact's organization for this location
+      if (orgEditor == true){
+        var found = false;
+        var locationId = null;
+        var organizationId = null;
+        var userProfile = req.apiAuth.userProfile;
+        
+        if (userProfile && userProfile.orgEditorRoles && origContact.locationId){
+          for (var role in userProfile.orgEditorRoles) {
+            orgEditorRole = userProfile.orgEditorRoles[role];
+            if (orgEditorRole && orgEditorRole.locationId == origContact.locationId) {
+              found = true;
+            }
+          }
+        }
+        if (found){
+           return cb();
+        }
+        else{
+          result = {status: "error", message: "Client not authorized to update organization"};
+          log.warn({'type': 'contactSave:error', 'message': 'contactSave: Client not authorized to update organization', 'req': req});
+          return cb(true);
+        }
+      }
+      else{
+        return cb();
+      }
     },
     // Upsert the contact
     function (cb) {
