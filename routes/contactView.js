@@ -370,7 +370,7 @@ function get(req, res) {
         item.nameGiven,
         item.nameFamily,
         item.jobtitle,
-        item.organization.map(function (val) { if (val.name) { return val.name; } }).join('; '),
+        item.organization.map(function (val) { if (val && val.name) { return val.name; } }).join('; '),
         item.bundle.join('; '),
         item.address && item.address[0] && item.address[0].country ? item.address[0].country : '',
         item.address && item.address[0] && item.address[0].administrative_area ? item.address[0].administrative_area : '',
