@@ -37,7 +37,6 @@
       <div class="filters-param-list">
         <div class="filters-param-label" translate=""><span class="ng-scope">Filter Criteria</span></div>
         {{#each filters}}
-          {{~#if @index}},{{/if}}
           <div class="filters-param">{{this}}</div>
         {{/each}}
       </div>
@@ -48,9 +47,6 @@
         <thead>
           <tr>
             <th translate=""><span class="ng-scope">Name</span></th>
-            {{#unless isGlobal}}
-              <th ng-if="locationId !== 'global'" translate="" class="ng-scope"><span class="ng-scope">Group*</span></th>
-            {{/unless}}
             <th translate=""><span class="ng-scope">Organization</span></th>
             <th translate=""><span class="ng-scope">Job Title</span></th>
             <th translate=""><span class="ng-scope">Phone</span></th>
@@ -62,14 +58,6 @@
           {{#each contacts}}
             <tr class="profile-item ng-scope">
               <td class="title-cell"><div class="avoid ng-binding">{{nameGiven}}<br><span class="name-family ng-binding">{{nameFamily}}</span></div></td>
-              {{#unless ../isGlobal}}
-                <td ng-if="locationId !== 'global'" class="ng-scope">
-                  {{#each bundle}}
-                    {{this}}
-                    {{~#unless @last}},{{/unless}}
-                  {{/each}}
-                </td>
-              {{/unless}}
               <td><div class="avoid ng-binding">{{organization.[0].name}}</div></td>
               <td><div class="avoid ng-binding">{{jobtitle}}</div></td>
               <td>
