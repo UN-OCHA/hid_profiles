@@ -382,7 +382,7 @@ function post(req, res, next) {
         var locationId = null;
         var organizationId = null;
         var userProfile = req.apiAuth.userProfile;
-        
+
         if (userProfile && userProfile.orgEditorRoles && origContact.locationId){
           for (var role in userProfile.orgEditorRoles) {
             orgEditorRole = userProfile.orgEditorRoles[role];
@@ -556,6 +556,85 @@ function post(req, res, next) {
               options = {};
               return cb();
             }
+          });
+        }
+        else if (notifyEmail.newOrg) {
+          Profile.find({'orgEditorRoles.organizationId': notifyEmail.organizationId, 'orgEditorRoles.locationId': notifyEmail.locationId}, function (err, _profiles) {
+            if (!err) {
+              if (_profiles.length) {
+                var query = {'locationId': notifyEmail.locationId, 'status': true, '$or':[]};;
+
+                _.forEach(_profiles, function (val, key) {
+                  if (val._id) {
+                    query['$or'].push({'_profile': val._id});
+                  }
+                });
+
+                Contact.find(query, function(err, _contacts) {
+                  if (!err) {
+                    if (_contacts.length) {
+                      var emails = [];
+
+                      _.forEach(_contacts, function(cont){
+                        if (cont.email && cont.email[0] && cont.email[0].address) {
+                          emails.push(cont.nameGiven + " " + cont.nameFamily + "<" + cont.email[0].address + ">");
+                        }
+                      });
+
+                      if (emails.length) {
+                        var mailText, mailOptions, mailWarning, mailInfo, person;
+
+                        person = notifyEmail.recipientFirstName + " " + notifyEmail.recipientLastName;
+
+                        mailText = "Hello,\r\n\r\nWe wanted to let you know that " + person + " has specified that s/he is working for " + notifyEmail.organization + " in " + notifyEmail.locationName + ".";
+                        mailText += "\r\n\r\nIf this person does not actually work for " + notifyEmail.organization + ", simply log into Humanitarian ID, search to find " + person + ", edit their profile and remove your organization name.";
+                        mailText += "\r\n\r\nShould this person continue to assign themselves to your organization, when in fact they are not working for you, kindly let us know by email at info@humanitarian.id.";
+                        mailText += "\r\n\r\nThe Humanitarian ID team";
+                        mailText += "\r\nSite: http://humanitarian.id";
+                        mailText += "\r\nAnimation: http://humanitarian.id/animation";
+                        mailText += "\r\nTwitter: https://twitter.com/humanitarianid";
+                        mailText += "\r\nYouTube: http://humanitarian.id/youtube";
+
+                        mailText += "\r\n\r\n—\r\n\r\n";
+
+                        mailText += "Bonjour,\r\n\r\nOn aimerait bien vous informer que " + person + " a spécifié qu’il/ ou elle travaille pour " + notifyEmail.organization + " en/au " + notifyEmail.locationName + ".";
+                        mailText += "\r\n\r\nSi la personne ne travaille pas pour " + notifyEmail.organization + ", connectez-vous sur Humanitarian ID, faites la recherche de " + person + ", et modifies le profil de cette personne en enlevant le nom de votre organisation.";
+                        mailText += "\r\n\r\nSi la personne continue à remettre le nom de votre organisation dans son profil (et ne travaille pas pour votre organisation), on vous prie de nous contacter sur info@humanitarian.id.";
+                        mailText += "\r\n\r\nL’équipe Humanitarian ID";
+                        mailText += "\r\nSite: http://humanitarian.id";
+                        mailText += "\r\nAnimation: http://humanitarian.id/animation";
+                        mailText += "\r\nTwitter: https://twitter.com/humanitarianid";
+                        mailText += "\r\nYouTube: http://humanitarian.id/youtube";
+
+                        mailOptions = {
+                          from:  'Humanitarian ID<info@humanitarian.id>',
+                          to: emails.join(", "),
+                          subject: person + " is noted as being part of " + notifyEmail.organization + " in " + notifyEmail.locationName + " on Humanitarian ID.",
+                          text: mailText
+                        };
+
+                        // Send mail
+                        mail.sendMail(mailOptions, function (err, info) {
+                          if (err) {
+                            mailWarning = {'type': 'notifyCheckoutEmail:error', 'message': 'Check-out notification email sending failed to ' + mailOptions.to + '.', 'err': err};
+                            log.warn(mailWarning);
+                            return cb(true);
+                          }
+                          else {
+                            mailInfo = {'type': 'notifyCheckoutEmail:success', 'message': 'Check-out notification email sending successful to ' + mailOptions.to + '.'};
+                            log.info(mailInfo);
+                            options = {};
+                            return cb();
+                          }
+                        });
+                      }
+                    }
+                  }
+                  return cb();
+                });
+              }
+            }
+            return cb();
           });
         }
         else{
