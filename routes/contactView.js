@@ -3,7 +3,9 @@ var Contact = require('../models').Contact,
   Cache = require('../models').Cache,
   config = require('../config'),
   log = require('../log'),
+  roles = require('../lib/roles'),
   protectedRoles = require('../lib/protectedRoles'),
+  disasters = require('../lib/disasters'),
   stringify = require('csv-stringify'),
   _ = require('lodash'),
   async = require('async'),
@@ -402,6 +404,8 @@ function get(req, res) {
 
     var listTitle = '',
       protectedRolesData = null,
+      disastersData = null,
+      rolesData = null,
       templateData = null;
 
     async.series([
@@ -420,9 +424,23 @@ function get(req, res) {
         }
       },
       function (cb) {
+        // Load admin roles data
+        roles.get(function (err, roles) {
+          rolesData = roles;
+          cb();
+        });
+      },
+      function (cb) {
         // Load protected roles data
         protectedRoles.get(function (err, roles) {
           protectedRolesData = roles;
+          cb();
+        });
+      },
+      function (cb) {
+        // Load disasters data
+        disasters.getAll(function (err, disasters) {
+          disastersData = disasters;
           cb();
         });
       },
@@ -441,7 +459,7 @@ function get(req, res) {
         filters.push(req.query.text);
       }
       _.each(query, function (val, key) {
-        if (['address.administrative_area', 'address.locality', 'bundle', 'organization.name'].indexOf(key) !== -1) {
+        if (['address.country', 'address.administrative_area', 'address.locality', 'bundle', 'office.name', 'organization.name', 'protectedBundles'].indexOf(key) !== -1) {
           filters.push(query[key]);
         }
         else if (key == 'protectedRoles') {
@@ -451,11 +469,39 @@ function get(req, res) {
           filters.push(protectedRolesData[prIndex].name);
         }
       });
+      if (req.query.hasOwnProperty('disasters.remote_id') && req.query['disasters.remote_id']) {
+        var disasterId = req.query['disasters.remote_id'];
+        if (disastersData && disastersData.hasOwnProperty(disasterId) && disastersData[disasterId].name) {
+          filters.push(disastersData[disasterId].name);
+        }
+      }
+      if (req.query.hasOwnProperty('role') && req.query.role) {
+        var role = _.find(rolesData, function (item) {
+          return (item.id === req.query.role);
+        });
+        if (role && role.name) {
+          filters.push(role.name);
+        }
+      }
       if (req.query.hasOwnProperty('keyContact') && req.query.keyContact) {
         filters.push('Key Contact');
       }
       if (req.query.hasOwnProperty('verified') && req.query.verified) {
         filters.push('Verified User');
+      }
+      if (req.query.hasOwnProperty('localContacts') && req.query.localContacts) {
+        if (req.query.hasOwnProperty('globalContacts') && req.query.globalContacts) {
+          filters.push('Global & Local Contacts');
+        }
+        else {
+          filters.push('Only Local Contacts');
+        }
+      }
+      if (req.query.hasOwnProperty('ghost') && req.query.ghost) {
+        filters.push('Ghost Users');
+      }
+      if (req.query.hasOwnProperty('orphan') && req.query.orphan) {
+        filters.push('Orphan Users');
       }
 
       var template = Handlebars.compile(String(templateData)),
