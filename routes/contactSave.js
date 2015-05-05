@@ -383,7 +383,7 @@ function post(req, res, next) {
         var organizationId = null;
         var userProfile = req.apiAuth.userProfile;
 
-        if (userProfile && userProfile.orgEditorRoles && origContact.locationId){
+        if (userProfile && userProfile.orgEditorRoles && origContact && origContact.locationId){
           for (var role in userProfile.orgEditorRoles) {
             orgEditorRole = userProfile.orgEditorRoles[role];
             if (orgEditorRole && orgEditorRole.locationId == origContact.locationId) {
