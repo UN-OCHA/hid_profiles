@@ -3,7 +3,7 @@ var Schema = mongoose.Schema;
 
 var contactListSchema = new Schema({
   name:     String,
-  contacts: [ String ],
+  contacts: [ { type: Schema.Types.ObjectId, ref: 'Contact' } ],
 });
 
 var orgEditorRoleSchema = new Schema({

@@ -76,10 +76,16 @@ function post(req, res, next) {
     // Only update if change has been made.
     if (updateData) {
       Profile.update({ userid: req.body.userid }, {$set:updateData}, function(err) {
-        if (err) console.dir(err);
-        res.send(updateData);
-        console.dir(updateData);
-        next();
+        if (!err) {
+          res.send(updateData);
+          console.dir(updateData);
+          next();
+        }
+        else {
+          log.warn({'type': 'post:error', 'message': 'Error occurred while trying to update/insert profile for user ID ' + req.body.userid, 'err': err});
+          res.send(400, new Error('Error occurred attempt to save profile'));
+          next(false);
+        }
       });
     }
     else {
@@ -89,7 +95,7 @@ function post(req, res, next) {
   else {
     log.warn({'type': 'profileSaveAccess:error', 'message': 'Invaild attempt to save profile for ' + req.body.userid, 'req': req});
     res.send(403, new Error('Invaild attempt to save profile'));
-    next();
+    next(false);
   }
 }
 
