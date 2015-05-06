@@ -2,16 +2,14 @@ var _ = require('lodash'),
     log = require('../log'),
     Profile = require('../models').Profile;
 
-// Middleware function to grant/deny access to the profileSave and contactSave
-// routes.
+// Middleware function to grant/deny access to the profileSave routes.
 function postAccess(req, res, next) {
   if (req.apiAuth && req.apiAuth.mode) {
-    // Trusted API clients are allowed write access to all contacts.
+    // Trusted API clients are allowed write access to all profiles.
     if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
       return next();
     }
-    // Users are allowed write access only to their own contacts, unless they
-    // have an administrative role.
+    // Users are allowed write access only to their own profiles, unless they
     else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
       Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
         if (!err) {
