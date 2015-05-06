@@ -1,5 +1,5 @@
 var _ = require('lodash');
-
+var config = require('./config');
 var routes = require('./routes');
 var middleware = require('./middleware');
 var log = require('./log');
@@ -20,6 +20,16 @@ server.log = log;
 server.use(restify.bodyParser({
   maxBodySize: 16384,
 }));
+
+var helmet = require('helmet');
+server.use(helmet.hidePoweredBy());
+// Set Strict-Transport-Security header to 4 weeks (in milliseconds)
+server.use(helmet.hsts({maxAge: 2419200000, force: config.requireSSL ? true : false}));
+server.use(helmet.ieNoOpen());
+server.use(helmet.noCache());
+server.use(helmet.noSniff());
+server.use(helmet.frameguard());
+server.use(helmet.xssFilter());
 
 server.use(restify.CORS({
   origins: ['*'],
