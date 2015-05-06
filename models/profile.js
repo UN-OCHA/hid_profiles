@@ -26,7 +26,7 @@ var profileSchema = new mongoose.Schema({
   roles:              [ String ],
   orgEditorRoles:     [ orgEditorRoleSchema ],
   verified:           Boolean,
-  contactLists:  [ contactListSchema ],
+  contactLists:       [ contactListSchema ],
 });
 
 mongoose.model('Profile', profileSchema);
