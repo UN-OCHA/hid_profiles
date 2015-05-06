@@ -8,12 +8,12 @@ var async = require('async'),
   config = require('../config'),
   restify = require('restify'),
   middleware = require('../middleware');
-  mail = require('../mail'),
-  orgEditor = false;
+  mail = require('../mail');
 
 // Middleware function to grant/deny access to the profileSave and contactSave
 // routes.
 function postAccess(req, res, next) {
+  req.userIsOrgEditor = false;
   if (req.apiAuth && req.apiAuth.mode) {
     // Trusted API clients are allowed write access to all contacts.
     if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
@@ -36,7 +36,7 @@ function postAccess(req, res, next) {
           }
           else if (userProfile.orgEditorRoles && req.body.organization){
             //The user is an orgEditor and is updating the user's organization
-            orgEditor = true;
+            req.userIsOrgEditor = true;
             return next();
           }
         }
@@ -85,7 +85,8 @@ function post(req, res, next) {
     setProtectedRoles = false,
     newProtectedRoles = [],
     setProtectedBundles = false,
-    newProtectedBundles = [];
+    newProtectedBundles = [],
+    setOrgEditorRoles = false;
 
   async.series([
     //Check to see if userid is set - if isNewContact is false, return an error
@@ -377,7 +378,7 @@ function post(req, res, next) {
     },
     function (cb) {
       //Verify that the orgEditor has rights to update the contact's organization for this location
-      if (orgEditor == true){
+      if (req.userIsOrgEditor == true){
         var found = false;
         var locationId = null;
         var organizationId = null;
@@ -392,7 +393,10 @@ function post(req, res, next) {
           }
         }
         if (found){
-           return cb();
+          //Set user's profile verfied flag to true
+          setVerified = true;
+          newVerified = true;
+          return cb();
         }
         else{
           result = {status: "error", message: "Client not authorized to update organization"};
@@ -400,9 +404,25 @@ function post(req, res, next) {
           return cb(true);
         }
       }
-      else{
+      else {
         return cb();
       }
+    },
+    //Verify if the user is updating their own profile and that their orgEditorRoles have changed
+    function (cb) {
+      if (req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid){
+        var userProfile = req.apiAuth.userProfile;
+        var newOrgEditorRoles = req.body.orgEditorRoles;
+
+        //If the user currently has orgEditorRoles and the request contains a different length, 
+        //then make setOrgEditorRoles true so we update the profile
+        if (userProfile.orgEditorRoles && newOrgEditorRoles ){
+          if (userProfile.orgEditorRoles.length != newOrgEditorRoles.length){
+            setOrgEditorRoles = true;
+          }
+        }
+      }
+      return cb();
     },
     // Upsert the contact
     function (cb) {
@@ -444,7 +464,7 @@ function post(req, res, next) {
     },
     // Update the related profile
     function (cb) {
-      if (setRoles || setVerified || (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid)) {
+      if (setRoles || setVerified || setOrgEditorRoles || (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid)) {
         Profile.findOne({_id: _profile}, function (err, profile) {
           if (!err && profile) {
             if (setRoles) {
