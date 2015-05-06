@@ -489,8 +489,8 @@ function get(req, res) {
       if (req.query.hasOwnProperty('verified') && req.query.verified) {
         filters.push('Verified User');
       }
-      if (req.query.hasOwnProperty('localContacts') && req.query.localContacts) {
-        if (req.query.hasOwnProperty('globalContacts') && req.query.globalContacts) {
+      if (req.query.hasOwnProperty('localContacts') && req.query.localContacts && req.query.localContacts !== 'false') {
+        if (req.query.hasOwnProperty('globalContacts') && req.query.globalContacts && req.query.globalContacts !== 'false') {
           filters.push('Global & Local Contacts');
         }
         else {
