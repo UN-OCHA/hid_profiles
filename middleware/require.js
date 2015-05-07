@@ -78,7 +78,7 @@ function valid_security_creds_app(req, cb) {
       }
       else if (doc && doc.clientSecret && doc.clientSecret.length) {
         // Regenerate the access key using the known client secret.
-        var new_access_key = SHA256(flattenValues(req.query, '') + doc.clientSecret);
+        var new_access_key = SHA256(flattenValues(req.query) + doc.clientSecret);
         if (access_key === new_access_key.toString()) {
           log.info({'type': 'validateAppCreds:success', 'message': 'Verified API request for client ID ' + client_id, 'req': req});
           req.apiAuth = {
@@ -115,12 +115,12 @@ module.exports.getAuthAccessKey = function(req){
   return access_key;
 }
 
-function flattenValues(q, strlist) {
+function flattenValues(q) {
   var tempList = '';
   for (var key in q) {
     var type = typeof q[key];
     if (type == 'object' || type == 'array') {
-      tempList += flattenValues(q[key], tempList);
+      tempList += flattenValues(q[key]);
     }
     else {
       tempList += q[key];
