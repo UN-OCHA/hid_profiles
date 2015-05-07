@@ -426,6 +426,10 @@ function post(req, res, next) {
     },
     // Upsert the contact
     function (cb) {
+      var existingContact = false;
+      if (contactFields._id){
+        existingContact = true;
+      }
       var upsertId = mongoose.Types.ObjectId(contactFields._id || null);
       delete contactFields._id;
       contactFields._profile = _profile;
@@ -446,13 +450,19 @@ function post(req, res, next) {
         return cb();
       }
 
+      //Set last updated time stamp and created timestamp if this is a new 
+      contactFields.revised = Date.now();
+      if (!existingContact){
+        contactFields.created = Date.now();
+      }
+
       Contact.update({_id: upsertId}, {'$set': contactFields}, {upsert: true}, function(err) {
         if (err) {
           log.warn({'type': 'contactSave:error', 'message': 'Error occurred while attempting to upsert contact with ID ' + upsertId, 'fields': contactFields, 'err': err});
           result = {status: "error", message: "Could not update contact."};
           return cb(true);
         }
-        if (upsertId) {
+        if (existingContact) {
           log.info({'type': 'contactSave:success', 'message': "Updated contact " + upsertId + " for user " + userid});
         }
         else {
