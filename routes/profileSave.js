@@ -34,7 +34,7 @@ function postAccess(req, res, next) {
 
 function post(req, res, next) {
 
-  if (req.query.field === 'customContact' && req.query.name) {
+  if (req.query.field === 'contactLists' && req.query.name) {
     var updateData,
         listIndex = -1,
         contactIndex = -1,
@@ -77,8 +77,7 @@ function post(req, res, next) {
     if (updateData) {
       Profile.update({ userid: req.body.userid }, {$set:updateData}, function(err) {
         if (!err) {
-          res.send(updateData);
-          console.dir(updateData);
+          res.send({status: "ok", data: updateData});
           next();
         }
         else {
@@ -89,6 +88,7 @@ function post(req, res, next) {
       });
     }
     else {
+      res.send({status: "ok", data: {"contactLists": contactLists}});
       next();
     }
   }
