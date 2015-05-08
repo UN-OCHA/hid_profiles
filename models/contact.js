@@ -37,8 +37,10 @@ var addressSchema = new Schema({
 });
 
 var organizationSchema = new Schema({
-  remote_id:  String,
-  name:       String
+  remote_id:           String,
+  name:                String,
+  org_type_name:       String,
+  org_type_remote_id:  String
 });
 
 var imageSchema = new Schema({
