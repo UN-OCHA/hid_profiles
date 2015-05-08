@@ -21,7 +21,8 @@ function get(req, res) {
   // Initialize variables for get() scope.
   var lockedOperations = [],
     query = {},
-    range = {skip: 0, limit: 0};
+    range = {skip: 0, limit: 0},
+    contactList = [];
 
   // Initialize permissions and profile ID
   req.userCanViewAllContacts = false;
@@ -45,7 +46,6 @@ function get(req, res) {
 
           // Set the profile ID for this user for use in a query later.
           req.userProfileId = profile._id;
-
           // Verified users can view all contacts.
           if (profile.verified) {
             req.userCanViewAllContacts = true;
@@ -61,20 +61,45 @@ function get(req, res) {
 
   // Fetches data necessary for preparing the contacts view query.
   function preFetch(callback) {
-    if (req.userCanViewAllContacts) {
-      return callback();
+    if (req.query.contactList && req.apiAuth.userId) {
+      // Look up list of contacts ids for contact list.
+      Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
+        if (profile.contactLists) {
+          contactList = _.filter(profile.contactLists, function (n) { return n.name === req.query.locationId; });
+        }
+        return callback();
+      });
     }
-    operations.getLockedOperations(function (err, _lockedOperations) {
-      lockedOperations = _lockedOperations;
-      callback();
-    });
+    else {
+      if (req.userCanViewAllContacts) {
+        return callback();
+      }
+      operations.getLockedOperations(function (err, _lockedOperations) {
+        lockedOperations = _lockedOperations;
+        callback();
+      });
+    }
   }
 
   // Performs query to fetch contacts that match the query parameters.
   function fetch(callback) {
     var docs = {},
       contactSchema = Contact.schema.paths,
-      skipCount = 0;
+      skipCount = 0,
+      queryContacts;
+
+    // Prep or statment with ids from personal contact list.
+    if (req.query.contactList) {
+      if (contactList[0] && contactList[0].contacts) {
+        queryContacts = {'$or': []};
+        _.forEach(contactList[0].contacts, function(contId){
+          queryContacts['$or'].push({'_id': String(contId)});
+        });
+      }
+      // No longer wanted in query.
+      delete req.query.contactList;
+      delete req.query.locationId;
+    }
 
     for (var prop in req.query) {
       if (req.query.hasOwnProperty(prop) && req.query[prop]) {
@@ -137,6 +162,19 @@ function get(req, res) {
       }
       else {
         query['$or'] = queryLock['$or'];
+      }
+    }
+
+    // Add contact list ids.
+    if (queryContacts) {
+      if (query.hasOwnProperty('$or')) {
+        query['$and'] = [
+          {'$or': query['$or']},
+          {'$or': queryContacts['$or']}
+        ];
+      }
+      else {
+        query['$or'] = queryContacts['$or'];
       }
     }
 
