@@ -4,6 +4,7 @@ var Contact = require('../models').Contact,
   config = require('../config'),
   log = require('../log'),
   roles = require('../lib/roles'),
+  orgTypes = require('../lib/orgTypes'),
   protectedRoles = require('../lib/protectedRoles'),
   disasters = require('../lib/disasters'),
   stringify = require('csv-stringify'),
@@ -443,6 +444,7 @@ function get(req, res) {
 
     var listTitle = '',
       protectedRolesData = null,
+      orgTypesData = null,
       disastersData = null,
       rolesData = null,
       templateData = null;
@@ -473,6 +475,13 @@ function get(req, res) {
         // Load protected roles data
         protectedRoles.get(function (err, roles) {
           protectedRolesData = roles;
+          cb();
+        });
+      },
+      function (cb) {
+        // Load organization types data
+        orgTypes.get(function (err, orgTypes) {
+          orgTypesData = orgTypes;
           cb();
         });
       },
@@ -508,6 +517,15 @@ function get(req, res) {
           filters.push(protectedRolesData[prIndex].name);
         }
       });
+      if (req.query.hasOwnProperty('organization.org_type_remote_id') && req.query['organization.org_type_remote_id']) {
+        var orgTypeId = req.query['organization.org_type_remote_id'],
+          orgType = _.find(orgTypesData, function (item) {
+            return (item.id === orgTypeId);
+          });
+        if (orgType && orgType.name) {
+          filters.push(orgType.name);
+        }
+      }
       if (req.query.hasOwnProperty('disasters.remote_id') && req.query['disasters.remote_id']) {
         var disasterId = req.query['disasters.remote_id'];
         if (disastersData && disastersData.hasOwnProperty(disasterId) && disastersData[disasterId].name) {
