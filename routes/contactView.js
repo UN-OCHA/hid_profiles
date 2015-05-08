@@ -109,6 +109,7 @@ function get(req, res) {
             {notes: exp},
             {'office.name': exp},
             {'organization.name': exp},
+            {'organization.org_type_name': exp},
             {'phone.number': exp},
             {protectedRoles: exp},
             {uri: exp},
