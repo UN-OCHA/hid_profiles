@@ -90,8 +90,8 @@ function get(req, res) {
 
     // Prep or statment with ids from personal contact list.
     if (req.query.contactList) {
+      queryContacts = {'$or': [{'type': 'none'}]};
       if (contactList[0] && contactList[0].contacts) {
-        queryContacts = {'$or': []};
         _.forEach(contactList[0].contacts, function(contId){
           queryContacts['$or'].push({'_id': String(contId)});
         });
