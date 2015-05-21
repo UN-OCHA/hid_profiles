@@ -148,6 +148,13 @@ Content Type | Type               | Description
 `office`     | [ organizationSchema ] | Coordination Hub. Values pulled from operation data on HR.info
 `departureDate` | Date            | Date this person is anticipating leaving this region.
 
+## Environments
+The Profile API is running in 3 different environments: development, staging and production.   The access key you are first issued will be used for the development environment.  Once you have completed development and your application is ready for using the production environment, we will work with you to make sure everything is working correctly and issue you an access key for staging and production.  Below are the URIs for each environment.
+
+Development: http://dev.profiles.568elmp02.blackmesh.com
+Staging: http://stage.profiles.568elmp02.blackmesh.com
+Production: https://profiles.humanitarian.id
+
 ## Endpoints
 
 All endpoints require authorized access, and all return JSON data unless otherwise specified.
