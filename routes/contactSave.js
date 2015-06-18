@@ -530,9 +530,11 @@ function post(req, res, next) {
               actionsFR += '\r\n  • enlevé à la liste des contacts.';
               break;
             case 'notify_edit':
-              mailSubject = 'Humanitarian ID check-in notification';
+              mailSubject = 'Humanitarian ID profile edit notification';
               mailWarning = {'type': 'notifyEditEmail:error', 'message': 'Edit notification email sending failed to ' + notifyEmail.to + '.'};
               mailInfo = {'type': 'notifyEditEmail:success', 'message': 'Edit notification email sending successful to ' + notifyEmail.to + '.'};
+              //Check for updated fields
+              actionsEN += '\r\n' + addUpdatedFields(actionsEN, contactFields, origContact);
               break;
           }
 
@@ -550,7 +552,13 @@ function post(req, res, next) {
             });
           }
 
-          mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nWe wanted to let you know that your Humanitarian ID profile for ' + notifyEmail.locationName + ' has been updated by one of our locally based managers ' + notifyEmail.adminName + ' as follows:';
+          if (notifyEmail.locationType == 'local'){
+            mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nWe wanted to let you know that your Humanitarian ID profile for ' + notifyEmail.locationName + ' has been updated by one of our locally based managers ' + notifyEmail.adminName + ' as follows:';
+          }
+          else {
+            mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nWe wanted to let you know that your global Humanitarian ID profile has been updated by one of our global managers ' + notifyEmail.adminName + ' as follows:';
+          }
+          
           mailText += actionsEN;
           mailText += '\r\n\r\nIf you feel that this action was not correct, simply log into your Humanitarian ID account and modify your profile for ' + notifyEmail.locationName + '.';
           mailText += '\r\n\r\nThe Humanitarian ID team';
@@ -681,6 +689,13 @@ function post(req, res, next) {
   });
 }
 
+function addUpdatedFields(actions, contactFields, origContact){
+
+  actions += '\r\n  • Change 1';
+  actions += '\r\n  • Change 2';
+  return actions;
+}
+
 function resetPasswordPost(req, res, next) {
   // Issue a request for a password reset to the auth system.
   var request = {
@@ -724,9 +739,20 @@ function notifyContact(req, res, next) {
       notifyEmail.recipientEmail = 'info@humanitarian.id';
     }
     mailSubject = notifyEmail.adminName + ' noticed that some of your Humanitarian ID details may need to be updated';
-    mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' has noticed that some of your contact details on the ' + notifyEmail.locationName + ' contact list on Humanitarian ID may need to be updated.';
-    mailText += '\r\n\r\nWe suggest that you review your details to ensure that everything is up-to-date including your job title, organzation, group membership, phone number(s), email address(-es), and so on.';
-    mailText += '\r\n\r\nTo review and update your details, simply login to Humanitarian ID (http://humanitarian.id/login) and view your profile for ' + notifyEmail.locationName + '.';
+
+    if (notifyEmail.locationType == 'local'){
+      //Add details for specific location
+      mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' has noticed that some of your contact details on the ' + notifyEmail.locationName + ' contact list on Humanitarian ID may need to be updated.';
+      mailText += '\r\n\r\nWe suggest that you review your details to ensure that everything is up-to-date including your job title, organzation, group membership, phone number(s), email address(-es), and so on.';
+      mailText += '\r\n\r\nTo review and update your details, simply login to Humanitarian ID (http://humanitarian.id/login) and view your profile for ' + notifyEmail.locationName + '.';
+    }
+    else {
+      //Add details for global profile
+      mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' has noticed that some of your contact details on your global profile on Humanitarian ID may need to be updated.';
+      mailText += '\r\n\r\nWe suggest that you review your details to ensure that everything is up-to-date including your job title, organzation, group membership, phone number(s), email address(-es), and so on.';
+      mailText += '\r\n\r\nTo review and update your details, simply login to Humanitarian ID (http://humanitarian.id/login) and view your global profile.';
+    }
+
     mailText += '\r\n\r\nAccurate contact lists in humanitarian situations are of critical importance. As a self-managed approach to contact lists, we rely on members like yourself to help keep these lists up-to-date.';
     mailText += '\r\n\r\nIf you believe that this email was sent incorrectly or inappropriately, please let us know at info@humanitarian.id.';
     mailText += "\r\n\r\nThe Humanitarian ID team";
@@ -740,7 +766,7 @@ function notifyContact(req, res, next) {
     mailText += '\r\n\r\nConnectez-vous sur Humanitarian ID (http://humanitarian.id/login) pour vérifier et modifier votre profil en/au ' + notifyEmail.locationName + '.';
     mailText += '\r\n\r\nIl est très important que les listes de contacts humanitaires soient à jour. Notre approche envers les listes des contacts se fonde sur votre soutien personnel.';
     mailText += '\r\n\r\nSi ce courriel ne vous concerne pas, n’hésitez pas à nous contacter à info@humanitarian.id.';
-    mailText += "\r\n\r\nL’équipe Hu anitarian ID";
+    mailText += "\r\n\r\nL’équipe Humanitarian ID";
     mailText += "\r\nSite: http://humanitarian.id";
     mailText += "\r\nAnimation: http://humanitarian.id/animation";
     mailText += "\r\nTwitter: https://twitter.com/humanitarianid";
