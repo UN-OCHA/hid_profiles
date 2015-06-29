@@ -509,8 +509,9 @@ function post(req, res, next) {
     function (cb) {
       if (notifyEmail) {
         if (notifyEmail.type == 'notify_edit' || notifyEmail.type == 'notify_checkin' || notifyEmail.type == 'notify_checkout') {
-          var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actionsEN, actionsFR;
+          var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actions, actionsEN, actionsFR;
 
+          actions = [];
           actionsEN = '';
           actionsFR = '';
 
@@ -534,7 +535,9 @@ function post(req, res, next) {
               mailWarning = {'type': 'notifyEditEmail:error', 'message': 'Edit notification email sending failed to ' + notifyEmail.to + '.'};
               mailInfo = {'type': 'notifyEditEmail:success', 'message': 'Edit notification email sending successful to ' + notifyEmail.to + '.'};
               //Check for updated fields
-              actionsEN += '\r\n' + addUpdatedFields(actionsEN, contactFields, origContact);
+              actions = addUpdatedFields(contactFields, origContact);
+              actionsEN += '\r\n' + actions.english;
+              actionsFR += '\r\n' + actions.french;
               break;
           }
 
@@ -689,10 +692,90 @@ function post(req, res, next) {
   });
 }
 
-function addUpdatedFields(actions, contactFields, origContact){
+function addUpdatedFields(contactFields, origContact){
+  var actions = [];
+  var valuesChanged = false;
+  actions.english = '';
+  actions.french = '';
+  contactOrig = origContact._doc;
+  contactNew = contactFields;
 
-  actions += '\r\n  • Change 1';
-  actions += '\r\n  • Change 2';
+  //Name Given field
+  if (contactOrig.nameGiven != contactNew.nameGiven){
+     actions.english += '\r\n  • Given Name name changed to: ' + contactNew.nameGiven;
+     actions.french += '\r\n  • [French] Given Name name changed to: ' + contactNew.nameGiven;
+  }
+
+  //Name Family field
+  if (contactOrig.nameFamily != contactNew.nameFamily){
+     actions.english += '\r\n  • Family Name name changed to: ' + contactNew.nameFamily;
+     actions.french += '\r\n  • [French] Family Name name changed to: ' + contactNew.nameFamily;
+  }
+  
+  //Organization field
+  //Organization was removed
+  if (contactOrig.organization[0] != null && contactNew.organization[0] == null){
+    actions.english += '\r\n  • Organization Removed: ' + contactOrig.organization[0]._doc.name;
+    actions.french += '\r\n  • [French] Organization Removed: ' + contactOrig.organization[0]._doc.name;
+  }
+
+  //Organization was added
+  if (contactOrig.organization[0] == null && contactNew.organization[0] != null){
+    actions.english += '\r\n  • Organization Added: ' + contactNew.organization[0].name;
+    actions.french += '\r\n  • [French] Organization Added: ' + contactNew.organization[0].name;
+  }
+
+  //Orgainziation was changed
+  if (contactOrig.organization[0] != null && contactNew.organization[0] != null){
+    if (contactOrig.organization[0]._doc.name != null && contactNew.organization[0].name != null) {
+      if (contactOrig.organization[0]._doc.name != contactNew.organization[0].name) {
+        actions.english += '\r\n  • Organization changed to: ' + contactNew.organization[0].name;
+        actions.french += '\r\n  • [French] Organization changed to: ' + contactNew.organization[0].name;
+      }
+    }
+  }
+
+  //Job title added
+  if (contactOrig.jobtitle == null && contactNew.jobtitle != null){
+    actions.english += '\r\n  • Job title changed to: ' + contactNew.jobtitle;
+    actions.french += '\r\n  • [French] Job title changed to: ' + contactNew.jobtitle;
+  }
+
+  //Job title changed
+  if (contactOrig.jobtitle != null && contactNew.jobtitle != null){
+    if (contactOrig.jobtitle != contactNew.jobtitle){
+      actions.english += '\r\n  • Job title changed to: ' + contactNew.jobtitle;
+    }
+  }
+
+
+  //Disasters field
+  valuesChanged = false;
+  if (origContact.disasters.length != contactNew.disasters.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.disasters.length > 0 && contactNew.disasters.length > 0){
+      origContact.disasters.forEach(function(value, i) {
+        if (contactNew.disasters[i]) {
+          if (value.name != contactNew.disasters[i].name) {
+            valuesChanged = true;
+          }
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Disaster was updated';
+    actions.french += '\r\n  • [French] Disaster was updated';
+  }
+
+
+  
   return actions;
 }
 
