@@ -745,6 +745,7 @@ function addUpdatedFields(contactFields, origContact){
   if (contactOrig.jobtitle != null && contactNew.jobtitle != null){
     if (contactOrig.jobtitle != contactNew.jobtitle){
       actions.english += '\r\n  • Job title changed to: ' + contactNew.jobtitle;
+      actions.french += '\r\n  • [French] Job title changed to: ' + contactNew.jobtitle;
     }
   }
 
@@ -774,8 +775,188 @@ function addUpdatedFields(contactFields, origContact){
     actions.french += '\r\n  • [French] Disaster was updated';
   }
 
+  //Address fields
+  valuesChanged = false;
+  if (origContact.address.length != contactNew.address.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.address.length > 0 && contactNew.address.length > 0) {
+      //Country
+      if (origContact.address[0].country && contactNew.address[0].country) {
+        if (origContact.address[0].country != contactNew.address[0].country) {
+           valuesChanged = true
+        }
+      }
+      //Locality
+      if (origContact.address[0].locality != null && contactNew.address[0].locality != null) {
+        if (origContact.address[0].locality != contactNew.address[0].locality) {
+           valuesChanged = true
+        }
+      }
 
-  
+      //Administrative area (Region/State)
+      if (origContact.address[0].administrative_area == null && contactNew.address[0].administrative_area != null) {
+        valuesChanged = true
+      }
+      if (origContact.address[0].administrative_area != null && contactNew.address[0].administrative_area == null) {
+        valuesChanged = true
+      }
+      if (origContact.address[0].administrative_area != null && contactNew.address[0].administrative_area != null) {
+        if (origContact.address[0].administrative_area != contactNew.address[0].administrative_area) {
+          valuesChanged = true
+        }
+      }
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Current Location was updated';
+    actions.french += '\r\n  • [French] Current Location was updated';
+  }
+
+  //Office
+  valuesChanged = false;
+  if (origContact.office[0] == null && contactNew.office[0] != null) {
+    valuesChanged = true
+  }
+  if (origContact.office[0] != null && contactNew.office[0] == null) {
+    valuesChanged = true
+  }
+  if (origContact.office[0] != null && contactNew.office[0] != null) {
+    if (origContact.office[0].name != contactNew.office[0].name) {
+      valuesChanged = true
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Coordination Office was updated';
+    actions.french += '\r\n  • [French] Coordination Office was updated';
+  }
+
+  //Phone
+  valuesChanged = false;
+  if (origContact.phone.length != contactNew.phone.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.phone.length > 0 && contactNew.phone.length > 0) {
+      origContact.phone.forEach(function(value, i) {
+        if (contactNew.phone[i]) {
+          if (value.countryCode != contactNew.phone[i].countryCode) {
+            valuesChanged = true;
+          }
+          if (value.number != contactNew.phone[i].number) {
+            valuesChanged = true;
+          }      
+          if (value.type != contactNew.phone[i].type) {
+            valuesChanged = true;
+          }   
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Phone was updated';
+    actions.french += '\r\n  • [French] Phone was updated';
+  }
+
+  //VOIP
+  valuesChanged = false;
+  if (origContact.voip.length != contactNew.voip.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.voip.length > 0 && contactNew.voip.length > 0) {
+      origContact.voip.forEach(function(value, i) {
+        if (contactNew.voip[i]) {
+          if (value.number != contactNew.voip[i].number) {
+            valuesChanged = true;
+          }    
+          if (value.type != contactNew.voip[i].type) {
+            valuesChanged = true;
+          }   
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Instant messenger was updated';
+    actions.french += '\r\n  • [French] Instant messenger was updated';
+  }
+
+  //Email
+  valuesChanged = false;
+  if (origContact.email.length != contactNew.email.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.email.length > 0 && contactNew.email.length > 0) {
+      origContact.email.forEach(function(value, i) {
+        if (contactNew.email[i]) {
+          if (value.address != contactNew.email[i].address) {
+            valuesChanged = true;
+          }    
+          if (value.type != contactNew.email[i].type) {
+            valuesChanged = true;
+          }   
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Email was updated';
+    actions.french += '\r\n  • [French] Email was updated';
+  }
+
+ //URI
+  valuesChanged = false;
+  if (origContact.uri.length != contactNew.uri.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.uri.length > 0 && contactNew.uri.length > 0) {
+      origContact.uri.forEach(function(value, i) {
+        if (contactNew.uri[i]) {
+          if (value != contactNew.uri[i]) {
+            valuesChanged = true;
+          }     
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Website URL was updated';
+    actions.french += '\r\n  • [French] Website URL was updated';
+  }
+
+  //Departure Date
+  if (origContact.departureDate != contactNew.departureDate) {
+    actions.english += '\r\n  • Departure date was updated';
+    actions.french += '\r\n  • [French] Departure date was updated';
+  }
+
+  //Notes
+  if (origContact.notes != contactNew.notes) {
+    actions.english += '\r\n  • Notes were updated';
+    actions.french += '\r\n  • [French] Noters were updated';
+  }
+
   return actions;
 }
 
