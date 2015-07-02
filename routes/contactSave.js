@@ -509,11 +509,12 @@ function post(req, res, next) {
     function (cb) {
       if (notifyEmail) {
         if (notifyEmail.type == 'notify_edit' || notifyEmail.type == 'notify_checkin' || notifyEmail.type == 'notify_checkout') {
-          var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actions, actionsEN, actionsFR;
+          var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actions, actionsEN, actionsFR, actionsFound;
 
           actions = [];
           actionsEN = '';
           actionsFR = '';
+          actionsFound = false;
 
           switch(notifyEmail.type) {
             case 'notify_checkin':
@@ -536,8 +537,11 @@ function post(req, res, next) {
               mailInfo = {'type': 'notifyEditEmail:success', 'message': 'Edit notification email sending successful to ' + notifyEmail.to + '.'};
               //Check for updated fields
               actions = addUpdatedFields(contactFields, origContact);
-              actionsEN += '\r\n' + actions.english;
-              actionsFR += '\r\n' + actions.french;
+              if (actions.english != '') {
+                actionsFound = true;
+                actionsEN += '\r\n' + actions.english;
+                actionsFR += '\r\n' + actions.french;
+              }
               break;
           }
 
@@ -586,18 +590,24 @@ function post(req, res, next) {
           }
 
           // Send mail
-          mail.sendMail(mailOptions, function (err, info) {
-            if (err) {
-              mailWarning.err = err;
-              log.warn(mailWarning);
-              return cb(true);
-            }
-            else {
-              log.info(mailInfo);
-              options = {};
-              return cb();
-            }
-          });
+          //If editing profile and no actions were found, do not send email
+          if (!(notifyEmail.type == 'notify_edit' && actionsFound == false)){
+            mail.sendMail(mailOptions, function (err, info) {
+              if (err) {
+                mailWarning.err = err;
+                log.warn(mailWarning);
+                return cb(true);
+              }
+              else {
+                log.info(mailInfo);
+                options = {};
+                return cb();
+              }
+            });
+          }
+          else{
+            return cb();
+          }
         }
         else if (notifyEmail.newOrg) {
           Profile.find({'orgEditorRoles.organizationId': notifyEmail.organizationId, 'orgEditorRoles.locationId': notifyEmail.locationId}, function (err, _profiles) {
@@ -703,26 +713,26 @@ function addUpdatedFields(contactFields, origContact){
   //Name Given field
   if (contactOrig.nameGiven != contactNew.nameGiven){
      actions.english += '\r\n  • Given Name name changed to: ' + contactNew.nameGiven;
-     actions.french += '\r\n  • [French] Given Name name changed to: ' + contactNew.nameGiven;
+     actions.french += '\r\n  • Prénom modifié (nouveau prénom): ' + contactNew.nameGiven;
   }
 
   //Name Family field
   if (contactOrig.nameFamily != contactNew.nameFamily){
      actions.english += '\r\n  • Family Name name changed to: ' + contactNew.nameFamily;
-     actions.french += '\r\n  • [French] Family Name name changed to: ' + contactNew.nameFamily;
+     actions.french += '\r\n  • Nom modifié (nouveau nom): ' + contactNew.nameFamily;
   }
   
   //Organization field
   //Organization was removed
   if (contactOrig.organization[0] != null && contactNew.organization[0] == null){
     actions.english += '\r\n  • Organization Removed: ' + contactOrig.organization[0]._doc.name;
-    actions.french += '\r\n  • [French] Organization Removed: ' + contactOrig.organization[0]._doc.name;
+    actions.french += '\r\n  • Organisation enlevée: ' + contactOrig.organization[0]._doc.name;
   }
 
   //Organization was added
   if (contactOrig.organization[0] == null && contactNew.organization[0] != null){
     actions.english += '\r\n  • Organization Added: ' + contactNew.organization[0].name;
-    actions.french += '\r\n  • [French] Organization Added: ' + contactNew.organization[0].name;
+    actions.french += '\r\n  • Organisation ajoutée: ' + contactNew.organization[0].name;
   }
 
   //Orgainziation was changed
@@ -730,7 +740,7 @@ function addUpdatedFields(contactFields, origContact){
     if (contactOrig.organization[0]._doc.name != null && contactNew.organization[0].name != null) {
       if (contactOrig.organization[0]._doc.name != contactNew.organization[0].name) {
         actions.english += '\r\n  • Organization changed to: ' + contactNew.organization[0].name;
-        actions.french += '\r\n  • [French] Organization changed to: ' + contactNew.organization[0].name;
+        actions.french += '\r\n  • Organisation modifié (novelle organisation): ' + contactNew.organization[0].name;
       }
     }
   }
@@ -738,14 +748,14 @@ function addUpdatedFields(contactFields, origContact){
   //Job title added
   if (contactOrig.jobtitle == null && contactNew.jobtitle != null){
     actions.english += '\r\n  • Job title changed to: ' + contactNew.jobtitle;
-    actions.french += '\r\n  • [French] Job title changed to: ' + contactNew.jobtitle;
+    actions.french += '\r\n  • Intitulé du poste modifié (nouveau nom):' + contactNew.jobtitle;
   }
 
   //Job title changed
   if (contactOrig.jobtitle != null && contactNew.jobtitle != null){
     if (contactOrig.jobtitle != contactNew.jobtitle){
       actions.english += '\r\n  • Job title changed to: ' + contactNew.jobtitle;
-      actions.french += '\r\n  • [French] Job title changed to: ' + contactNew.jobtitle;
+      actions.french += '\r\n  • Intitulé du poste modifié (nouveau nom): ' + contactNew.jobtitle;
     }
   }
 
@@ -772,7 +782,7 @@ function addUpdatedFields(contactFields, origContact){
   }
   if (valuesChanged){
     actions.english += '\r\n  • Disaster was updated';
-    actions.french += '\r\n  • [French] Disaster was updated';
+    actions.french += '\r\n  • Catastrophe mise à jour';
   }
 
   //Address fields
@@ -812,7 +822,7 @@ function addUpdatedFields(contactFields, origContact){
   }
   if (valuesChanged){
     actions.english += '\r\n  • Current Location was updated';
-    actions.french += '\r\n  • [French] Current Location was updated';
+    actions.french += '\r\n  • Lieu actuel mis à jour';
   }
 
   //Office
@@ -830,7 +840,7 @@ function addUpdatedFields(contactFields, origContact){
   }
   if (valuesChanged){
     actions.english += '\r\n  • Coordination Office was updated';
-    actions.french += '\r\n  • [French] Coordination Office was updated';
+    actions.french += '\r\n  • Bureau de coordination mis à jour';
   }
 
   //Phone
@@ -861,7 +871,7 @@ function addUpdatedFields(contactFields, origContact){
   }
   if (valuesChanged){
     actions.english += '\r\n  • Phone was updated';
-    actions.french += '\r\n  • [French] Phone was updated';
+    actions.french += '\r\n  • Téléphone mis à jour';
   }
 
   //VOIP
@@ -889,7 +899,7 @@ function addUpdatedFields(contactFields, origContact){
   }
   if (valuesChanged){
     actions.english += '\r\n  • Instant messenger was updated';
-    actions.french += '\r\n  • [French] Instant messenger was updated';
+    actions.french += '\r\n  • Messagerie instantanée mise à jour';
   }
 
   //Email
@@ -917,10 +927,10 @@ function addUpdatedFields(contactFields, origContact){
   }
   if (valuesChanged){
     actions.english += '\r\n  • Email was updated';
-    actions.french += '\r\n  • [French] Email was updated';
+    actions.french += '\r\n  • Adresse émail mise à jour';
   }
 
- //URI
+  //URI
   valuesChanged = false;
   if (origContact.uri.length != contactNew.uri.length) {
     valuesChanged = true;
@@ -942,19 +952,31 @@ function addUpdatedFields(contactFields, origContact){
   }
   if (valuesChanged){
     actions.english += '\r\n  • Website URL was updated';
-    actions.french += '\r\n  • [French] Website URL was updated';
+    actions.french += '\r\n  • URL du site web mise à jour';
   }
 
   //Departure Date
-  if (origContact.departureDate != contactNew.departureDate) {
+  valuesChanged = false;
+  if (origContact.departureDate == '' && contactNew.departureDate != ''){
+    valuesChanged = true;
+  }
+  if (origContact.departureDate != '' && contactNew.departureDate == ''){
+    valuesChanged = true;
+  }
+  if (origContact.departureDate && contactNew.departureDate) {
+    if (Date(origContact.departureDate) != Date(contactNew.departureDate)) {
+      valuesChanged = true;
+    }
+  }
+  if (valuesChanged){
     actions.english += '\r\n  • Departure date was updated';
-    actions.french += '\r\n  • [French] Departure date was updated';
+    actions.french += '\r\n  • Date de départ mise à jour';
   }
 
   //Notes
   if (origContact.notes != contactNew.notes) {
     actions.english += '\r\n  • Notes were updated';
-    actions.french += '\r\n  • [French] Noters were updated';
+    actions.french += '\r\n  • Notes mis à jour';
   }
 
   return actions;
