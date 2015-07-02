@@ -509,10 +509,12 @@ function post(req, res, next) {
     function (cb) {
       if (notifyEmail) {
         if (notifyEmail.type == 'notify_edit' || notifyEmail.type == 'notify_checkin' || notifyEmail.type == 'notify_checkout') {
-          var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actionsEN, actionsFR;
+          var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actions, actionsEN, actionsFR, actionsFound;
 
+          actions = [];
           actionsEN = '';
           actionsFR = '';
+          actionsFound = false;
 
           switch(notifyEmail.type) {
             case 'notify_checkin':
@@ -530,9 +532,16 @@ function post(req, res, next) {
               actionsFR += '\r\n  • enlevé à la liste des contacts.';
               break;
             case 'notify_edit':
-              mailSubject = 'Humanitarian ID check-in notification';
+              mailSubject = 'Humanitarian ID profile edit notification';
               mailWarning = {'type': 'notifyEditEmail:error', 'message': 'Edit notification email sending failed to ' + notifyEmail.to + '.'};
               mailInfo = {'type': 'notifyEditEmail:success', 'message': 'Edit notification email sending successful to ' + notifyEmail.to + '.'};
+              //Check for updated fields
+              actions = addUpdatedFields(contactFields, origContact);
+              if (actions.english != '') {
+                actionsFound = true;
+                actionsEN += '\r\n' + actions.english;
+                actionsFR += '\r\n' + actions.french;
+              }
               break;
           }
 
@@ -550,7 +559,13 @@ function post(req, res, next) {
             });
           }
 
-          mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nWe wanted to let you know that your Humanitarian ID profile for ' + notifyEmail.locationName + ' has been updated by one of our locally based managers ' + notifyEmail.adminName + ' as follows:';
+          if (notifyEmail.locationType == 'local'){
+            mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nWe wanted to let you know that your Humanitarian ID profile for ' + notifyEmail.locationName + ' has been updated by one of our locally based managers ' + notifyEmail.adminName + ' as follows:';
+          }
+          else {
+            mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\nWe wanted to let you know that your global Humanitarian ID profile has been updated by one of our global managers ' + notifyEmail.adminName + ' as follows:';
+          }
+          
           mailText += actionsEN;
           mailText += '\r\n\r\nIf you feel that this action was not correct, simply log into your Humanitarian ID account and modify your profile for ' + notifyEmail.locationName + '.';
           mailText += '\r\n\r\nThe Humanitarian ID team';
@@ -575,18 +590,24 @@ function post(req, res, next) {
           }
 
           // Send mail
-          mail.sendMail(mailOptions, function (err, info) {
-            if (err) {
-              mailWarning.err = err;
-              log.warn(mailWarning);
-              return cb(true);
-            }
-            else {
-              log.info(mailInfo);
-              options = {};
-              return cb();
-            }
-          });
+          //If editing profile and no actions were found, do not send email
+          if (!(notifyEmail.type == 'notify_edit' && actionsFound == false)){
+            mail.sendMail(mailOptions, function (err, info) {
+              if (err) {
+                mailWarning.err = err;
+                log.warn(mailWarning);
+                return cb(true);
+              }
+              else {
+                log.info(mailInfo);
+                options = {};
+                return cb();
+              }
+            });
+          }
+          else{
+            return cb();
+          }
         }
         else if (notifyEmail.newOrg) {
           Profile.find({'orgEditorRoles.organizationId': notifyEmail.organizationId, 'orgEditorRoles.locationId': notifyEmail.locationId}, function (err, _profiles) {
@@ -681,6 +702,286 @@ function post(req, res, next) {
   });
 }
 
+function addUpdatedFields(contactFields, origContact){
+  var actions = [];
+  var valuesChanged = false;
+  actions.english = '';
+  actions.french = '';
+  contactOrig = origContact._doc;
+  contactNew = contactFields;
+
+  //Name Given field
+  if (contactOrig.nameGiven != contactNew.nameGiven){
+     actions.english += '\r\n  • Given Name name changed to: ' + contactNew.nameGiven;
+     actions.french += '\r\n  • Prénom modifié (nouveau prénom): ' + contactNew.nameGiven;
+  }
+
+  //Name Family field
+  if (contactOrig.nameFamily != contactNew.nameFamily){
+     actions.english += '\r\n  • Family Name name changed to: ' + contactNew.nameFamily;
+     actions.french += '\r\n  • Nom modifié (nouveau nom): ' + contactNew.nameFamily;
+  }
+  
+  //Organization field
+  //Organization was removed
+  if (contactOrig.organization[0] != null && contactNew.organization[0] == null){
+    actions.english += '\r\n  • Organization Removed: ' + contactOrig.organization[0]._doc.name;
+    actions.french += '\r\n  • Organisation enlevée: ' + contactOrig.organization[0]._doc.name;
+  }
+
+  //Organization was added
+  if (contactOrig.organization[0] == null && contactNew.organization[0] != null){
+    actions.english += '\r\n  • Organization Added: ' + contactNew.organization[0].name;
+    actions.french += '\r\n  • Organisation ajoutée: ' + contactNew.organization[0].name;
+  }
+
+  //Orgainziation was changed
+  if (contactOrig.organization[0] != null && contactNew.organization[0] != null){
+    if (contactOrig.organization[0]._doc.name != null && contactNew.organization[0].name != null) {
+      if (contactOrig.organization[0]._doc.name != contactNew.organization[0].name) {
+        actions.english += '\r\n  • Organization changed to: ' + contactNew.organization[0].name;
+        actions.french += '\r\n  • Organisation modifié (novelle organisation): ' + contactNew.organization[0].name;
+      }
+    }
+  }
+
+  //Job title added
+  if (contactOrig.jobtitle == null && contactNew.jobtitle != null){
+    actions.english += '\r\n  • Job title changed to: ' + contactNew.jobtitle;
+    actions.french += '\r\n  • Intitulé du poste modifié (nouveau nom):' + contactNew.jobtitle;
+  }
+
+  //Job title changed
+  if (contactOrig.jobtitle != null && contactNew.jobtitle != null){
+    if (contactOrig.jobtitle != contactNew.jobtitle){
+      actions.english += '\r\n  • Job title changed to: ' + contactNew.jobtitle;
+      actions.french += '\r\n  • Intitulé du poste modifié (nouveau nom): ' + contactNew.jobtitle;
+    }
+  }
+
+
+  //Disasters field
+  valuesChanged = false;
+  if (origContact.disasters.length != contactNew.disasters.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.disasters.length > 0 && contactNew.disasters.length > 0){
+      origContact.disasters.forEach(function(value, i) {
+        if (contactNew.disasters[i]) {
+          if (value.name != contactNew.disasters[i].name) {
+            valuesChanged = true;
+          }
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Disaster was updated';
+    actions.french += '\r\n  • Catastrophe mise à jour';
+  }
+
+  //Address fields
+  valuesChanged = false;
+  if (origContact.address.length != contactNew.address.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.address.length > 0 && contactNew.address.length > 0) {
+      //Country
+      if (origContact.address[0].country && contactNew.address[0].country) {
+        if (origContact.address[0].country != contactNew.address[0].country) {
+           valuesChanged = true
+        }
+      }
+      //Locality
+      if (origContact.address[0].locality != null && contactNew.address[0].locality != null) {
+        if (origContact.address[0].locality != contactNew.address[0].locality) {
+           valuesChanged = true
+        }
+      }
+
+      //Administrative area (Region/State)
+      if (origContact.address[0].administrative_area == null && contactNew.address[0].administrative_area != null) {
+        valuesChanged = true
+      }
+      if (origContact.address[0].administrative_area != null && contactNew.address[0].administrative_area == null) {
+        valuesChanged = true
+      }
+      if (origContact.address[0].administrative_area != null && contactNew.address[0].administrative_area != null) {
+        if (origContact.address[0].administrative_area != contactNew.address[0].administrative_area) {
+          valuesChanged = true
+        }
+      }
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Current Location was updated';
+    actions.french += '\r\n  • Lieu actuel mis à jour';
+  }
+
+  //Office
+  valuesChanged = false;
+  if (origContact.office[0] == null && contactNew.office[0] != null) {
+    valuesChanged = true
+  }
+  if (origContact.office[0] != null && contactNew.office[0] == null) {
+    valuesChanged = true
+  }
+  if (origContact.office[0] != null && contactNew.office[0] != null) {
+    if (origContact.office[0].name != contactNew.office[0].name) {
+      valuesChanged = true
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Coordination Office was updated';
+    actions.french += '\r\n  • Bureau de coordination mis à jour';
+  }
+
+  //Phone
+  valuesChanged = false;
+  if (origContact.phone.length != contactNew.phone.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.phone.length > 0 && contactNew.phone.length > 0) {
+      origContact.phone.forEach(function(value, i) {
+        if (contactNew.phone[i]) {
+          if (value.countryCode != contactNew.phone[i].countryCode) {
+            valuesChanged = true;
+          }
+          if (value.number != contactNew.phone[i].number) {
+            valuesChanged = true;
+          }      
+          if (value.type != contactNew.phone[i].type) {
+            valuesChanged = true;
+          }   
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Phone was updated';
+    actions.french += '\r\n  • Téléphone mis à jour';
+  }
+
+  //VOIP
+  valuesChanged = false;
+  if (origContact.voip.length != contactNew.voip.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.voip.length > 0 && contactNew.voip.length > 0) {
+      origContact.voip.forEach(function(value, i) {
+        if (contactNew.voip[i]) {
+          if (value.number != contactNew.voip[i].number) {
+            valuesChanged = true;
+          }    
+          if (value.type != contactNew.voip[i].type) {
+            valuesChanged = true;
+          }   
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Instant messenger was updated';
+    actions.french += '\r\n  • Messagerie instantanée mise à jour';
+  }
+
+  //Email
+  valuesChanged = false;
+  if (origContact.email.length != contactNew.email.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.email.length > 0 && contactNew.email.length > 0) {
+      origContact.email.forEach(function(value, i) {
+        if (contactNew.email[i]) {
+          if (value.address != contactNew.email[i].address) {
+            valuesChanged = true;
+          }    
+          if (value.type != contactNew.email[i].type) {
+            valuesChanged = true;
+          }   
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Email was updated';
+    actions.french += '\r\n  • Adresse émail mise à jour';
+  }
+
+  //URI
+  valuesChanged = false;
+  if (origContact.uri.length != contactNew.uri.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.uri.length > 0 && contactNew.uri.length > 0) {
+      origContact.uri.forEach(function(value, i) {
+        if (contactNew.uri[i]) {
+          if (value != contactNew.uri[i]) {
+            valuesChanged = true;
+          }     
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Website URL was updated';
+    actions.french += '\r\n  • URL du site web mise à jour';
+  }
+
+  //Departure Date
+  valuesChanged = false;
+  if (origContact.departureDate == '' && contactNew.departureDate != ''){
+    valuesChanged = true;
+  }
+  if (origContact.departureDate != '' && contactNew.departureDate == ''){
+    valuesChanged = true;
+  }
+  if (origContact.departureDate && contactNew.departureDate) {
+    if (Date(origContact.departureDate) != Date(contactNew.departureDate)) {
+      valuesChanged = true;
+    }
+  }
+  if (valuesChanged){
+    actions.english += '\r\n  • Departure date was updated';
+    actions.french += '\r\n  • Date de départ mise à jour';
+  }
+
+  //Notes
+  if (origContact.notes != contactNew.notes) {
+    actions.english += '\r\n  • Notes were updated';
+    actions.french += '\r\n  • Notes mis à jour';
+  }
+
+  return actions;
+}
+
 function resetPasswordPost(req, res, next) {
   // Issue a request for a password reset to the auth system.
   var request = {
@@ -724,9 +1025,20 @@ function notifyContact(req, res, next) {
       notifyEmail.recipientEmail = 'info@humanitarian.id';
     }
     mailSubject = notifyEmail.adminName + ' noticed that some of your Humanitarian ID details may need to be updated';
-    mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' has noticed that some of your contact details on the ' + notifyEmail.locationName + ' contact list on Humanitarian ID may need to be updated.';
-    mailText += '\r\n\r\nWe suggest that you review your details to ensure that everything is up-to-date including your job title, organzation, group membership, phone number(s), email address(-es), and so on.';
-    mailText += '\r\n\r\nTo review and update your details, simply login to Humanitarian ID (http://humanitarian.id/login) and view your profile for ' + notifyEmail.locationName + '.';
+
+    if (notifyEmail.locationType == 'local'){
+      //Add details for specific location
+      mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' has noticed that some of your contact details on the ' + notifyEmail.locationName + ' contact list on Humanitarian ID may need to be updated.';
+      mailText += '\r\n\r\nWe suggest that you review your details to ensure that everything is up-to-date including your job title, organzation, group membership, phone number(s), email address(-es), and so on.';
+      mailText += '\r\n\r\nTo review and update your details, simply login to Humanitarian ID (http://humanitarian.id/login) and view your profile for ' + notifyEmail.locationName + '.';
+    }
+    else {
+      //Add details for global profile
+      mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' has noticed that some of your contact details on your global profile on Humanitarian ID may need to be updated.';
+      mailText += '\r\n\r\nWe suggest that you review your details to ensure that everything is up-to-date including your job title, organzation, group membership, phone number(s), email address(-es), and so on.';
+      mailText += '\r\n\r\nTo review and update your details, simply login to Humanitarian ID (http://humanitarian.id/login) and view your global profile.';
+    }
+
     mailText += '\r\n\r\nAccurate contact lists in humanitarian situations are of critical importance. As a self-managed approach to contact lists, we rely on members like yourself to help keep these lists up-to-date.';
     mailText += '\r\n\r\nIf you believe that this email was sent incorrectly or inappropriately, please let us know at info@humanitarian.id.';
     mailText += "\r\n\r\nThe Humanitarian ID team";
@@ -740,7 +1052,7 @@ function notifyContact(req, res, next) {
     mailText += '\r\n\r\nConnectez-vous sur Humanitarian ID (http://humanitarian.id/login) pour vérifier et modifier votre profil en/au ' + notifyEmail.locationName + '.';
     mailText += '\r\n\r\nIl est très important que les listes de contacts humanitaires soient à jour. Notre approche envers les listes des contacts se fonde sur votre soutien personnel.';
     mailText += '\r\n\r\nSi ce courriel ne vous concerne pas, n’hésitez pas à nous contacter à info@humanitarian.id.';
-    mailText += "\r\n\r\nL’équipe Hu anitarian ID";
+    mailText += "\r\n\r\nL’équipe Humanitarian ID";
     mailText += "\r\nSite: http://humanitarian.id";
     mailText += "\r\nAnimation: http://humanitarian.id/animation";
     mailText += "\r\nTwitter: https://twitter.com/humanitarianid";
