@@ -336,7 +336,7 @@ function get(req, res) {
       });
       res.write(csvData);
       res.end();
-      log.info({'type': 'contactViewCSV:success', 'message': 'Successfully generated CSV data for contactView query.'});//, 'query': query, 'range': range});
+      log.info({'type': 'contactViewCSV:success', 'message': 'Successfully generated CSV data for contactView query.'});
     });
 
     stringifier.write([
@@ -357,7 +357,8 @@ function get(req, res) {
       'Email:Work',
       'Email:Personal',
       'Email:Other',
-      'URI'
+      'URI',
+      'Notes'
     ]);
 
 
@@ -426,7 +427,8 @@ function get(req, res) {
         multiValues.email.types['Work'].join('; '),
         multiValues.email.types['Personal'].join('; '),
         multiValues.email.types['Other'].join('; '),
-        item.uri ? item.uri.join('; '): ''
+        item.uri ? item.uri.join('; '): '',
+        item.notes
       ]);
     });
 
