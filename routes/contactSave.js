@@ -488,6 +488,7 @@ function post(req, res, next) {
             }
             if (req.body.orgEditorRoles){
               profile.orgEditorRoles = req.body.orgEditorRoles;
+              profile.markModified('orgEditorRoles');
             }
 
             return profile.save(function (err, profile, num) {
