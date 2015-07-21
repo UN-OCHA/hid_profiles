@@ -45,6 +45,11 @@ var versionPrefix = '/v0/';
 
 server.get(versionPrefix + 'app/data', middleware.require.appOrUser, routes.appData.get);
 
+server.get(versionPrefix + 'list/view', middleware.require.appOrUser, routes.listView.get);
+
+// TODO: Handle access permissions in a later ticket.
+server.post(versionPrefix + 'list/save', middleware.require.appOrUser, routes.listSave.post);
+
 server.get(versionPrefix + 'profile/view', middleware.require.appOrUser, routes.profileView.get);
 server.post(versionPrefix + 'profile/view', middleware.require.appOrUser, routes.profileView.get);
 server.post(versionPrefix + 'profile/delete', middleware.require.appOrUser, routes.profileDelete.postAccess, routes.profileDelete.post);
