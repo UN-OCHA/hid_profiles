@@ -1,8 +1,13 @@
-var List = require('../models').List;
+var   _ = require('lodash'),
+  List = require('../models').List;
 
 function get(req, res, next) {
-  List.find({ userid: req.apiAuth.userId }, function(err, lists){
-    res.json(lists);
+  List.find({ users: req.apiAuth.userId }, function(err, lists){
+    if (err) {
+      return res.json({status: "error", message: "There was an error retrieving the custom contact lists."});
+    }
+
+    res.json({ status: "ok", lists: lists });
   });
 }
 
