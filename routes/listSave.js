@@ -1,56 +1,105 @@
 var async = require('async'),
+  _ = require('lodash'),
   List = require('../models').List;
 
-function post(req, res, next) {
-  // TODO: Add support for adding contacts in a later ticket.
-  // TODO: Add access permissions in a later ticket.
-  // If an id exists then update the contact list.
-  if (req.body._id) {
-    var updatedList = {};
+// Middleware function to grant/deny access to the listSave routes.
+function postAccess(req, res, next) {
+  if (req.apiAuth && req.apiAuth.mode) {
+    // Trusted API clients are allowed write access to all profiles.
+    if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+      return next();
+    }
+    else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
+      if (req.body._id) {
+        List.findById(req.body._id, function(err, list){
+          if (!err) {
+            if (list) {
+              req.apiAuth.customList = list;
+            }
 
-    async.series([
-      function(cb) {
+            if (list.userid == req.apiAuth.userId) {
+              return next();
+            } else {
+
+              // Check to see if we are unfollowing. If we are then strip
+              // everything from the request except users.
+              var diff = _.difference(list.users, req.body.users);
+              if (diff.length == 1 && diff[0] == req.apiAuth.userId) {
+                delete req.body.name;
+                delete req.body.contacts;
+                return next();
+              }
+              return next(false);
+            }
+          } else {
+            return next(false);
+          }
+        });
+      }
+      return next();
+    }
+  }
+  log.warn({'type': 'listSaveAccess:error', 'message': 'Client not authorized to save list', 'req': req});
+  res.send(401, new Error('Client not authorized to save list'));
+  return next(false);
+}
+
+function post(req, res, next) {
+  var updatedList = {};
+
+  async.series([
+    function(cb) {
+      // TODO: Replace this with req.apiAuth.customList = list;
+      if (req.body._id) {
         List.findById(req.body._id, function(err, list){
           if (err) {
             return cb(err);
           }
 
           updatedList = list;
+
           cb();
         });
-      },
-      function(cb) {
+      } else {
+        updatedList = new List({
+          userid: req.apiAuth.userId,
+          users: [req.apiAuth.userId]
+        });
+
+        cb();
+      }
+    },
+    function(cb) {
+      if (req.body.name) {
         updatedList.name = req.body.name;
-        updatedList.users = req.body.users;
+      }
+
+      if (req.body.contacts) {
         updatedList.contacts = req.body.contacts;
+      }
 
-        updatedList.save(function(err){
-          if (err) {
-            return cb(err);
-          }
-          cb();
-        });
+      if (req.body._id && req.body.users) {
+        updatedList.users = req.body.users;
       }
-    ], function(err) { //This function gets called after the two tasks have called their "task callbacks"
-      if (err) {
-        return res.json({status: "error", message: "Could not update contact list."});
-      }
-      return res.json({status: "ok", message: "Contact list updated."});
-    });
-  } else {
-    list = new List();
-    list.name = req.body.name;
-    list.userid = req.apiAuth.userId;
-    list.users = [req.apiAuth.userId];
-    list.contacts = req.body.contacts;
 
-    list.save(function(err) {
-      if (err) {
-        return res.json({status: "error", message: "Could not save contact list."});
-      }
-      res.json({ status: 'ok', message: "List saved" });
-    });
-  }
+      cb();
+    },
+    function(cb) {
+      updatedList.save(function(err){
+        if (err) {
+          return cb(err);
+        }
+      });
+
+      cb();
+    }
+  ], function(err) {
+    if (err) {
+      return res.json({status: "error", message: "Could not save contact list."});
+    }
+    res.json({ status: 'ok', message: "List saved" });
+  });
 }
 
+exports.postAccess = postAccess;
 exports.post = post;
