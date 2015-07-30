@@ -4,7 +4,9 @@ var   _ = require('lodash'),
 function get(req, res, next) {
   // Only find lists that users have access to.
   if (req.query.id) {
-    List.findOne({_id:req.query.id, users: req.apiAuth.userId }, function(err, list){
+    List.findOne({_id:req.query.id})
+    .populate('contacts')
+    .exec(function (err, list) {
       if (err) {
         return res.json({status: "error", message: "There was an error retrieving the custom contact list."});
       }
