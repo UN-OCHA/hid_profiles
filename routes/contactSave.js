@@ -622,35 +622,16 @@ function post(req, res, next) {
 
                         person = notifyEmail.recipientFirstName + " " + notifyEmail.recipientLastName;
 
-                        mailText = "Hello,\r\n\r\nWe wanted to let you know that " + person + " has specified that s/he is working for " + notifyEmail.organization + " in " + notifyEmail.locationName + ".";
-                        mailText += "\r\n\r\nIf this person does not actually work for " + notifyEmail.organization + ", simply log into Humanitarian ID, search to find " + person + ", edit their profile and remove your organization name.";
-                        mailText += "\r\n\r\nShould this person continue to assign themselves to your organization, when in fact they are not working for you, kindly let us know by email at info@humanitarian.id.";
-                        mailText += "\r\n\r\nThe Humanitarian ID team";
-                        mailText += "\r\nSite: http://humanitarian.id";
-                        mailText += "\r\nAnimation: http://humanitarian.id/animation";
-                        mailText += "\r\nTwitter: https://twitter.com/humanitarianid";
-                        mailText += "\r\nYouTube: http://humanitarian.id/youtube";
-
-                        mailText += "\r\n\r\n—\r\n\r\n";
-
-                        mailText += "Bonjour,\r\n\r\nOn aimerait bien vous informer que " + person + " a spécifié qu’il/ ou elle travaille pour " + notifyEmail.organization + " en/au " + notifyEmail.locationName + ".";
-                        mailText += "\r\n\r\nSi la personne ne travaille pas pour " + notifyEmail.organization + ", connectez-vous sur Humanitarian ID, faites la recherche de " + person + ", et modifies le profil de cette personne en enlevant le nom de votre organisation.";
-                        mailText += "\r\n\r\nSi la personne continue à remettre le nom de votre organisation dans son profil (et ne travaille pas pour votre organisation), on vous prie de nous contacter sur info@humanitarian.id.";
-                        mailText += "\r\n\r\nL’équipe Humanitarian ID";
-                        mailText += "\r\nSite: http://humanitarian.id";
-                        mailText += "\r\nAnimation: http://humanitarian.id/animation";
-                        mailText += "\r\nTwitter: https://twitter.com/humanitarianid";
-                        mailText += "\r\nYouTube: http://humanitarian.id/youtube";
-
                         mailOptions = {
-                          from:  'Humanitarian ID<info@humanitarian.id>',
                           to: emails.join(", "),
                           subject: person + " is noted as being part of " + notifyEmail.organization + " in " + notifyEmail.locationName + " on Humanitarian ID.",
-                          text: mailText
+                          person: person,
+                          organization: notifyEmail.organization,
+                          locationName: notifyEmail.locationName
                         };
 
                         // Send mail
-                        mail.sendMail(mailOptions, function (err, info) {
+                        mail.sendTemplate('notify_organization', mailOptions, function (err, info) {
                           if (err) {
                             mailWarning = {'type': 'notifyCheckoutEmail:error', 'message': 'Check-out notification email sending failed to ' + mailOptions.to + '.', 'err': err};
                             log.warn(mailWarning);
