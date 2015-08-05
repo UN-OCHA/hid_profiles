@@ -1011,50 +1011,19 @@ function notifyContact(req, res, next) {
     }
     mailSubject = notifyEmail.adminName + ' noticed that some of your Humanitarian ID details may need to be updated';
 
-    if (notifyEmail.locationType == 'local'){
-      //Add details for specific location
-      mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' has noticed that some of your contact details on the ' + notifyEmail.locationName + ' contact list on Humanitarian ID may need to be updated.';
-      mailText += '\r\n\r\nWe suggest that you review your details to ensure that everything is up-to-date including your job title, organzation, group membership, phone number(s), email address(-es), and so on.';
-      mailText += '\r\n\r\nTo review and update your details, simply login to Humanitarian ID (http://humanitarian.id/login) and view your profile for ' + notifyEmail.locationName + '.';
-    }
-    else {
-      //Add details for global profile
-      mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' has noticed that some of your contact details on your global profile on Humanitarian ID may need to be updated.';
-      mailText += '\r\n\r\nWe suggest that you review your details to ensure that everything is up-to-date including your job title, organzation, group membership, phone number(s), email address(-es), and so on.';
-      mailText += '\r\n\r\nTo review and update your details, simply login to Humanitarian ID (http://humanitarian.id/login) and view your global profile.';
-    }
-
-    mailText += '\r\n\r\nAccurate contact lists in humanitarian situations are of critical importance. As a self-managed approach to contact lists, we rely on members like yourself to help keep these lists up-to-date.';
-    mailText += '\r\n\r\nIf you believe that this email was sent incorrectly or inappropriately, please let us know at info@humanitarian.id.';
-    mailText += "\r\n\r\nThe Humanitarian ID team";
-    mailText += "\r\nSite: http://humanitarian.id";
-    mailText += "\r\nAnimation: http://humanitarian.id/animation";
-    mailText += "\r\nTwitter: https://twitter.com/humanitarianid";
-    mailText += "\r\nYouTube: http://humanitarian.id/youtube";
-    mailText += "\r\n\r\n—\r\n\r\n";
-    mailText += 'Bonjour ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' a remarqué que vos détails dans la liste des contacts humanitaires de ' + notifyEmail.locationName + ' sur Humanitarian ID ne sont plus à jour.';
-    mailText += '\r\n\r\nOn vous propose de réviser vos détails pour assurer que tout est mis à jour – y inclus votre titre, organisation, abonnement a un groupe, numéro(s) téléphone(s), adresses e-mails, etc.';
-    mailText += '\r\n\r\nConnectez-vous sur Humanitarian ID (http://humanitarian.id/login) pour vérifier et modifier votre profil en/au ' + notifyEmail.locationName + '.';
-    mailText += '\r\n\r\nIl est très important que les listes de contacts humanitaires soient à jour. Notre approche envers les listes des contacts se fonde sur votre soutien personnel.';
-    mailText += '\r\n\r\nSi ce courriel ne vous concerne pas, n’hésitez pas à nous contacter à info@humanitarian.id.';
-    mailText += "\r\n\r\nL’équipe Humanitarian ID";
-    mailText += "\r\nSite: http://humanitarian.id";
-    mailText += "\r\nAnimation: http://humanitarian.id/animation";
-    mailText += "\r\nTwitter: https://twitter.com/humanitarianid";
-    mailText += "\r\nYouTube: http://humanitarian.id/youtube";
-
     mailOptions = {
-      from:  'Humanitarian ID<info@humanitarian.id>',
       to: notifyEmail.recipientEmail,
       subject: mailSubject,
-      text: mailText
+      recipientFirstName: notifyEmail.recipientFirstName,
+      adminName: notifyEmail.adminName,
+      locationName: notifyEmail.locationName
     };
     if (notifyEmail.adminEmail) {
       mailOptions.cc = !notifyEmail.adminName ? notifyEmail.adminEmail : notifyEmail.adminName + '<' + notifyEmail.adminEmail + '>';
     }
 
     // Send mail
-    mail.sendMail(mailOptions, function (err, info) {
+    mail.sendTemplate('notify_contact_' + notifyEmail.locationType, mailOptions, function (err, info) {
       if (err) {
         mailWarning.err = err;
         result = {status: "error", message: "Error sending email: " + mailWarning};
