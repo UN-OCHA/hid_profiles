@@ -108,39 +108,18 @@ function post(req, res, next) {
           mailWarning = {'type': 'notifyDeleteEmail:error', 'message': 'Profile Delete notification email sending failed to ' + notifyEmail.to + '.'};
           mailInfo = {'type': 'notifyCheckoutEmail:success', 'message': 'Profile Delete notification email sending successful to ' + notifyEmail.to + '.'};
 
-          mailText = 'Dear ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' has deleted your profile (contact details) from Humanitarian ID. Such an action should only be taken at your request and with your consent.';
-          mailText += '\r\n\r\nIf this action was taken in error, kindly contact '+ notifyEmail.adminName + ' or email info@humanitairan.id';
-          mailText += '\r\n\r\nNote that your Humanitarian ID login credentials still remain valid. This arrangement means that you can continue to use them to log into a variety of websites or re-add your profile, with contact details, to Humanitarian ID.';
-          mailText += '\r\n\r\nIf you believe that this email was sent incorrectly or inappropriately, please let us know at info@humanitarian.id.';
-          mailText += '\r\n\r\nThe Humanitarian ID team';
-          mailText += '\r\nSite: http://humanitarian.id';
-          mailText += '\r\nAnimation: http://humanitarian.id/animation';
-          mailText += '\r\nTwitter: https://twitter.com/humanitarianid';
-          mailText += '\r\nYouTube: http://humanitarian.id/youtube';
-
-          mailText += '\r\n\r\n—\r\n\r\n';
-
-          mailText += 'Bonjour ' + notifyEmail.recipientFirstName + ', \r\n\r\n' + notifyEmail.adminName + ' a supprimé votre profile (coordonnées de contact) de Humanitarian ID. Normalement cela arrive seulement si vous avez faites la demande de supprimer votre profile.';
-          mailText += '\r\n\r\nS’il s’agit d’une faute de notre part, on vous prie de bien vouloir contacter '+ notifyEmail.adminName + ' ou d’envoyer un courriel a email info@humanitairan.id';
-          mailText += '\r\n\r\nVous pouvez continuer à utiliser votre Humanitarian ID login pour accéder d’autres sites web ou pour réinitialiser votre profile sur Humanitarian ID. ';
-          mailText += '\r\n\r\nL’équipe Humanitarian ID';
-          mailText += '\r\nSite: http://humanitarian.id';
-          mailText += '\r\nAnimation: http://humanitarian.id/animation';
-          mailText += '\r\nTwitter: https://twitter.com/humanitarianid';
-          mailText += '\r\nYouTube: http://humanitarian.id/youtube';
-
           mailOptions = {
-            from:  'Humanitarian ID<info@humanitarian.id>',
             to: notifyEmail.recipientEmail,
             subject: mailSubject,
-            text: mailText
+            recipientFirstName: notifyEmail.recipientFirstName,
+            adminName: notifyEmail.adminName
           };
           if (notifyEmail.adminEmail) {
             mailOptions.cc = !notifyEmail.adminName ? notifyEmail.adminEmail : notifyEmail.adminName + '<' + notifyEmail.adminEmail + '>';
           }
 
           // Send mail
-          mail.sendMail(mailOptions, function (err, info) {
+          mail.sendTemplate('notify_delete', mailOptions, function (err, info) {
             if (err) {
               mailWarning.err = err;
               log.warn(mailWarning);
