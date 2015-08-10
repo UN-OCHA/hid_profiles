@@ -9,21 +9,19 @@
 
 <p>If you feel that this action was not correct, simply log into your Humanitarian ID account and modify your profile for <%= locationName %>.</p>
 
-<p>The Humanitarian ID team</p>
-<p>http://humanitarian.id</p>
+<% include ../includes/footer_en %>
 
 <hr />
 
 <p>Bonjour <%= recipientFirstName %>,</p>
 
-<p>On aimerait bien vous informer que votre profil sur Humanitarian ID en/au <%= locationName %> a été modifié par un de nos gestionnaires sur place, <%= adminName %>:</p>
+<p>Nous aimerions vous informer que votre profil sur Humanitarian ID en/au <%= locationName %> a été modifié par un de nos gestionnaires sur place, <%= adminName %>:</p>
 <ul>
 <% for (var i = 0, len = actionsFR.length; i < len; i++) { %>
 <li><%= actionsFR[i] %></li>
 <% } %>
 </ul>
 
-<p>En cas ou ceci n’est pas correct, on vous prie de bien vouloir vous connecter sur Humanitarian ID et modifier votre profil pour <%= locationName %>.</p>
+<p>Si ceci est incorrect, nous vous prions de bien vouloir vous connecter sur Humanitarian ID et de modifier votre profil pour <%= locationName %>.</p>
 
-<p>L’équipe Humanitarian ID</p>
-<p>http://humanitarian.id</p>
+<% include ../includes/footer_fr %>
