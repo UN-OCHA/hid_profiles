@@ -70,6 +70,7 @@ function post(req, res, next) {
   var authEmail;
 
   var result = {},
+    adminContact = null,
     contactExists = false,
     origContact = null,
     origProfile = null,
@@ -506,9 +507,42 @@ function post(req, res, next) {
         return cb();
       }
     },
+    // Find admin profile if applicable
+    function (cb) {
+      var isOwnProfile = req.apiAuth.userId && req.apiAuth.userId === req.body.userid;
+      if (!isOwnProfile) {
+        Contact.findOne({'_profile': req.apiAuth.userProfile._id, 'type': 'global'}, function (err, doc) {
+          if (!err && doc && doc._id) {
+            adminContact = doc;
+          }
+          return cb();
+        });
+      }
+    },
     // Send emails (if applicable)
     function (cb) {
-      if (notifyEmail) {
+      var isOwnProfile = req.apiAuth.userId && req.apiAuth.userId === req.body.userid;
+      if (!isOwnProfile) {
+        var emailContact = null, notifyEmail = { };
+        if (req.body.status == 0) {
+          emailContact = origContact._doc;
+          notifyEmail.type = 'notify_checkout';
+        }
+        else {
+          emailContact = contactFields;
+          notifyEmail.type = 'notify_edit';
+          if (!origContact) {
+            notifyEmail.type = 'notify_checkin';
+          }
+        }
+        notifyEmail.recipientEmail = emailContact.email[0].address;
+        notifyEmail.recipientFirstName = emailContact.nameGiven;
+        notifyEmail.locationName = emailContact.location || '';
+        notifyEmail.locationType = emailContact.type;
+        notifyEmail.locationId = emailContact.locationId || '';
+        notifyEmail.adminName = adminContact.nameGiven + " " + adminContact.nameFamily;
+        notifyEmail.adminEmail = adminContact.email[0].address;
+        
         if (notifyEmail.type == 'notify_edit' || notifyEmail.type == 'notify_checkin' || notifyEmail.type == 'notify_checkout') {
           var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actions, actionsEN, actionsFR, actionsFound, templateName;
 
@@ -540,20 +574,6 @@ function post(req, res, next) {
                 actionsFR = actions.french;
               }
               break;
-          }
-
-          if (notifyEmail.addedGroups && notifyEmail.addedGroups.length) {
-            notifyEmail.addedGroups.forEach(function(value) {
-              actionsEN.push('Added to ' + value + ' in ' + notifyEmail.locationName + '.');
-              actionsFR.push('ajouté a ' + value + ' en/au ' + notifyEmail.locationName + '.');
-            });
-          }
-
-          if (notifyEmail.removedGroups && notifyEmail.removedGroups.length) {
-            notifyEmail.removedGroups.forEach(function(value) {
-              actionsEN.push('Removed from ' + value + ' in ' + notifyEmail.locationName + '.');
-              actionsFR.push('enlevé a ' + value + ' en/au ' + notifyEmail.locationName + '.');
-            });
           }
 
           templateName = notifyEmail.type;
@@ -723,6 +743,44 @@ function addUpdatedFields(contactFields, origContact){
       actions.english.push('Job title changed to: ' + contactNew.jobtitle);
       actions.french.push('Intitulé du poste modifié (nouveau nom): ' + contactNew.jobtitle);
     }
+  }
+
+  // Groups field
+  valuesChanged = false;
+  if (origContact.bundle.length != contactNew.bundle.length || origContact.protectedBundles.length != contactNew.protectedBundles.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.bundle.length > 0 && contactNew.bundle.length > 0){
+      origContact.bundle.forEach(function(value, i) {
+        if (contactNew.bundle[i]) {
+          if (value != contactNew.bundle[i]) {
+            valuesChanged = true;
+          }
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+
+    if (origContact.protectedBundles.length > 0 && contactNew.protectedBundles.length > 0){
+      origContact.protectedBundles.forEach(function(value, i) {
+        if (contactNew.protectedBundles[i]) {
+          if (value != contactNew.protectedBundles[i]) {
+            valuesChanged = true;
+          }
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english.push('Groups were updated');
+    actions.french.push('Groupes mis à jour');
   }
 
 
