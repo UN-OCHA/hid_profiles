@@ -1040,42 +1040,50 @@ function resetPasswordPost(req, res, next) {
 }
 
 function notifyContact(req, res, next) {
-  var mailText, mailSubject, mailOptions, mailWarning, mailInfo;
-  var notifyEmail = req.body.notifyEmail || null;
+  var mailText, mailSubject, mailOptions, mailWarning, mailInfo, adminName;
+  var contactId = req.body.contactId || null;
   var result = null;
 
-  if (notifyEmail){
-    if (!notifyEmail.recipientEmail){
-      notifyEmail.recipientEmail = 'info@humanitarian.id';
-    }
-    mailSubject = notifyEmail.adminName + ' noticed that some of your Humanitarian ID details may need to be updated';
+  if (contactId && req.apiAuth.mode == 'user' && req.apiAuth.userId) {
+    Contact.findById(contactId, function(err, contact) {
+      if (err)
+        res.send(err);
+      Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
+        if (err)
+          res.send(err);
+        Contact.findOne({'type': 'global', '_profile': userProfile._id}, function (err, admin) {
+          if (err)
+            res.send(err);
+          adminName = admin.nameGiven + " " + admin.nameFamily;
+          mailOptions = {
+            to: contact.email[0].address,
+            cc: adminName + '<' + admin.email[0].address + '>',
+            subject: adminName + ' noticed that some of your Humanitarian ID details may need to be updated',
+            recipientFirstName: contact.nameGiven,
+            adminName: adminName,
+            locationName: contact.location || ''
+          };
 
-    mailOptions = {
-      to: notifyEmail.recipientEmail,
-      subject: mailSubject,
-      recipientFirstName: notifyEmail.recipientFirstName,
-      adminName: notifyEmail.adminName,
-      locationName: notifyEmail.locationName
-    };
-    if (notifyEmail.adminEmail) {
-      mailOptions.cc = !notifyEmail.adminName ? notifyEmail.adminEmail : notifyEmail.adminName + '<' + notifyEmail.adminEmail + '>';
-    }
+          // Send mail
+          mail.sendTemplate('notify_contact_' + contact.type, mailOptions, function (err, info) {
+            if (err) {
+              mailWarning.err = err;
+              result = {status: "error", message: "Error sending email: " + mailWarning};
+              log.warn(mailWarning);
+            }
+            else {
+              mailInfo = {'type': 'notifyProblemEmail:success', 'message': 'Incorrect info email sending successful to ' + mailOptions.to + '.'};
+              log.info(mailInfo);
+              result = {status: "ok", message: "Email sent successfully"};
+            }
+            res.send(result);
+            next();
+          });
+        });
+      });
 
-    // Send mail
-    mail.sendTemplate('notify_contact_' + notifyEmail.locationType, mailOptions, function (err, info) {
-      if (err) {
-        mailWarning.err = err;
-        result = {status: "error", message: "Error sending email: " + mailWarning};
-        log.warn(mailWarning);
-      }
-      else {
-        mailInfo = {'type': 'notifyProblemEmail:success', 'message': 'Incorrect info email sending successful to ' + mailOptions.to + '.'};
-        log.info(mailInfo);
-        result = {status: "ok", message: "Email sent successfully"};
-      }
-      res.send(result);
-      next();
     });
+
   }
   else{
     result = {status: "error", message: "No email details were provided"};
