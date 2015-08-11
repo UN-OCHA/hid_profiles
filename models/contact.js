@@ -77,6 +77,24 @@ var contactSchema = new mongoose.Schema({
   departureDate:      Date
 });
 
+contactSchema.methods.fullName = function() {
+  return this.nameGiven + " " + this.nameFamily;
+};
+
+contactSchema.methods.mainEmail = function(emailOnly) {
+  if (this.email.length > 0) {
+    if (typeof emailOnly === 'undefined' || emailOnly == true) {
+      return this.email[0].address;
+    }
+    else {
+      return this.fullName() + " <" + this.email[0].address + ">";
+    }
+  }
+  else {
+    return '';
+  }
+};
+
 mongoose.model('Contact', contactSchema);
 
 var Contact = mongoose.model('Contact');

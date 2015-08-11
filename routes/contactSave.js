@@ -540,8 +540,8 @@ function post(req, res, next) {
         notifyEmail.locationName = emailContact.location || '';
         notifyEmail.locationType = emailContact.type;
         notifyEmail.locationId = emailContact.locationId || '';
-        notifyEmail.adminName = adminContact.nameGiven + " " + adminContact.nameFamily;
-        notifyEmail.adminEmail = adminContact.email[0].address;
+        notifyEmail.adminName = adminContact.fullName();
+        notifyEmail.adminEmail = adminContact.mainEmail(false);
         
         if (notifyEmail.type == 'notify_edit' || notifyEmail.type == 'notify_checkin' || notifyEmail.type == 'notify_checkout') {
           var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actions, actionsEN, actionsFR, actionsFound, templateName;
@@ -583,6 +583,7 @@ function post(req, res, next) {
 
           mailOptions = {
             to: notifyEmail.recipientEmail,
+            cc: adminContact.mainEmail(false),
             subject: mailSubject, 
             recipientFirstName: notifyEmail.recipientFirstName,
             locationName: notifyEmail.locationName || '',
@@ -590,9 +591,6 @@ function post(req, res, next) {
             actionsEN: actionsEN,
             actionsFR: actionsFR
           };
-          if (notifyEmail.adminEmail) {
-            mailOptions.cc = !notifyEmail.adminName ? notifyEmail.adminEmail : notifyEmail.adminName + '<' + notifyEmail.adminEmail + '>';
-          }
 
           // Send mail
           //If editing profile and no actions were found, do not send email
@@ -633,7 +631,7 @@ function post(req, res, next) {
 
                       _.forEach(_contacts, function(cont){
                         if (cont.email && cont.email[0] && cont.email[0].address) {
-                          emails.push(cont.nameGiven + " " + cont.nameFamily + "<" + cont.email[0].address + ">");
+                          emails.push(cont.mainEmail(false));
                         }
                       });
 
@@ -1054,13 +1052,12 @@ function notifyContact(req, res, next) {
         Contact.findOne({'type': 'global', '_profile': userProfile._id}, function (err, admin) {
           if (err)
             res.send(err);
-          adminName = admin.nameGiven + " " + admin.nameFamily;
           mailOptions = {
-            to: contact.email[0].address,
-            cc: adminName + '<' + admin.email[0].address + '>',
-            subject: adminName + ' noticed that some of your Humanitarian ID details may need to be updated',
+            to: contact.mainEmail(false),
+            cc: admin.mainEmail(false),
+            subject: admin.fullName() + ' noticed that some of your Humanitarian ID details may need to be updated',
             recipientFirstName: contact.nameGiven,
-            adminName: adminName,
+            adminName: admin.fullName(),
             locationName: contact.location || ''
           };
 

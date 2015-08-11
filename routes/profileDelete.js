@@ -122,17 +122,15 @@ function post(req, res, next) {
     // Send email (if applicable)
     function (cb) {
       mailSubject = 'Humanitarian ID profile delete notification';
-      mailWarning = {'type': 'notifyDeleteEmail:error', 'message': 'Profile Delete notification email sending failed to ' + globalContact.email[0].address + '.'};
-      mailInfo = {'type': 'notifyCheckoutEmail:success', 'message': 'Profile Delete notification email sending successful to ' + globalContact.email[0].address + '.'};
-
-      adminName = adminContact.nameGiven + " " + adminContact.nameFamily;
+      mailWarning = {'type': 'notifyDeleteEmail:error', 'message': 'Profile Delete notification email sending failed to ' + globalContact.mainEmail() + '.'};
+      mailInfo = {'type': 'notifyCheckoutEmail:success', 'message': 'Profile Delete notification email sending successful to ' + globalContact.mainEmail() + '.'};
 
       mailOptions = {
-        to: globalContact.email[0].address,
-        cc: adminName + '<' + adminContact.email[0].address + '>',
+        to: globalContact.mainEmail(),
+        cc: adminContact.mainEmail(false),
         subject: mailSubject,
         recipientFirstName: globalContact.nameGiven,
-        adminName: adminName
+        adminName: adminContact.fullName()
       };
 
       // Send mail
