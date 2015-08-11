@@ -85,7 +85,7 @@ function post(req, res, next) {
       cb();
     },
     function(cb) {
-      updatedList.save(function(err){
+      updatedList.save(function(err, list){
         if (err) {
           return cb(err);
         }
@@ -93,11 +93,11 @@ function post(req, res, next) {
 
       cb();
     }
-  ], function(err) {
+  ], function(err, list) {
     if (err) {
       return res.json({status: "error", message: "Could not save contact list."});
     }
-    res.json({ status: 'ok', message: "List saved" });
+    res.json({ status: 'ok', message: "List saved", list: updatedList});
   });
 }
 
