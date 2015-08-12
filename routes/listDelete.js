@@ -12,9 +12,7 @@ function postAccess(req, res, next) {
     }
     else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
       if (req.body._id) {
-        //return res.send('test');
         List.findById(req.body._id, function(err, list){
-
           if (!err && list) {
             if (list.userid == req.apiAuth.userId) {
               return next();
