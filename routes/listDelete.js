@@ -17,9 +17,13 @@ function postAccess(req, res, next) {
             if (list.userid == req.apiAuth.userId) {
               return next();
             } else {
+              log.warn({'type': 'listDeleteAccess:error', 'message': 'Client not authorized to delete list', 'req': req});
+              res.send(401, new Error('Client not authorized to delete list'));
               return next(false);
             }
           } else {
+            log.warn({'type': 'listDeleteAccess:error', 'message': 'Client not authorized to delete list', 'req': req});
+            res.send(401, new Error('Client not authorized to delete list'));
             return next(false);
           }
         });
