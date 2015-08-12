@@ -1,5 +1,6 @@
 var async = require('async'),
   _ = require('lodash'),
+  log = require('../log'),
   List = require('../models').List;
 
 // Middleware function to grant/deny access to the listSave routes.
