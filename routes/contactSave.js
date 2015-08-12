@@ -1012,6 +1012,41 @@ function resetPasswordPost(req, res, next) {
     'adminName': req.body.adminName || null
   };
 
+  // Make sure we are not sending an invite to a non-orphan account
+  Contact.findOne({'email': {$elemMatch: {address: request.email}}, 'type': 'global'}, function (err, contact) {
+    if (err) {
+      res.send(err);
+      next();
+    }
+    // Email has a global profile associated to it
+    if (contact !== null) {
+      // Make sure the profile is an orphan
+      Profile.findById(contact._profile, function (err, profile) {
+        if (err) {
+          res.send(err);
+          next();
+        }
+        if (!profile.isOrphan()) {
+          res.send({'status': 'error', 'message': 'Can not send a claim email to a non-orphan account'});
+          next();
+        }
+        else {
+          resetPasswordPostEmail(req, res, next, request);
+        }
+      });
+    }
+    else {
+      resetPasswordPostEmail(req, res, next, request);
+    }
+  });
+}
+
+function resetPasswordPostEmail(req, res, next, request) {
+  if (process.env.NODE_ENV == 'test') {
+    res.send({'status': 'ok', 'message': 'Not testing the auth part. Mail would be sent out successfully'});
+    next();
+  }
+
   var new_access_key = middleware.require.getAuthAccessKey(request);
   request["access_key"] = new_access_key.toString();
 
@@ -1036,6 +1071,7 @@ function resetPasswordPost(req, res, next) {
     next();
   });
 }
+
 
 function notifyContact(req, res, next) {
   var mailText, mailSubject, mailOptions, mailWarning, mailInfo, adminName;
