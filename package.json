@@ -28,7 +28,9 @@
   "main": "server.js",
   "devDependencies": {
     "nodemon": "^1.0.15",
-    "node-inspector": "^0.7.4"
+    "node-inspector": "^0.7.4",
+    "supertest": "~1.0.1",
+    "should": "~7.0.3"
   },
   "repository": {
     "type": "git",

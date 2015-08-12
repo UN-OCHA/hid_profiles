@@ -29,7 +29,17 @@ var profileSchema = new mongoose.Schema({
   contactLists:       [ contactListSchema ],
 });
 
+profileSchema.methods.isOrphan = function() {
+  if (this.firstUpdate) {
+    return false;
+  }
+  else {
+    return true;
+  }
+};
+
 mongoose.model('Profile', profileSchema);
 
 var Profile = mongoose.model('Profile');
 module.exports = Profile;
+

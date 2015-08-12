@@ -44,10 +44,11 @@ function postAccess(req, res, next) {
 function post(req, res, next) {
   var userid = req.body.userId || null;
   var adminName = req.body.adminName || null;
-  var notifyEmail = req.body.notifyEmail || null;
   
   var result = {},
     profileExists = false,
+    adminContact = null,
+    globalContact = null,
     _profile = null;
 
   async.series([
@@ -100,45 +101,51 @@ function post(req, res, next) {
         }
       });
     },
+    // Find admin profile
+    function (cb) {
+      Contact.findOne({'_profile': req.apiAuth.userProfile._id, 'type': 'global'}, function (err, doc) {
+        if (!err && doc && doc._id) {
+          adminContact = doc;
+        }
+        return cb();
+      });
+    },
+    // Find global contact for profile being deleted
+    function (cb) {
+      Contact.findOne({'_profile': _profile, 'type': 'global'}, function (err, doc) {
+        if (!err && doc && doc._id) {
+          globalContact = doc;
+        }
+        return cb();
+      });
+    },
     // Send email (if applicable)
     function (cb) {
-      if (notifyEmail) {
-        if (notifyEmail.type == 'notify_delete') {
-          mailSubject = 'Humanitarian ID profile delete notification';
-          mailWarning = {'type': 'notifyDeleteEmail:error', 'message': 'Profile Delete notification email sending failed to ' + notifyEmail.to + '.'};
-          mailInfo = {'type': 'notifyCheckoutEmail:success', 'message': 'Profile Delete notification email sending successful to ' + notifyEmail.to + '.'};
+      mailSubject = 'Humanitarian ID profile delete notification';
+      mailWarning = {'type': 'notifyDeleteEmail:error', 'message': 'Profile Delete notification email sending failed to ' + globalContact.mainEmail() + '.'};
+      mailInfo = {'type': 'notifyCheckoutEmail:success', 'message': 'Profile Delete notification email sending successful to ' + globalContact.mainEmail() + '.'};
 
-          mailOptions = {
-            to: notifyEmail.recipientEmail,
-            subject: mailSubject,
-            recipientFirstName: notifyEmail.recipientFirstName,
-            adminName: notifyEmail.adminName
-          };
-          if (notifyEmail.adminEmail) {
-            mailOptions.cc = !notifyEmail.adminName ? notifyEmail.adminEmail : notifyEmail.adminName + '<' + notifyEmail.adminEmail + '>';
-          }
+      mailOptions = {
+        to: globalContact.mainEmail(),
+        cc: adminContact.mainEmail(false),
+        subject: mailSubject,
+        recipientFirstName: globalContact.nameGiven,
+        adminName: adminContact.fullName()
+      };
 
-          // Send mail
-          mail.sendTemplate('notify_delete', mailOptions, function (err, info) {
-            if (err) {
-              mailWarning.err = err;
-              log.warn(mailWarning);
-              return cb(true);
-            }
-            else {
-              log.info(mailInfo);
-              options = {};
-              return cb();
-            }
-          });
+      // Send mail
+      mail.sendTemplate('notify_delete', mailOptions, function (err, info) {
+        if (err) {
+          mailWarning.err = err;
+          log.warn(mailWarning);
+          return cb(true);
         }
-        else{
+        else {
+          log.info(mailInfo);
+          options = {};
           return cb();
         }
-      }
-      else{
-        return cb();
-      }
+      });
     },
   ], function (err, results) {
     res.send(result);

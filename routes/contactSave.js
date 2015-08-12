@@ -70,6 +70,7 @@ function post(req, res, next) {
   var authEmail;
 
   var result = {},
+    adminContact = null,
     contactExists = false,
     origContact = null,
     origProfile = null,
@@ -506,9 +507,42 @@ function post(req, res, next) {
         return cb();
       }
     },
+    // Find admin profile if applicable
+    function (cb) {
+      var isOwnProfile = req.apiAuth.userId && req.apiAuth.userId === req.body.userid;
+      if (!isOwnProfile) {
+        Contact.findOne({'_profile': req.apiAuth.userProfile._id, 'type': 'global'}, function (err, doc) {
+          if (!err && doc && doc._id) {
+            adminContact = doc;
+          }
+          return cb();
+        });
+      }
+    },
     // Send emails (if applicable)
     function (cb) {
-      if (notifyEmail) {
+      var isOwnProfile = req.apiAuth.userId && req.apiAuth.userId === req.body.userid;
+      if (!isOwnProfile) {
+        var emailContact = null, notifyEmail = { };
+        if (req.body.status == 0) {
+          emailContact = origContact._doc;
+          notifyEmail.type = 'notify_checkout';
+        }
+        else {
+          emailContact = contactFields;
+          notifyEmail.type = 'notify_edit';
+          if (!origContact) {
+            notifyEmail.type = 'notify_checkin';
+          }
+        }
+        notifyEmail.recipientEmail = emailContact.email[0].address;
+        notifyEmail.recipientFirstName = emailContact.nameGiven;
+        notifyEmail.locationName = emailContact.location || '';
+        notifyEmail.locationType = emailContact.type;
+        notifyEmail.locationId = emailContact.locationId || '';
+        notifyEmail.adminName = adminContact.fullName();
+        notifyEmail.adminEmail = adminContact.mainEmail(false);
+        
         if (notifyEmail.type == 'notify_edit' || notifyEmail.type == 'notify_checkin' || notifyEmail.type == 'notify_checkout') {
           var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actions, actionsEN, actionsFR, actionsFound, templateName;
 
@@ -542,20 +576,6 @@ function post(req, res, next) {
               break;
           }
 
-          if (notifyEmail.addedGroups && notifyEmail.addedGroups.length) {
-            notifyEmail.addedGroups.forEach(function(value) {
-              actionsEN.push('Added to ' + value + ' in ' + notifyEmail.locationName + '.');
-              actionsFR.push('ajouté a ' + value + ' en/au ' + notifyEmail.locationName + '.');
-            });
-          }
-
-          if (notifyEmail.removedGroups && notifyEmail.removedGroups.length) {
-            notifyEmail.removedGroups.forEach(function(value) {
-              actionsEN.push('Removed from ' + value + ' in ' + notifyEmail.locationName + '.');
-              actionsFR.push('enlevé a ' + value + ' en/au ' + notifyEmail.locationName + '.');
-            });
-          }
-
           templateName = notifyEmail.type;
           if (templateName == 'notify_edit') {
             templateName += '_' + notifyEmail.locationType;
@@ -563,6 +583,7 @@ function post(req, res, next) {
 
           mailOptions = {
             to: notifyEmail.recipientEmail,
+            cc: adminContact.mainEmail(false),
             subject: mailSubject, 
             recipientFirstName: notifyEmail.recipientFirstName,
             locationName: notifyEmail.locationName || '',
@@ -570,9 +591,6 @@ function post(req, res, next) {
             actionsEN: actionsEN,
             actionsFR: actionsFR
           };
-          if (notifyEmail.adminEmail) {
-            mailOptions.cc = !notifyEmail.adminName ? notifyEmail.adminEmail : notifyEmail.adminName + '<' + notifyEmail.adminEmail + '>';
-          }
 
           // Send mail
           //If editing profile and no actions were found, do not send email
@@ -613,7 +631,7 @@ function post(req, res, next) {
 
                       _.forEach(_contacts, function(cont){
                         if (cont.email && cont.email[0] && cont.email[0].address) {
-                          emails.push(cont.nameGiven + " " + cont.nameFamily + "<" + cont.email[0].address + ">");
+                          emails.push(cont.mainEmail(false));
                         }
                       });
 
@@ -723,6 +741,44 @@ function addUpdatedFields(contactFields, origContact){
       actions.english.push('Job title changed to: ' + contactNew.jobtitle);
       actions.french.push('Intitulé du poste modifié (nouveau nom): ' + contactNew.jobtitle);
     }
+  }
+
+  // Groups field
+  valuesChanged = false;
+  if (origContact.bundle.length != contactNew.bundle.length || origContact.protectedBundles.length != contactNew.protectedBundles.length) {
+    valuesChanged = true;
+  }
+  else {
+    //Check if values changed
+    if (origContact.bundle.length > 0 && contactNew.bundle.length > 0){
+      origContact.bundle.forEach(function(value, i) {
+        if (contactNew.bundle[i]) {
+          if (value != contactNew.bundle[i]) {
+            valuesChanged = true;
+          }
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+
+    if (origContact.protectedBundles.length > 0 && contactNew.protectedBundles.length > 0){
+      origContact.protectedBundles.forEach(function(value, i) {
+        if (contactNew.protectedBundles[i]) {
+          if (value != contactNew.protectedBundles[i]) {
+            valuesChanged = true;
+          }
+        }
+        else {
+          valuesChanged = true;
+        }
+      });
+    }
+  }
+  if (valuesChanged){
+    actions.english.push('Groups were updated');
+    actions.french.push('Groupes mis à jour');
   }
 
 
@@ -956,6 +1012,41 @@ function resetPasswordPost(req, res, next) {
     'adminName': req.body.adminName || null
   };
 
+  // Make sure we are not sending an invite to a non-orphan account
+  Contact.findOne({'email': {$elemMatch: {address: request.email}}, 'type': 'global'}, function (err, contact) {
+    if (err) {
+      res.send(err);
+      next();
+    }
+    // Email has a global profile associated to it
+    if (contact !== null) {
+      // Make sure the profile is an orphan
+      Profile.findById(contact._profile, function (err, profile) {
+        if (err) {
+          res.send(err);
+          next();
+        }
+        if (!profile.isOrphan()) {
+          res.send({'status': 'error', 'message': 'Can not send a claim email to a non-orphan account'});
+          next();
+        }
+        else {
+          resetPasswordPostEmail(req, res, next, request);
+        }
+      });
+    }
+    else {
+      resetPasswordPostEmail(req, res, next, request);
+    }
+  });
+}
+
+function resetPasswordPostEmail(req, res, next, request) {
+  if (process.env.NODE_ENV == 'test') {
+    res.send({'status': 'ok', 'message': 'Not testing the auth part. Mail would be sent out successfully'});
+    next();
+  }
+
   var new_access_key = middleware.require.getAuthAccessKey(request);
   request["access_key"] = new_access_key.toString();
 
@@ -981,43 +1072,51 @@ function resetPasswordPost(req, res, next) {
   });
 }
 
+
 function notifyContact(req, res, next) {
-  var mailText, mailSubject, mailOptions, mailWarning, mailInfo;
-  var notifyEmail = req.body.notifyEmail || null;
+  var mailText, mailSubject, mailOptions, mailWarning, mailInfo, adminName;
+  var contactId = req.body.contactId || null;
   var result = null;
 
-  if (notifyEmail){
-    if (!notifyEmail.recipientEmail){
-      notifyEmail.recipientEmail = 'info@humanitarian.id';
-    }
-    mailSubject = notifyEmail.adminName + ' noticed that some of your Humanitarian ID details may need to be updated';
+  if (contactId && req.apiAuth.mode == 'user' && req.apiAuth.userId) {
+    Contact.findById(contactId, function(err, contact) {
+      if (err)
+        res.send(err);
+      Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
+        if (err)
+          res.send(err);
+        Contact.findOne({'type': 'global', '_profile': userProfile._id}, function (err, admin) {
+          if (err)
+            res.send(err);
+          mailOptions = {
+            to: contact.mainEmail(false),
+            cc: admin.mainEmail(false),
+            subject: admin.fullName() + ' noticed that some of your Humanitarian ID details may need to be updated',
+            recipientFirstName: contact.nameGiven,
+            adminName: admin.fullName(),
+            locationName: contact.location || ''
+          };
 
-    mailOptions = {
-      to: notifyEmail.recipientEmail,
-      subject: mailSubject,
-      recipientFirstName: notifyEmail.recipientFirstName,
-      adminName: notifyEmail.adminName,
-      locationName: notifyEmail.locationName
-    };
-    if (notifyEmail.adminEmail) {
-      mailOptions.cc = !notifyEmail.adminName ? notifyEmail.adminEmail : notifyEmail.adminName + '<' + notifyEmail.adminEmail + '>';
-    }
+          // Send mail
+          mail.sendTemplate('notify_contact_' + contact.type, mailOptions, function (err, info) {
+            if (err) {
+              mailWarning.err = err;
+              result = {status: "error", message: "Error sending email: " + mailWarning};
+              log.warn(mailWarning);
+            }
+            else {
+              mailInfo = {'type': 'notifyProblemEmail:success', 'message': 'Incorrect info email sending successful to ' + mailOptions.to + '.'};
+              log.info(mailInfo);
+              result = {status: "ok", message: "Email sent successfully"};
+            }
+            res.send(result);
+            next();
+          });
+        });
+      });
 
-    // Send mail
-    mail.sendTemplate('notify_contact_' + notifyEmail.locationType, mailOptions, function (err, info) {
-      if (err) {
-        mailWarning.err = err;
-        result = {status: "error", message: "Error sending email: " + mailWarning};
-        log.warn(mailWarning);
-      }
-      else {
-        mailInfo = {'type': 'notifyProblemEmail:success', 'message': 'Incorrect info email sending successful to ' + mailOptions.to + '.'};
-        log.info(mailInfo);
-        result = {status: "ok", message: "Email sent successfully"};
-      }
-      res.send(result);
-      next();
     });
+
   }
   else{
     result = {status: "error", message: "No email details were provided"};
