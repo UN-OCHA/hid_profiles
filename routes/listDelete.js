@@ -43,9 +43,9 @@ function post(req, res, next) {
         if (err) {
           return cb(err);
         }
-      });
 
-      cb();
+        cb();
+      });
     }
   ], function(err, list) {
     if (err) {
