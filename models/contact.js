@@ -74,7 +74,9 @@ var contactSchema = new mongoose.Schema({
   protectedRoles:     [ String ],
   image:              [ imageSchema ],
   office:             [ organizationSchema ],
-  departureDate:      Date
+  departureDate:      Date,
+  remindedCheckout:   Boolean,
+  remindedCheckoutDate: Date
 });
 
 contactSchema.methods.fullName = function() {
@@ -94,6 +96,47 @@ contactSchema.methods.mainEmail = function(emailOnly) {
     return '';
   }
 };
+
+// checkout contact
+contactSchema.methods.checkout = function(cb) {
+  this.status = 0;
+  this.save(cb);
+};
+
+// Whether we should send a reminder checkout email to a contact
+contactSchema.methods.shouldSendReminderCheckout = function() {
+  if (!this.departureDate || (this.remindedCheckout && this.remindedCheckout == true) || this.type != 'local' || this.status == 0) {
+    return false;
+  }
+  var current = Date.now();
+  var dep = new Date(this.departureDate);
+  if (current.valueOf() - dep.valueOf() > 48 * 3600 * 1000) {
+    return true;
+  }
+  return false;
+};
+
+// Whether we should do an automated checkout of a contact
+contactSchema.methods.shouldDoAutomatedCheckout = function() {
+  if (!this.remindedCheckout || this.remindedCheckout == false || !this.remindedCheckoutDate || this.type != 'local' || this.status == 0) {
+    return false;
+  }
+  var current = Date.now();
+  var remindedCheckoutDate = new Date(this.remindedCheckoutDate);
+  if (current.valueOf() - remindedCheckoutDate.valueOf() > 12 * 3600 * 1000) {
+    return true;
+  }
+  return false;
+};
+
+// Set remindedCheckout to false when changing the departureDate on an existing contact
+// This handles the case where a user changes his departure date after receiving a reminder_checkout email
+contactSchema.path('departureDate').set(function (newVal) {
+  if (this.departureDate && this.departureDate != newVal) {
+    this.remindedCheckout = false;
+  }
+  return newVal;
+});
 
 mongoose.model('Contact', contactSchema);
 

@@ -4,6 +4,7 @@ var operations = require('./lib/operations'),
   protectedRoles = require('./lib/protectedRoles'),
   orgTypes = require('./lib/orgTypes'),
   disasters = require('./lib/disasters'),
+  contacts = require('./lib/contacts'),
   async = require('async');
 
 async.auto({
@@ -13,7 +14,9 @@ async.auto({
   protectedRoles: protectedRoles.buildCache,
   orgTypes: orgTypes.buildCache,
   disasters: disasters.buildCache,
-  appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'orgTypes', 'disasters', operations.buildAppData]
+  contacts: contacts.sendReminderCheckoutEmails,
+  checkout: contacts.doAutomatedCheckout,
+  appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'orgTypes', 'disasters', 'contacts', 'checkout', operations.buildAppData]
 },
 function (err, results) {
   if (err) {
