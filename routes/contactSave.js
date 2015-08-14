@@ -518,6 +518,9 @@ function post(req, res, next) {
           return cb();
         });
       }
+      else {
+        return cb();
+      }
     },
     // Send emails (if applicable)
     function (cb) {
