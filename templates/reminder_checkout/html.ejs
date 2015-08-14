@@ -1,0 +1,25 @@
+<p>Dear <%= firstName %>,</p>
+
+<p>We have noticed that you are still checked into <%= location %>, but have specified a departure date of <%= departureDate %>. That was more than 2 days ago.</p>
+
+<p>If you are no longer in <%= location %>, please check out. Otherwise, kindly update your profile with a new departure date.</p>
+
+<p>If no action is taken, you will be automatically checked out of <%= location %> on <%= checkoutDate %>.</p>
+
+<p>Your global profile will, of course, remain active. If you are responding to another emergency simply log into your Humanitarian ID account, choose Check-in, Select the country name and add your local details.</p>
+
+<% include ../includes/footer_en %>
+
+<hr />
+
+<p>Bonjour <%= firstName %>,</p>
+
+<p>Nous avons remarqué que vous êtes toujours inscrit sur la liste de contacts en/au <%= location %>, mais avez spécifié une date de départ au <%= departureDate %>, soit il y a plus de 2 jours.</p>
+
+<p>Si vous n'êtes plus en/au <%= location %>, veuillez vous désinscrire. Sinon, merci de mettre à jour votre profil avec une nouvelle date de départ.</p>
+
+<p>Si vous ne faites rien, vous serez automatiquement désinscrit de la liste de contacts en/au <%= location %> le <%= checkoutDate %>.</p>
+
+<p>Votre profil global reste bien évidemment actif. Si vous répondez à une autre urgence, connectez-vous à votre compte Humanitarian ID, choisissez Check-in, sélectionnez le pays et ajoutez vos informations de contact locales.</p>
+
+<% include ../includes/footer_fr %>
