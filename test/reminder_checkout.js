@@ -12,7 +12,7 @@ describe('reminder_checkout email', function() {
         email: [{
           address: 'test@test.com',
         }],
-        status: 1
+        status: true
       });
       var out = global.shouldSendReminderCheckout();
       should(out).eql(false);
@@ -26,7 +26,7 @@ describe('reminder_checkout email', function() {
         email: [{
           address: 'test@test.com',
         }],
-        status: 0
+        status: false
       });
       var out = checked_out.shouldSendReminderCheckout();
       should(out).eql(false);
@@ -40,7 +40,7 @@ describe('reminder_checkout email', function() {
         email: [{
           address: 'test@test.com',
         }],
-        status: 1
+        status: true
       });
       var out = no_dep.shouldSendReminderCheckout();
       should(out).eql(false);
@@ -54,7 +54,7 @@ describe('reminder_checkout email', function() {
         email: [{
           address: 'test@test.com',
         }],
-        status: 1
+        status: true
       });
       var out = future.shouldSendReminderCheckout();
       should(out).eql(false);
@@ -68,7 +68,7 @@ describe('reminder_checkout email', function() {
         email: [{
           address: 'test@test.com',
         }],
-        status: 1,
+        status: true,
         remindedCheckout: true
       });
       var out = reminded.shouldSendReminderCheckout();
@@ -85,7 +85,7 @@ describe('reminder_checkout email', function() {
         email: [{
           address: 'test@test.com',
         }],
-        status: 1
+        status: true
       });
       var out = reminded.shouldSendReminderCheckout();
       should(out).eql(false);
@@ -99,7 +99,7 @@ describe('reminder_checkout email', function() {
         email: [{
           address: 'test@test.com',
         }],
-        status: 1
+        status: true
       });
       var out = contact.shouldSendReminderCheckout();
       should(out).eql(true);

@@ -13,7 +13,7 @@ describe('automated checkout testing', function() {
           address: 'test@test.com',
         }],
         remindedCheckout: true,
-        status: 1
+        status: true
       });
       var out = global.shouldDoAutomatedCheckout();
       should(out).eql(false);
@@ -27,7 +27,7 @@ describe('automated checkout testing', function() {
         email: [{
           address: 'test@test.com',
         }],
-       status: 1
+       status: true
       });
       var out = no_dep.shouldDoAutomatedCheckout();
       should(out).eql(false);
@@ -42,7 +42,7 @@ describe('automated checkout testing', function() {
         email: [{
           address: 'test@test.com',
         }],
-        status: 1,
+        status: true,
         remindedCheckout: true,
         remindedCheckoutDate: checkoutEmailDate.toISOString()
       });
@@ -58,7 +58,7 @@ describe('automated checkout testing', function() {
         email: [{
           address: 'test@test.com',
         }],
-        status: 0,
+        status: false,
         remindedCheckout: true,
         remindedCheckoutDate: '2010-08-11T22:00:00.000Z'
       });
@@ -74,7 +74,7 @@ describe('automated checkout testing', function() {
         email: [{
           address: 'test@test.com',
         }],
-        status: 0,
+        status: false,
         remindedCheckout: true,
         remindedCheckoutDate: '2010-08-11T22:00:00.000Z'
       });
@@ -93,7 +93,7 @@ describe('automated checkout testing', function() {
         }],
         remindedCheckout: true,
         remindedCheckoutDate: '2010-08-11T22:00:00.000Z',
-        status: 1
+        status: true
       });
       var out = contact.shouldDoAutomatedCheckout();
       should(out).eql(true);

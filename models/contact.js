@@ -105,7 +105,7 @@ contactSchema.methods.checkout = function(cb) {
 
 // Whether we should send a reminder checkout email to a contact
 contactSchema.methods.shouldSendReminderCheckout = function() {
-  if (!this.departureDate || (this.remindedCheckout && this.remindedCheckout == true) || this.type != 'local' || this.status == 0) {
+  if (!this.departureDate || (this.remindedCheckout && this.remindedCheckout == true) || this.type != 'local' || this.status == false) {
     return false;
   }
   var current = Date.now();
@@ -118,7 +118,7 @@ contactSchema.methods.shouldSendReminderCheckout = function() {
 
 // Whether we should do an automated checkout of a contact
 contactSchema.methods.shouldDoAutomatedCheckout = function() {
-  if (!this.remindedCheckout || this.remindedCheckout == false || !this.remindedCheckoutDate || this.type != 'local' || this.status == 0) {
+  if (!this.remindedCheckout || this.remindedCheckout == false || !this.remindedCheckoutDate || this.type != 'local' || this.status == false) {
     return false;
   }
   var current = Date.now();
