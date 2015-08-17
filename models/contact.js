@@ -99,7 +99,7 @@ contactSchema.methods.mainEmail = function(emailOnly) {
 
 // checkout contact
 contactSchema.methods.checkout = function(cb) {
-  this.status = 0;
+  this.status = false;
   this.save(cb);
 };
 
