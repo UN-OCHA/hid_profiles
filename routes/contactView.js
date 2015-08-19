@@ -16,6 +16,7 @@ var Contact = require('../models').Contact,
   moment = require('moment'),
   qs = require('querystring'),
   http = require('http'),
+  intl = require('intl'),
   operations = require('../lib/operations');
 
 function get(req, res) {
@@ -357,6 +358,7 @@ function get(req, res) {
       'Email:Work',
       'Email:Personal',
       'Email:Other',
+      'Departure Date',
       'URI',
       'Notes'
     ]);
@@ -409,6 +411,8 @@ function get(req, res) {
         multiValues.phone.types[type] = nums.length ? nums + ';' : nums;
       });
 
+      var dateOptions = { day: "numeric", month: "long", year: "numeric" };
+
       stringifier.write([
         item.nameGiven,
         item.nameFamily,
@@ -427,6 +431,7 @@ function get(req, res) {
         multiValues.email.types['Work'].join('; '),
         multiValues.email.types['Personal'].join('; '),
         multiValues.email.types['Other'].join('; '),
+        item.departureDate ? item.departureDate.toLocaleDateString('en', dateOptions) : '',
         item.uri ? item.uri.join('; '): '',
         item.notes
       ]);
