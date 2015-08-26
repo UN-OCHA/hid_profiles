@@ -79,7 +79,9 @@ var contactSchema = new mongoose.Schema({
   office:             [ organizationSchema ],
   departureDate:      Date,
   remindedCheckout:   Boolean,
-  remindedCheckoutDate: Date
+  remindedCheckoutDate: Date,
+  remindedCheckin:    Boolean,
+  remindedCheckinDate: Date
 });
 
 contactSchema.methods.fullName = function() {
@@ -184,6 +186,31 @@ contactSchema.methods.isInCountry = function () {
     return false;
   }
   return this.address[0].country == this.location;
+};
+
+// Whether we should send a reminder checkin email
+contactSchema.methods.shouldSendReminderCheckin = function(callback) {
+  if (this.type != 'local' || !this.status || this.remindedCheckin) {
+    callback(null, false);
+    return;
+  }
+  var d = new Date();
+  var offset = d.valueOf() - this.created;
+  if (this.isInCountry() && offset > 48 * 3600 * 1000) { // if contact is in country and checked in more than 48 hours ago
+    this.hasLocalPhoneNumber(function (err, out) {
+      if (err) {
+        callback(err);
+        return;
+      }
+      var send = !out;
+      callback(null, send);
+      return;
+    });
+  }
+  else {
+    callback(null, false);
+    return;
+  }
 };
 
 mongoose.model('Contact', contactSchema);
