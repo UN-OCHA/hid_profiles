@@ -92,6 +92,27 @@ describe('should send reminder checkin', function() {
       })
     });
 
+    it('should not send reminder checkin', function (done) {
+      var contact = new Contact({
+        type: 'local',
+        location: 'Nepal',
+        locationId: 'hrinfo:85',
+        address: [{
+          country: 'Nepal'
+        }],
+        phone: [{
+          number: '+977 9818571272',
+          type: 'Mobile'
+        }],
+        created: '1437055382885',
+        status: true
+      });
+      contact.shouldSendReminderCheckin(function (err, out) {
+        should(out).eql(false);
+        done();
+      })
+    });
+
     it('should send reminder checkin', function (done) {
       var contact = new Contact({
         type: 'local',

@@ -160,9 +160,15 @@ contactSchema.methods.hasLocalPhoneNumber = function(callback) {
       if (op) {
         var found = false;
         that.phone.forEach(function(item) {
-          var regionCode = phoneUtil.getRegionCodeForCountryCode(item.countryCode);
-          if (regionCode.toLowerCase() == op.pcode) {
-            found = true;
+          try {
+            var phoneNumber = phoneUtil.parse(item.number);
+            var regionCode = phoneUtil.getRegionCodeForNumber(phoneNumber);
+            if (regionCode.toLowerCase() == op.pcode) {
+              found = true;
+            }
+          }
+          catch (err) {
+            console.log(err);
           }
         });
         callback(null, found);
