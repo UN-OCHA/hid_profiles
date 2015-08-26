@@ -1,4 +1,7 @@
 var mongoose = require('mongoose');
+var cache = require('./cache'),
+    operations = require('../lib/operations'),
+    phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
 var Schema = mongoose.Schema;
 var Profile = mongoose.model('Profile');
 
@@ -137,6 +140,51 @@ contactSchema.path('departureDate').set(function (newVal) {
   }
   return newVal;
 });
+
+// Whether the contact has a local phone number entered or not
+contactSchema.methods.hasLocalPhoneNumber = function(callback) {
+  if (this.type != 'local' || !this.phone || this.phone.length == 0) {
+    callback(null, false);
+    return;
+  }
+  var that = this;
+  operations.getAll(function (err, operations) {
+    if (err) {
+      callback(err);
+      return;
+    }
+    if (operations) {
+      var op = operations[that.locationId];
+      if (op) {
+        var found = false;
+        that.phone.forEach(function(item) {
+          var regionCode = phoneUtil.getRegionCodeForCountryCode(item.countryCode);
+          if (regionCode.toLowerCase() == op.pcode) {
+            found = true;
+          }
+        });
+        callback(null, found);
+        return;
+      }
+      else {
+        callback('Operation was not found', false);
+        return;
+      }
+    }
+    else {
+      callback('No operations found');
+      return;
+    }
+  });
+};
+
+// Whether the contact is in country or not
+contactSchema.methods.isInCountry = function () {
+  if (this.type != 'local' || !this.status || !this.address || this.address.length == 0) {
+    return false;
+  }
+  return this.address[0].country == this.location;
+};
 
 mongoose.model('Contact', contactSchema);
 
