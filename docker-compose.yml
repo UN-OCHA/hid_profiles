@@ -9,7 +9,7 @@ mongo:
 profiles:
   image: unocha/nodejs
   volumes:
-    - /code/contactsid_profiles:/var/www/html
+    - .:/var/www/html
   environment:
     DNSDOCK_NAME: profiles
     DNSDOCK_IMAGE: contactsid
