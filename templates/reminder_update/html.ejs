@@ -1,0 +1,16 @@
+<p>Dear <%= firstName %>,</p>
+
+<p>We noticed that you haven't updated your <%= profileType %> profile <% if (profileType == 'local') { %> for <%= location %> <% } %> during the last 6 months. Is your profile information still up to date ?</p>
+
+<p>To make sure, please have a quick look at your profile: <a href="<%= contactURL %>"><%= contactURL %></a></p>
+
+<p>The ability for responders to find and connect during a humanitarian crisis is of utmost importance. Humanitarian ID takes a decentralized approach to contact lists and thus relies on members like yourself to help keep these lists up-to-date.</p>
+
+<% include ../includes/footer_en %>
+
+<hr />
+
+<p>Bonjour <%= firstName %>,</p>
+
+
+<% include ../includes/footer_fr %>
