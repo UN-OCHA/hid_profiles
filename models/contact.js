@@ -81,7 +81,8 @@ var contactSchema = new mongoose.Schema({
   remindedCheckout:   Boolean,
   remindedCheckoutDate: Date,
   remindedCheckin:    Boolean,
-  remindedCheckinDate: Date
+  remindedCheckinDate: Date,
+  remindedUpdate: Number // timestamp
 });
 
 contactSchema.methods.fullName = function() {
@@ -217,6 +218,31 @@ contactSchema.methods.shouldSendReminderCheckin = function(callback) {
     callback(null, false);
     return;
   }
+};
+
+// Whether we should send an update reminder (sent out after a contact hasn't been updated for 6 months)
+contactSchema.methods.shouldSendReminderUpdate = function () {
+  if (this.status != true || (!this.created && !this.revised)) {
+    return false;
+  }
+  var d = new Date();
+  var revised_offset = d.valueOf();
+  if (this.revised) {
+    revised_offset = d.valueOf() - this.revised;
+  }
+  else {
+    revised_offset = d.valueOf() - this.created;
+  }
+  if (revised_offset < 183 * 24 * 3600 * 1000) { // if not revised during 6 months
+    return false;
+  }
+  if (this.remindedUpdate) {
+    var reminded_offset = d.valueOf() - this.remindedUpdate;
+    if (reminded_offset < 183 * 24 * 3600 * 1000) {
+      return false;
+    }
+  }
+  return true;
 };
 
 mongoose.model('Contact', contactSchema);
