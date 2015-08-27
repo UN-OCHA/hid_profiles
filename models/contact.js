@@ -80,8 +80,7 @@ var contactSchema = new mongoose.Schema({
   departureDate:      Date,
   remindedCheckout:   Boolean,
   remindedCheckoutDate: Date,
-  remindedCheckin:    Boolean,
-  remindedCheckinDate: Date,
+  remindedCheckin:    Number, //timestamp
   remindedUpdate: Number // timestamp
 });
 
