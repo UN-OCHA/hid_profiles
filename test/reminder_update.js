@@ -5,19 +5,7 @@ var Contact = require('../models').Contact;
 
 describe('reminder_update email', function() {
 
-    it('should not send to global contact if revised less than 6 months ago', function (done) {
-      var d = new Date();
-      var contact = new Contact({
-        type: 'global',
-        revised: d.valueOf() - 48 * 3600 * 1000,
-        status: true
-      });
-      var out = contact.shouldSendReminderUpdate();
-      should(out).eql(false);
-      done();
-    });
-
-    it('should send to global contact if revised more than 6 months ago', function (done) {
+    it('should not send to global contact', function (done) {
       var d = new Date();
       var contact = new Contact({
         type: 'global',
@@ -25,7 +13,7 @@ describe('reminder_update email', function() {
         status: true
       });
       var out = contact.shouldSendReminderUpdate();
-      should(out).eql(true);
+      should(out).eql(false);
       done();
     });
 
