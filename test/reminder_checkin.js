@@ -48,6 +48,7 @@ describe('should send reminder checkin', function() {
     });
 
     it('should not send reminder checkin if it was already sent', function (done) {
+      var d = new Date();
       var contact = new Contact({
         type: 'local',
         location: 'Afghanistan',
@@ -62,7 +63,7 @@ describe('should send reminder checkin', function() {
         }],
         created: '1437055382885',
         status: true,
-        remindedCheckin: true
+        remindedCheckin: d.valueOf() - 48
       });
       contact.shouldSendReminderCheckin(function (err, out) {
         should(out).eql(false);
