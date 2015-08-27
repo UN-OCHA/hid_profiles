@@ -222,7 +222,7 @@ contactSchema.methods.shouldSendReminderCheckin = function(callback) {
 
 // Whether we should send an update reminder (sent out after a contact hasn't been updated for 6 months)
 contactSchema.methods.shouldSendReminderUpdate = function () {
-  if (this.status != true || (!this.created && !this.revised)) {
+  if (this.type != 'local' || this.status != true || (!this.created && !this.revised)) {
     return false;
   }
   var d = new Date();
