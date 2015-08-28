@@ -1,8 +1,59 @@
 <p>Dear <%= firstName %>,</p>
 
-<p>We noticed that you haven't updated your <%= profileType %> profile <% if (profileType == 'local') { %> for <%= location %> <% } %> during the last 6 months. Is your profile information still up to date ?</p>
+<p>We have noticed that you have not updated your profile in <%= contact.location %> over the past six months.</p>
 
-<p>To make sure, please have a quick look at your profile: <a href="<%= contactURL %>"><%= contactURL %></a></p>
+<p>If you are still in country, you may want to update your profile. Below, we have listed the details in your <%= contact.location %> profile:</p>
+
+<%= contact.nameGiven %> <%= contact.nameFamily %><br />
+<%= contact.organization[0].name %>
+<% if (contact.jobtitle) { %><br /><%= contact.jobtitle %><% } %>
+<% if (contact.bundle && contact.bundle.length) { %>
+  <% for (var i = 0; i < contact.bundle.length; i++) { %>
+    <br /><%= contact.bundle[i] %>
+  <% } %>
+<% } %>
+
+<% if (contact.address && contact.address.length) { %>
+  <br /><%= contact.address[0].country %>
+  <% if (contact.address[0].administrative_area) { %>, <%= contact.address[0].administrative_area %><% } %>
+  <% if (contact.office && contact.office.length) { %>, <%= contact.office[0].name %><% } %>
+<% } %>
+
+<% if (contact.phone && contact.phone.length) { %>
+  <% for (var i = 0; i < contact.phone.length; i++) { %>
+    <br /><%= contact.phone[i].type %>: <%= contact.phone[i].number %>
+  <% } %>
+<% } %>
+
+<% if (contact.email && contact.email.length) { %>
+  <% for (var i = 0; i < contact.email.length; i++) { %>
+    <br /><%= contact.email[i].type %>: <%= contact.email[i].address %>
+  <% } %>
+<% } %>
+
+<% if (contact.phone && contact.phone.length) { %>
+  <% for (var i = 0; i < contact.phone.length; i++) { %>
+    <br /><%= contact.phone[i].type %>: <%= contact.phone[i].number %>
+  <% } %>
+<% } %>
+
+<% if (contact.voip && contact.voip.length) { %>
+  <% for (var i = 0; i < contact.voip.length; i++) { %>
+    <br /><%= contact.voip[i].type %>: <%= contact.voip[i].number %>
+  <% } %>
+<% } %>
+
+<% if (contact.uri && contact.uri.length) { %>
+  <% for (var i = 0; i < contact.uri.length; i++) { %>
+    <br /><%= contact.uri[i] %>
+  <% } %>
+<% } %>
+
+<% if (contact.notes) { %><br /><%= contact.notes %><% } %>
+
+<p>Update your profile: <a href="<%= contactURL %>"><%= contactURL %></a></p>
+
+<p>If, by chance, you are no longer in or responding to <%= contact.location %>, please check out</p>
 
 <p>The ability for responders to find and connect during a humanitarian crisis is of utmost importance. Humanitarian ID takes a decentralized approach to contact lists and thus relies on members like yourself to help keep these lists up-to-date.</p>
 
@@ -12,5 +63,61 @@
 
 <p>Bonjour <%= firstName %>,</p>
 
+<p>Nous avons remarqué que vous n'avez pas mis à jour votre profil en/au <%= contact.location %> durant les six derniers mois.</p>
+
+<p>Si vous êtes toujours dans le pays, vous devriez peut-être mettre à jour votre profil. Nous avons listé ci-dessous vos informations de contact en/au <%= contact.location %>:</p>
+
+<%= contact.nameGiven %> <%= contact.nameFamily %><br />
+<%= contact.organization[0].name %>
+<% if (contact.jobtitle) { %><br /><%= contact.jobtitle %><% } %>
+<% if (contact.bundle && contact.bundle.length) { %>
+  <% for (var i = 0; i < contact.bundle.length; i++) { %>
+    <br /><%= contact.bundle[i] %>
+  <% } %>
+<% } %>
+
+<% if (contact.address && contact.address.length) { %>
+  <br /><%= contact.address[0].country %>
+  <% if (contact.address[0].administrative_area) { %>, <%= contact.address[0].administrative_area %><% } %>
+  <% if (contact.office && contact.office.length) { %>, <%= contact.office[0].name %><% } %>
+<% } %>
+
+<% if (contact.phone && contact.phone.length) { %>
+  <% for (var i = 0; i < contact.phone.length; i++) { %>
+    <br /><%= contact.phone[i].type %>: <%= contact.phone[i].number %>
+  <% } %>
+<% } %>
+
+<% if (contact.email && contact.email.length) { %>
+  <% for (var i = 0; i < contact.email.length; i++) { %>
+    <br /><%= contact.email[i].type %>: <%= contact.email[i].address %>
+  <% } %>
+<% } %>
+
+<% if (contact.phone && contact.phone.length) { %>
+  <% for (var i = 0; i < contact.phone.length; i++) { %>
+    <br /><%= contact.phone[i].type %>: <%= contact.phone[i].number %>
+  <% } %>
+<% } %>
+
+<% if (contact.voip && contact.voip.length) { %>
+  <% for (var i = 0; i < contact.voip.length; i++) { %>
+    <br /><%= contact.voip[i].type %>: <%= contact.voip[i].number %>
+  <% } %>
+<% } %>
+
+<% if (contact.uri && contact.uri.length) { %>
+  <% for (var i = 0; i < contact.uri.length; i++) { %>
+    <br /><%= contact.uri[i] %>
+  <% } %>
+<% } %>
+
+<% if (contact.notes) { %><br /><%= contact.notes %><% } %>
+
+<p>Pour mettre à jour votre profil: <a href="<%= contactURL %>"><%= contactURL %></a></p>
+
+<p>Si vous ne répondez plus à la crise en/au <%= contact.location %>, veuillez vous désinscrire</p>
+
+<p>La possibilité pour les humanitaires de se trouver et se contacter durant une crise est extrêmement importante. Humanitarian ID adopte une approche décentralisée des listes de contact et compte donc sur ses membres tels que vous pour aider à maintenir les listes de contact à jour.</p>
 
 <% include ../includes/footer_fr %>

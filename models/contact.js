@@ -1,7 +1,8 @@
 var mongoose = require('mongoose');
 var cache = require('./cache'),
     operations = require('../lib/operations'),
-    phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
+    phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance(),
+    async = require('async');
 var Schema = mongoose.Schema;
 var Profile = mongoose.model('Profile');
 
@@ -168,6 +169,7 @@ contactSchema.methods.hasLocalPhoneNumber = function(callback) {
             }
           }
           catch (err) {
+            // Invalid phone number
             console.log(err);
           }
         });
@@ -206,44 +208,79 @@ contactSchema.methods.shouldSendReminderCheckin = function(callback) {
     var may = new Date(2015, 05, 07, 01, 0, 0, 0);
     offset = d.valueOf() - may;
   }
-  if (this.type != 'local' || !this.status || this.remindedCheckin || offset < 48 * 3600 * 1000) {
+  if (this.type != 'local' || !this.status || this.remindedCheckin || offset < 48 * 3600 * 1000 || offset > 72 * 3600 * 1000) {
     return callback(null, false);
   }
-  if (this.isInCountry() && this.address[0].administrative_area) {
-    // Should we check for offices ?
-    var that = this;
-    operations.getAppData(function (err, data) {
+  if (this.isInCountry() && this.address && this.address.length && this.address[0].administrative_area && this.office && this.office.length) {
+    this.hasLocalPhoneNumber(function (err, out) {
       if (err) {
         return callback(err);
       }
-      if (data && data.operations) {
-        var op = data.operations[that.locationId];
-        if (op) {
-          var count_offices = Object.keys(op.offices).length;
-          if (count_offices == 0 || (count_offices > 0 && that.office && that.office.length)) {
-            that.hasLocalPhoneNumber(function (err, out) {
-              if (err) {
-                return callback(err);
-              }
-              var send = !out;
-              return callback(null, send);
-            });
-          }
-          else {
-            return callback(null, true);
-          }
-        }
-        else {
-          return callback('Could not find operation ' + that.location);
-        }
-      }
-      else {
-        return callback('Error retrieving operations');
-      }
+      var send = !out;
+      return callback(null, send);
     });
   }
   else {
-    return callback(null, true);
+    var that = this;
+    async.series([
+      function (cb) {
+        var out = that.isInCountry();
+        return cb(null, !out);
+      },
+      function (cb) {
+        if (!that.office || !that.office.length) {
+          // Check if operation has offices
+          operations.getAppData(function (err, data) {
+            if (err) {
+              return cb(err);
+            }
+            if (data && data.operations) {
+              var op = data.operations[that.locationId];
+              if (op) {
+                var count_offices = Object.keys(op.offices).length;
+                if (count_offices == 0) {
+                  return cb(null, false);
+                }
+                else {
+                  return cb(null, true);
+                }
+              }
+            }
+            return cb('Could not retrieve operations');
+          });
+        }
+        else {
+          return cb(null, false);
+        }
+      },
+      function (cb) {
+        if (that.address && that.address.length && !that.address[0].administrative_area) {
+          // TODO: check if operation has admin boundaries
+          // Ignore this check for the moment, will be added in a future release
+          return cb(null, false);
+        }
+        else {
+          return cb(null, false);
+        }
+      },
+      function (cb) {
+        that.hasLocalPhoneNumber(function (err, out) {
+          if (err) {
+            return cb(err);
+          }
+          var send = !out;
+          return cb(null, send);
+        });
+      }], function (err, results) {
+        var out = false;
+        results.forEach(function (item) {
+          if (item == true) {
+            out = true;
+          }
+        });
+        callback(null, out);
+      }
+    );  
   }
 };
 
