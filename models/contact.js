@@ -196,26 +196,54 @@ contactSchema.methods.isInCountry = function () {
 
 // Whether we should send a reminder checkin email
 contactSchema.methods.shouldSendReminderCheckin = function(callback) {
-  if (this.type != 'local' || !this.status || this.remindedCheckin) {
-    callback(null, false);
-    return;
-  }
   var d = new Date();
-  var offset = d.valueOf() - this.created;
-  if (this.isInCountry() && offset > 48 * 3600 * 1000) { // if contact is in country and checked in more than 48 hours ago
-    this.hasLocalPhoneNumber(function (err, out) {
+  var offset = d.valueOf();
+  if (this.created) {
+    offset = d.valueOf() - this.created;
+  }
+  else {
+    // Take May 7 as created date, because this is when the code to handle the created date was added
+    var may = new Date(2015, 05, 07, 01, 0, 0, 0);
+    offset = d.valueOf() - may;
+  }
+  if (this.type != 'local' || !this.status || this.remindedCheckin || offset < 48 * 3600 * 1000) {
+    return callback(null, false);
+  }
+  if (this.isInCountry() && this.address[0].administrative_area) {
+    // Should we check for offices ?
+    var that = this;
+    operations.getAppData(function (err, data) {
       if (err) {
-        callback(err);
-        return;
+        return callback(err);
       }
-      var send = !out;
-      callback(null, send);
-      return;
+      if (data && data.operations) {
+        var op = data.operations[that.locationId];
+        if (op) {
+          var count_offices = Object.keys(op.offices).length;
+          if (count_offices == 0 || (count_offices > 0 && that.office && that.office.length)) {
+            that.hasLocalPhoneNumber(function (err, out) {
+              if (err) {
+                return callback(err);
+              }
+              var send = !out;
+              return callback(null, send);
+            });
+          }
+          else {
+            return callback(null, true);
+          }
+        }
+        else {
+          return callback('Could not find operation ' + that.location);
+        }
+      }
+      else {
+        return callback('Error retrieving operations');
+      }
     });
   }
   else {
-    callback(null, false);
-    return;
+    return callback(null, true);
   }
 };
 
