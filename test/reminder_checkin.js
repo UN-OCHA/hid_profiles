@@ -63,7 +63,7 @@ describe('should send reminder checkin', function() {
       })
     });
 
-    it('should send reminder checkin if there is no created date', function (done) {
+    it('should not send reminder checkin if there is no created date', function (done) {
       var contact = new Contact({
         type: 'local',
         location: 'Afghanistan',
@@ -79,7 +79,7 @@ describe('should send reminder checkin', function() {
         status: true
       });
       contact.shouldSendReminderCheckin(function (err, out) {
-        should(out).eql(true);
+        should(out).eql(false);
         done();
       })
     });
@@ -130,7 +130,29 @@ describe('should send reminder checkin', function() {
       })
     });
 
-    it('should send reminder checkin because of missing local phone number', function (done) {
+    it('should not send reminder checkin to checked out contact', function (done) {
+      var contact = new Contact({
+        type: 'local',
+        location: 'Afghanistan',
+        locationId: 'hrinfo:82',
+        address: [{
+          country: 'Afghanistan'
+        }],
+        phone: [{
+          countryCode: '33',
+          number: '+33486582332',
+          type: 'Landline'
+        }],
+        created: '1437055382885',
+        status: false
+      });
+      contact.shouldSendReminderCheckin(function (err, out) {
+        should(out).eql(false);
+        done();
+      })
+    });
+
+    it('should not send reminder checkin because checkin happened more than 72 hours ago', function (done) {
       var contact = new Contact({
         type: 'local',
         location: 'Nepal',
@@ -152,12 +174,43 @@ describe('should send reminder checkin', function() {
         status: true
       });
       contact.shouldSendReminderCheckin(function (err, out) {
+        should(out).eql(false);
+        done();
+      })
+    });
+
+    it('should send reminder checkin because of missing local phone number', function (done) {
+      var d = new Date();
+      var created = d.valueOf() - 60 * 3600 * 1000;
+      var contact = new Contact({
+        type: 'local',
+        location: 'Nepal',
+        locationId: 'hrinfo:85',
+        address: [{
+          administrative_area: 'Central',
+          country: 'Nepal'
+        }],
+        office: [{
+          _id: '55df18f5dec506cc013b8fc1',
+          name: 'Charikot sub-office',
+          remote_id: 'hrinfo_off_105992'
+        }],
+        phone: [{
+          number: '+33 486581234',
+          type: 'Landline'
+        }],
+        created: created,
+        status: true
+      });
+      contact.shouldSendReminderCheckin(function (err, out) {
         should(out).eql(true);
         done();
       })
     });
 
     it('should send reminder checkin because of missing admin area', function (done) {
+      var d = new Date();
+      var created = d.valueOf() - 60 * 3600 * 1000;
       var contact = new Contact({
         type: 'local',
         location: 'Nepal',
@@ -175,7 +228,7 @@ describe('should send reminder checkin', function() {
           number: '+977 9818571272',
           type: 'Mobile'
         }],
-        created: '1437055382885',
+        created: created,
         status: true
       });
       contact.shouldSendReminderCheckin(function (err, out) {
@@ -185,6 +238,8 @@ describe('should send reminder checkin', function() {
     });
 
     it('should send reminder checkin because of missing office', function (done) {
+      var d = new Date();
+      var created = d.valueOf() - 60 * 3600 * 1000;
       var contact = new Contact({
         type: 'local',
         location: 'Nepal',
@@ -198,7 +253,7 @@ describe('should send reminder checkin', function() {
           number: '+977 9818571272',
           type: 'Mobile'
         }],
-        created: '1437055382885',
+        created: created,
         status: true
       });
       contact.shouldSendReminderCheckin(function (err, out) {
@@ -208,6 +263,8 @@ describe('should send reminder checkin', function() {
     });
 
     it('should send reminder checkin because contact is not in country', function (done) {
+      var d = new Date();
+      var created = d.valueOf() - 60 * 3600 * 1000;
       var contact = new Contact({
         type: 'local',
         location: 'Nepal',
@@ -225,7 +282,7 @@ describe('should send reminder checkin', function() {
           number: '+977 9818571272',
           type: 'Mobile'
         }],
-        created: '1437055382885',
+        created: created,
         status: true
       });
       contact.shouldSendReminderCheckin(function (err, out) {
@@ -235,6 +292,8 @@ describe('should send reminder checkin', function() {
     });
 
     it('should not send reminder checkin', function (done) {
+      var d = new Date();
+      var created = d.valueOf() - 60 * 3600 * 1000;
       var contact = new Contact({
         type: 'local',
         location: 'Nepal',
@@ -252,7 +311,7 @@ describe('should send reminder checkin', function() {
           number: '+977 9818571272',
           type: 'Mobile'
         }],
-        created: '1437055382885',
+        created: created,
         status: true
       });
       contact.shouldSendReminderCheckin(function (err, out) {
@@ -262,6 +321,8 @@ describe('should send reminder checkin', function() {
     });
 
     it('should not send reminder checkin if missing office and country with no coordination hub', function (done) {
+      var d = new Date();
+      var created = d.valueOf() - 60 * 3600 * 1000;
       var contact = new Contact({
         type: 'local',
         location: 'Angola',
@@ -275,7 +336,7 @@ describe('should send reminder checkin', function() {
           number: '+244 231 123 456',
           type: 'Mobile'
         }],
-        created: '1437055382885',
+        created: created,
         status: true
       });
       contact.shouldSendReminderCheckin(function (err, out) {
@@ -283,5 +344,60 @@ describe('should send reminder checkin', function() {
         done();
       })
     });
+
+    it('should not send reminder checkin if missing administrative_area and country with no admin areas', function (done) {
+      var d = new Date();
+      var created = d.valueOf() - 60 * 3600 * 1000;
+      var contact = new Contact({
+        type: 'local',
+        location: 'Angola',
+        locationId: 'hrinfo:46',
+        address: [{
+          administrative_area: '',
+          country: 'Angola'
+        }],
+        office: [{
+          _id: '55df18f5dec506cc013b8fc1',
+          name: 'Charikot sub-office',
+          remote_id: 'hrinfo_off_105992'
+        }],
+        phone: [{
+          number: '+244 231 123 456',
+          type: 'Mobile'
+        }],
+        created: created,
+        status: true
+      });
+      contact.shouldSendReminderCheckin(function (err, out) {
+        should(out).eql(false);
+        done();
+      })
+    });
+
+    it('should send reminder checkin email to contact with no address', function (done) {
+      var d = new Date();
+      var created = d.valueOf() - 60 * 3600 * 1000;
+      var contact = new Contact({
+        type: 'local',
+        location: 'Angola',
+        locationId: 'hrinfo:46',
+        office: [{
+          _id: '55df18f5dec506cc013b8fc1',
+          name: 'Charikot sub-office',
+          remote_id: 'hrinfo_off_105992'
+        }],
+        phone: [{
+          number: '+244 231 123 456',
+          type: 'Mobile'
+        }],
+        created: created,
+        status: true
+      });
+      contact.shouldSendReminderCheckin(function (err, out) {
+        should(out).eql(true);
+        done();
+      })
+    });
+
 
 });
