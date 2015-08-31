@@ -748,40 +748,53 @@ function addUpdatedFields(contactFields, origContact){
 
   // Groups field
   valuesChanged = false;
-  if (origContact.bundle.length != contactNew.bundle.length || origContact.protectedBundles.length != contactNew.protectedBundles.length) {
-    valuesChanged = true;
+  var groupsRemoved = new Array(),
+      groupsAdded = new Array();
+  //Check if values changed
+  if (origContact.bundle.length > 0 || contactNew.bundle.length > 0){
+    origContact.bundle.forEach(function(value, i) {
+      if (contactNew.bundle.indexOf(value) == -1) {
+        groupsRemoved.push(value);
+      }
+    });
+    contactNew.bundle.forEach(function(value, i) {
+      if (origContact.bundle.indexOf(value) == -1) {
+        groupsAdded.push(value);
+      }
+    });
   }
-  else {
-    //Check if values changed
-    if (origContact.bundle.length > 0 && contactNew.bundle.length > 0){
-      origContact.bundle.forEach(function(value, i) {
-        if (contactNew.bundle[i]) {
-          if (value != contactNew.bundle[i]) {
-            valuesChanged = true;
-          }
-        }
-        else {
-          valuesChanged = true;
-        }
-      });
-    }
 
-    if (origContact.protectedBundles.length > 0 && contactNew.protectedBundles.length > 0){
-      origContact.protectedBundles.forEach(function(value, i) {
-        if (contactNew.protectedBundles[i]) {
-          if (value != contactNew.protectedBundles[i]) {
-            valuesChanged = true;
-          }
-        }
-        else {
-          valuesChanged = true;
-        }
-      });
-    }
+  if (origContact.protectedBundles.length > 0 || contactNew.protectedBundles.length > 0){
+    origContact.protectedBundles.forEach(function(value, i) {
+      if (contactNew.protectedBundles.indexOf(value) == -1 ){
+        groupsRemoved.push(value);
+      }
+    });
+    contactNew.protectedBundles.forEach(function(value, i) {
+      if (origContact.protectedBundles.indexOf(value) == -1) {
+        groupsAdded.push(value);
+      }
+    });
   }
-  if (valuesChanged){
-    actions.english.push('Groups were updated');
-    actions.french.push('Groupes mis à jour');
+
+  if (groupsRemoved.length || groupsAdded.length){
+    var actionEn, actionFr;
+    actionEn = 'You were ';
+    actionFr = 'Vous avez été ';
+    if (groupsAdded.length) {
+      actionEn += 'added to ' + groupsAdded.toString();
+      actionFr += 'ajouté à ' + groupsAdded.toString();
+      if (groupsRemoved.length)  {
+        actionEn += ' and ';
+        actionFr += ' et ';
+      }
+    }
+    if (groupsRemoved.length) {
+      actionEn += ' removed from ' + groupsRemoved.toString();
+      actionFr += ' enlevé de ' + groupsRemoved.toString();
+    }
+    actions.english.push(actionEn);
+    actions.french.push(actionFr);
   }
 
 
