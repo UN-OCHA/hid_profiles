@@ -899,8 +899,8 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Coordination Office was updated');
-    actions.french.push('Bureau de coordination mis à jour');
+    actions.english.push('Coordination Office was updated to ' + contactNew.office[0].name);
+    actions.french.push('Bureau de coordination mis à jour: ' + contactNew.office[0].name);
   }
 
   //Phone
@@ -930,8 +930,12 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Phone was updated');
-    actions.french.push('Téléphone mis à jour');
+    var phonesRaw = new Array();
+    contactNew.phone.forEach(function (value, i) {
+      phonesRaw.push(' ' + value.type + ': ' + value.number);
+    });
+    actions.english.push('Phones were updated to ' + phonesRaw.toString());
+    actions.french.push('Téléphones mis à jour: ' + phonesRaw.toString());
   }
 
   //VOIP
@@ -958,8 +962,12 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Instant messenger was updated');
-    actions.french.push('Messagerie instantanée mise à jour');
+    var ims = new Array();
+    contactNew.voip.forEach(function (value, i) {
+      ims.push(' ' + value.type + ': ' + value.number);
+    });
+    actions.english.push('Instant messenger was updated to ' + ims.toString());
+    actions.french.push('Messagerie instantanée mise à jour: ' + ims.toString());
   }
 
   //Email
@@ -986,8 +994,18 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Email was updated');
-    actions.french.push('Adresse émail mise à jour');
+    var emails = new Array(),
+        emtemp;
+    contactNew.email.forEach(function (value, i) {
+      emtemp = ' ';
+      if (value.type) {
+        emtemp += value.type + ': ';
+      }
+      emtemp += value.address;
+      emails.push(emtemp);
+    });
+    actions.english.push('Email addresses were updated to ' + emails.toString());
+    actions.french.push('Adresses emails mises à jour ' + emails.toString());
   }
 
   //URI
@@ -1011,26 +1029,21 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Website URL was updated');
-    actions.french.push('URL du site web mise à jour');
+    actions.english.push('Website URLs were updated to ' + contactNew.uri.toString());
+    actions.french.push('URLs de sites webs mises à jour: ' + contactNew.uri.toString());
   }
 
   //Departure Date
   valuesChanged = false;
-  if (origContact.departureDate == '' && contactNew.departureDate != ''){
+  var origDep = new Date(origContact.departureDate),
+      newDep = new Date(contactNew.departureDate);
+  if (origDep.valueOf() != newDep.valueOf()){
     valuesChanged = true;
-  }
-  if (origContact.departureDate != '' && contactNew.departureDate == ''){
-    valuesChanged = true;
-  }
-  if (origContact.departureDate && contactNew.departureDate) {
-    if (Date(origContact.departureDate) != Date(contactNew.departureDate)) {
-      valuesChanged = true;
-    }
   }
   if (valuesChanged){
-    actions.english.push('Departure date was updated');
-    actions.french.push('Date de départ mise à jour');
+    var dateOptions = { day: "numeric", month: "long", year: "numeric" };
+    actions.english.push('Departure date was updated to ' + newDep.toLocaleDateString('en', dateOptions));
+    actions.french.push('Date de départ mise à jour au ' + newDep.toLocaleDateString('fr', dateOptions));
   }
 
   //Notes
