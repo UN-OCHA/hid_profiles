@@ -747,7 +747,6 @@ function addUpdatedFields(contactFields, origContact){
   }
 
   // Groups field
-  valuesChanged = false;
   var groupsRemoved = new Array(),
       groupsAdded = new Array();
   //Check if values changed
@@ -799,28 +798,38 @@ function addUpdatedFields(contactFields, origContact){
 
 
   //Disasters field
-  valuesChanged = false;
-  if (origContact.disasters.length != contactNew.disasters.length) {
-    valuesChanged = true;
+  var disastersAdded = new Array(),
+      disastersRemoved = new Array();
+  if (origContact.disasters.length > 0 || contactNew.disasters.length > 0){
+    origContact.disasters.forEach(function(value, i) {
+      if (contactNew.disasters.indexOf(value) == -1) {
+        disastersRemoved.push(value.name);
+      }
+    });
+    contactNew.disasters.forEach(function (value, i) {
+      if (origContact.disasters.indexOf(value) == -1) {
+        disastersAdded.push(value.name);
+      }
+    });
   }
-  else {
-    //Check if values changed
-    if (origContact.disasters.length > 0 && contactNew.disasters.length > 0){
-      origContact.disasters.forEach(function(value, i) {
-        if (contactNew.disasters[i]) {
-          if (value.name != contactNew.disasters[i].name) {
-            valuesChanged = true;
-          }
-        }
-        else {
-          valuesChanged = true;
-        }
-      });
+  if (disastersRemoved.length || disastersAdded.length){
+    var actionEn, actionFr;
+    actionEn = 'You were ';
+    actionFr = 'Vous avez été ';
+    if (disastersAdded.length) {
+      actionEn += 'added to ' + disastersAdded.toString();
+      actionFr += 'ajouté à ' + disastersAdded.toString();
+      if (disastersRemoved.length)  {
+        actionEn += ' and ';
+        actionFr += ' et ';
+      }
     }
-  }
-  if (valuesChanged){
-    actions.english.push('Disaster was updated');
-    actions.french.push('Catastrophe mise à jour');
+    if (disastersRemoved.length) {
+      actionEn += ' removed from ' + disastersRemoved.toString();
+      actionFr += ' enlevé de ' + disastersRemoved.toString();
+    }
+    actions.english.push(actionEn);
+    actions.french.push(actionFr);
   }
 
   //Address fields
