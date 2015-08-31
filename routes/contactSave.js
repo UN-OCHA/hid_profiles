@@ -868,8 +868,21 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Current Location was updated');
-    actions.french.push('Lieu actuel mis à jour');
+    var actionEn, actionFr;
+    actionEn = 'Your current location was updated to ';
+    actionFr = 'Votre lieu actuel a été mis à jour: ';
+    if (contactNew.address[0].locality) {
+      actionEn += contactNew.address[0].locality + ', ';
+      actionFr += contactNew.address[0].locality + ', ';
+    }
+    if (contactNew.address[0].administrative_area) {
+      actionEn += contactNew.address[0].administrative_area + ', ';
+      actionFr += contactNew.address[0].administrative_area + ', ';
+    }
+    actionEn += contactNew.address[0].country;
+    actionFr += contactNew.address[0].country;
+    actions.english.push(actionEn);
+    actions.french.push(actionFr);
   }
 
   //Office
