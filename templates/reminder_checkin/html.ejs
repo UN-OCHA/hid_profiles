@@ -1,0 +1,46 @@
+<p>Dear <%= firstName %>,</p>
+
+<p>Thank you for checking into <%= contact.location %> two days ago. You can now find contact details of other humanitarians.</p>
+
+<% if (!hasLocalPhoneNumber) { %>
+<p>We noticed that you have not yet added a local phone number. If you have one and would  like to add it, simply  update your profile (link below).</p>
+<% } %>
+
+<% if (!contact.isInCountry()) { %>
+<p>We <% if (!hasLocalPhoneNumber) { %> also <% } %> noticed that you have specified <%= contact.address[0].country %>. If you are in <%= contact.location %>, we ask that you kindly update your location details in your profile using the link below. If you are indeed based in <%= contact.address[0].country %>, simply ignore this request - we know that people support emergencies remotely.</p>
+<% } %>
+
+<% if (contact.isInCountry() && (!contact.address[0].administrative_area || !contact.address[0].country || !contact.office || !contact.office.length)) { %>
+<p>We <% if (!hasLocalPhoneNumber || !contact.isInCountry()) { %> also <% } %> noticed that you did not provide details about your location (current location country, region/state and/or coordination office). Being able to find and contact humanitarians within specific areas can be critical during a crisis. If comfortable, we kindly ask that you update your profile with relevant location details (country, area and nearest coordination hub). Update your profile with the link below.</p>
+<% } %>
+
+<p><a href="<%= contactURL %>"><%= contactURL %></a></p>
+
+<p>The ability for responders to find and connect during a humanitarian crisis is of utmost importance. Humanitarian ID takes a decentralized approach to contact lists and thus relies on members like yourself to help keep these lists up-to-date.</p>
+
+<% include ../includes/footer_en %>
+
+<hr />
+
+
+<p>Bonjour <%= firstName %>,</p>
+
+<p>Merci de vous être inscrit <%= contact.location %> il y a deux jours. Vous pouvez maintenant trouver les informations de contacts des autres humanitaires.</p>
+
+<% if (!hasLocalPhoneNumber) { %>
+<p>Nous avons remarqué que vous n'avez pas encore ajouté de numéro de téléphone local. Si vous en avez un et que vous souhaitez l'ajouter, mettez à jour votre profil (voir lien ci-dessous).</p>
+<% } %>
+
+<% if (!contact.isInCountry()) { %>
+<p>Nous avons <% if (!hasLocalPhoneNumber) { %> aussi <% } %> remarqué que vous avez spécifié <%= contact.address[0].country %> comme pays dans lequel vous vous trouvez actuellement. Si vous êtes en/au <%= contact.location %>, nous vous prions de bien vouloir mettre à jour votre pays sur votre profil en utilisant le lien ci-dessous. Si vous êtes effectivement basé en/au <%= contact.address[0].country %>, vous pouvez ignorer cette requête - nous savons que des humanitaires répondent à des crises à distance.</p>
+<% } %>
+
+<% if (contact.isInCountry() && (!contact.address[0].administrative_area || !contact.address[0].country || !contact.office || !contact.office.length)) { %>
+<p>Nous avons <% if (!hasLocalPhoneNumber || !contact.isInCountry()) { %> aussi <% } %> remarqué que vous n'avez pas fourni de détail concernant votre emplacement (region/état et/ou bureau de coordination). Pouvoir trouver et contacter des humanitaires d'un endroit spécifique peut être crucial durant une crise humanitaire. Si vous le souhaitez, nous vous prions de mettre à jour votre emplacement (région/état et/ou bureau de coordination) sur votre profil. Vous pouvez mettre à jour votre profil en utilisant le lien ci-dessous..</p>
+<% } %>
+
+<p><a href="<%= contactURL %>"><%= contactURL %></a></p>
+
+<p>La possibilité pour les humanitaires de se trouver et se contacter durant une crise est extrêmement importante. Humanitarian ID adopte une approche décentralisée des listes de contact et compte donc sur ses membres tels que vous pour aider à maintenir les listes de contact à jour.</p>
+
+<% include ../includes/footer_fr %>

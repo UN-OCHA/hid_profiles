@@ -13,10 +13,12 @@ async.auto({
   offices: offices.fetchOffices,
   protectedRoles: protectedRoles.buildCache,
   orgTypes: orgTypes.buildCache,
-  disasters: ['operations', disasters.buildCache],
-  contacts: contacts.sendReminderCheckoutEmails,
+  disasters: disasters.buildCache,
+  reminderCheckout: contacts.sendReminderCheckoutEmails,
   checkout: contacts.doAutomatedCheckout,
-  appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'orgTypes', 'disasters', 'contacts', 'checkout', operations.buildAppData]
+  reminderCheckin: contacts.sendReminderCheckinEmails,
+  reminderUpdate: contacts.sendReminderUpdateEmails,
+  appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'orgTypes', 'disasters', operations.buildAppData]
 },
 function (err, results) {
   if (err) {

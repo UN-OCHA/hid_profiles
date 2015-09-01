@@ -1,4 +1,8 @@
 var mongoose = require('mongoose');
+var cache = require('./cache'),
+    operations = require('../lib/operations'),
+    phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance(),
+    async = require('async');
 var Schema = mongoose.Schema;
 var Profile = mongoose.model('Profile');
 
@@ -76,7 +80,9 @@ var contactSchema = new mongoose.Schema({
   office:             [ organizationSchema ],
   departureDate:      Date,
   remindedCheckout:   Boolean,
-  remindedCheckoutDate: Date
+  remindedCheckoutDate: Date,
+  remindedCheckin:    Number, //timestamp
+  remindedUpdate: Number // timestamp
 });
 
 contactSchema.methods.fullName = function() {
@@ -137,6 +143,171 @@ contactSchema.path('departureDate').set(function (newVal) {
   }
   return newVal;
 });
+
+// Whether the contact has a local phone number entered or not
+contactSchema.methods.hasLocalPhoneNumber = function(callback) {
+  if (this.type != 'local' || !this.phone || this.phone.length == 0) {
+    callback(null, false);
+    return;
+  }
+  var that = this;
+  operations.getAll(function (err, operations) {
+    if (err) {
+      callback(err);
+      return;
+    }
+    if (operations) {
+      var op = operations[that.locationId];
+      if (op) {
+        var found = false;
+        that.phone.forEach(function(item) {
+          try {
+            var phoneNumber = phoneUtil.parse(item.number);
+            var regionCode = phoneUtil.getRegionCodeForNumber(phoneNumber);
+            if (regionCode.toLowerCase() == op.pcode) {
+              found = true;
+            }
+          }
+          catch (err) {
+            // Invalid phone number
+            console.log(err);
+          }
+        });
+        callback(null, found);
+        return;
+      }
+      else {
+        callback('Operation was not found', false);
+        return;
+      }
+    }
+    else {
+      callback('No operations found');
+      return;
+    }
+  });
+};
+
+// Whether the contact is in country or not
+contactSchema.methods.isInCountry = function () {
+  if (this.type != 'local' || !this.status || !this.address || this.address.length == 0) {
+    return false;
+  }
+  return this.address[0].country == this.location;
+};
+
+// Whether we should send a reminder checkin email
+contactSchema.methods.shouldSendReminderCheckin = function(callback) {
+  var d = new Date();
+  var offset = d.valueOf();
+  if (this.created) {
+    offset = d.valueOf() - this.created;
+  }
+  else {
+    // Take May 7 as created date, because this is when the code to handle the created date was added
+    var may = new Date(2015, 05, 07, 01, 0, 0, 0);
+    offset = d.valueOf() - may;
+  }
+  if (this.type != 'local' || !this.status || this.remindedCheckin || offset < 48 * 3600 * 1000 || offset > 72 * 3600 * 1000) {
+    return callback(null, false);
+  }
+  if (this.isInCountry() && this.address && this.address.length && this.address[0].administrative_area && this.office && this.office.length) {
+    this.hasLocalPhoneNumber(function (err, out) {
+      if (err) {
+        return callback(err);
+      }
+      var send = !out;
+      return callback(null, send);
+    });
+  }
+  else {
+    var that = this;
+    async.series([
+      function (cb) {
+        var out = that.isInCountry();
+        return cb(null, !out);
+      },
+      function (cb) {
+        if (!that.office || !that.office.length) {
+          // Check if operation has offices
+          operations.getAppData(function (err, data) {
+            if (err) {
+              return cb(err);
+            }
+            if (data && data.operations) {
+              var op = data.operations[that.locationId];
+              if (op) {
+                var count_offices = Object.keys(op.offices).length;
+                if (count_offices == 0) {
+                  return cb(null, false);
+                }
+                else {
+                  return cb(null, true);
+                }
+              }
+            }
+            return cb('Could not retrieve operations');
+          });
+        }
+        else {
+          return cb(null, false);
+        }
+      },
+      function (cb) {
+        if (that.address && that.address.length && !that.address[0].administrative_area) {
+          // TODO: check if operation has admin boundaries
+          // Ignore this check for the moment, will be added in a future release
+          return cb(null, false);
+        }
+        else {
+          return cb(null, false);
+        }
+      },
+      function (cb) {
+        that.hasLocalPhoneNumber(function (err, out) {
+          if (err) {
+            return cb(err);
+          }
+          var send = !out;
+          return cb(null, send);
+        });
+      }], function (err, results) {
+        var out = false;
+        results.forEach(function (item) {
+          if (item == true) {
+            out = true;
+          }
+        });
+        callback(null, out);
+      }
+    );  
+  }
+};
+
+// Whether we should send an update reminder (sent out after a contact hasn't been updated for 6 months)
+contactSchema.methods.shouldSendReminderUpdate = function () {
+  if (this.type != 'local' || this.status != true || (!this.created && !this.revised)) {
+    return false;
+  }
+  var d = new Date();
+  var revised_offset = d.valueOf();
+  if (this.revised) {
+    revised_offset = d.valueOf() - this.revised;
+  }
+  else {
+    revised_offset = d.valueOf() - this.created;
+  }
+  if (revised_offset < 183 * 24 * 3600 * 1000) { // if not revised during 6 months
+    return false;
+  }
+  if (this.remindedUpdate) {
+    var reminded_offset = d.valueOf() - this.remindedUpdate;
+    if (reminded_offset < 183 * 24 * 3600 * 1000) {
+      return false;
+    }
+  }
+  return true;
+};
 
 mongoose.model('Contact', contactSchema);
 
