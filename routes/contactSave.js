@@ -747,67 +747,89 @@ function addUpdatedFields(contactFields, origContact){
   }
 
   // Groups field
-  valuesChanged = false;
-  if (origContact.bundle.length != contactNew.bundle.length || origContact.protectedBundles.length != contactNew.protectedBundles.length) {
-    valuesChanged = true;
+  var groupsRemoved = new Array(),
+      groupsAdded = new Array();
+  //Check if values changed
+  if (origContact.bundle.length > 0 || contactNew.bundle.length > 0){
+    origContact.bundle.forEach(function(value, i) {
+      if (contactNew.bundle.indexOf(value) == -1) {
+        groupsRemoved.push(value);
+      }
+    });
+    contactNew.bundle.forEach(function(value, i) {
+      if (origContact.bundle.indexOf(value) == -1) {
+        groupsAdded.push(value);
+      }
+    });
   }
-  else {
-    //Check if values changed
-    if (origContact.bundle.length > 0 && contactNew.bundle.length > 0){
-      origContact.bundle.forEach(function(value, i) {
-        if (contactNew.bundle[i]) {
-          if (value != contactNew.bundle[i]) {
-            valuesChanged = true;
-          }
-        }
-        else {
-          valuesChanged = true;
-        }
-      });
-    }
 
-    if (origContact.protectedBundles.length > 0 && contactNew.protectedBundles.length > 0){
-      origContact.protectedBundles.forEach(function(value, i) {
-        if (contactNew.protectedBundles[i]) {
-          if (value != contactNew.protectedBundles[i]) {
-            valuesChanged = true;
-          }
-        }
-        else {
-          valuesChanged = true;
-        }
-      });
-    }
+  if (origContact.protectedBundles.length > 0 || contactNew.protectedBundles.length > 0){
+    origContact.protectedBundles.forEach(function(value, i) {
+      if (contactNew.protectedBundles.indexOf(value) == -1 ){
+        groupsRemoved.push(value);
+      }
+    });
+    contactNew.protectedBundles.forEach(function(value, i) {
+      if (origContact.protectedBundles.indexOf(value) == -1) {
+        groupsAdded.push(value);
+      }
+    });
   }
-  if (valuesChanged){
-    actions.english.push('Groups were updated');
-    actions.french.push('Groupes mis à jour');
+
+  if (groupsRemoved.length || groupsAdded.length){
+    var actionEn, actionFr;
+    actionEn = 'You were ';
+    actionFr = 'Vous avez été ';
+    if (groupsAdded.length) {
+      actionEn += 'added to ' + groupsAdded.toString();
+      actionFr += 'ajouté à ' + groupsAdded.toString();
+      if (groupsRemoved.length)  {
+        actionEn += ' and ';
+        actionFr += ' et ';
+      }
+    }
+    if (groupsRemoved.length) {
+      actionEn += ' removed from ' + groupsRemoved.toString();
+      actionFr += ' enlevé de ' + groupsRemoved.toString();
+    }
+    actions.english.push(actionEn);
+    actions.french.push(actionFr);
   }
 
 
   //Disasters field
-  valuesChanged = false;
-  if (origContact.disasters.length != contactNew.disasters.length) {
-    valuesChanged = true;
+  var disastersAdded = new Array(),
+      disastersRemoved = new Array();
+  if (origContact.disasters.length > 0 || contactNew.disasters.length > 0){
+    origContact.disasters.forEach(function(value, i) {
+      if (contactNew.disasters.indexOf(value) == -1) {
+        disastersRemoved.push(value.name);
+      }
+    });
+    contactNew.disasters.forEach(function (value, i) {
+      if (origContact.disasters.indexOf(value) == -1) {
+        disastersAdded.push(value.name);
+      }
+    });
   }
-  else {
-    //Check if values changed
-    if (origContact.disasters.length > 0 && contactNew.disasters.length > 0){
-      origContact.disasters.forEach(function(value, i) {
-        if (contactNew.disasters[i]) {
-          if (value.name != contactNew.disasters[i].name) {
-            valuesChanged = true;
-          }
-        }
-        else {
-          valuesChanged = true;
-        }
-      });
+  if (disastersRemoved.length || disastersAdded.length){
+    var actionEn, actionFr;
+    actionEn = 'You were ';
+    actionFr = 'Vous avez été ';
+    if (disastersAdded.length) {
+      actionEn += 'added to ' + disastersAdded.toString();
+      actionFr += 'ajouté à ' + disastersAdded.toString();
+      if (disastersRemoved.length)  {
+        actionEn += ' and ';
+        actionFr += ' et ';
+      }
     }
-  }
-  if (valuesChanged){
-    actions.english.push('Disaster was updated');
-    actions.french.push('Catastrophe mise à jour');
+    if (disastersRemoved.length) {
+      actionEn += ' removed from ' + disastersRemoved.toString();
+      actionFr += ' enlevé de ' + disastersRemoved.toString();
+    }
+    actions.english.push(actionEn);
+    actions.french.push(actionFr);
   }
 
   //Address fields
@@ -846,8 +868,21 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Current Location was updated');
-    actions.french.push('Lieu actuel mis à jour');
+    var actionEn, actionFr;
+    actionEn = 'Your current location was updated to ';
+    actionFr = 'Votre lieu actuel a été mis à jour: ';
+    if (contactNew.address[0].locality) {
+      actionEn += contactNew.address[0].locality + ', ';
+      actionFr += contactNew.address[0].locality + ', ';
+    }
+    if (contactNew.address[0].administrative_area) {
+      actionEn += contactNew.address[0].administrative_area + ', ';
+      actionFr += contactNew.address[0].administrative_area + ', ';
+    }
+    actionEn += contactNew.address[0].country;
+    actionFr += contactNew.address[0].country;
+    actions.english.push(actionEn);
+    actions.french.push(actionFr);
   }
 
   //Office
@@ -864,8 +899,8 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Coordination Office was updated');
-    actions.french.push('Bureau de coordination mis à jour');
+    actions.english.push('Coordination Office was updated to ' + contactNew.office[0].name);
+    actions.french.push('Bureau de coordination mis à jour: ' + contactNew.office[0].name);
   }
 
   //Phone
@@ -895,8 +930,12 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Phone was updated');
-    actions.french.push('Téléphone mis à jour');
+    var phonesRaw = new Array();
+    contactNew.phone.forEach(function (value, i) {
+      phonesRaw.push(' ' + value.type + ': ' + value.number);
+    });
+    actions.english.push('Phones were updated to ' + phonesRaw.toString());
+    actions.french.push('Téléphones mis à jour: ' + phonesRaw.toString());
   }
 
   //VOIP
@@ -923,8 +962,12 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Instant messenger was updated');
-    actions.french.push('Messagerie instantanée mise à jour');
+    var ims = new Array();
+    contactNew.voip.forEach(function (value, i) {
+      ims.push(' ' + value.type + ': ' + value.number);
+    });
+    actions.english.push('Instant messenger was updated to ' + ims.toString());
+    actions.french.push('Messagerie instantanée mise à jour: ' + ims.toString());
   }
 
   //Email
@@ -951,8 +994,18 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Email was updated');
-    actions.french.push('Adresse émail mise à jour');
+    var emails = new Array(),
+        emtemp;
+    contactNew.email.forEach(function (value, i) {
+      emtemp = ' ';
+      if (value.type) {
+        emtemp += value.type + ': ';
+      }
+      emtemp += value.address;
+      emails.push(emtemp);
+    });
+    actions.english.push('Email addresses were updated to ' + emails.toString());
+    actions.french.push('Adresses emails mises à jour ' + emails.toString());
   }
 
   //URI
@@ -976,26 +1029,21 @@ function addUpdatedFields(contactFields, origContact){
     }
   }
   if (valuesChanged){
-    actions.english.push('Website URL was updated');
-    actions.french.push('URL du site web mise à jour');
+    actions.english.push('Website URLs were updated to ' + contactNew.uri.toString());
+    actions.french.push('URLs de sites webs mises à jour: ' + contactNew.uri.toString());
   }
 
   //Departure Date
   valuesChanged = false;
-  if (origContact.departureDate == '' && contactNew.departureDate != ''){
+  var origDep = new Date(origContact.departureDate),
+      newDep = new Date(contactNew.departureDate);
+  if (origDep.valueOf() != newDep.valueOf()){
     valuesChanged = true;
-  }
-  if (origContact.departureDate != '' && contactNew.departureDate == ''){
-    valuesChanged = true;
-  }
-  if (origContact.departureDate && contactNew.departureDate) {
-    if (Date(origContact.departureDate) != Date(contactNew.departureDate)) {
-      valuesChanged = true;
-    }
   }
   if (valuesChanged){
-    actions.english.push('Departure date was updated');
-    actions.french.push('Date de départ mise à jour');
+    var dateOptions = { day: "numeric", month: "long", year: "numeric" };
+    actions.english.push('Departure date was updated to ' + newDep.toLocaleDateString('en', dateOptions));
+    actions.french.push('Date de départ mise à jour au ' + newDep.toLocaleDateString('fr', dateOptions));
   }
 
   //Notes
