@@ -13,7 +13,7 @@ async.auto({
   offices: offices.fetchOffices,
   protectedRoles: protectedRoles.buildCache,
   orgTypes: orgTypes.buildCache,
-  disasters: disasters.buildCache,
+  disasters: ['operations', disasters.buildCache],
   reminderCheckout: contacts.sendReminderCheckoutEmails,
   checkout: contacts.doAutomatedCheckout,
   reminderCheckin: contacts.sendReminderCheckinEmails,
