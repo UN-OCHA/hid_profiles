@@ -30,14 +30,18 @@ function get(req, res, next) {
   req.userCanExport = false;
   req.userProfileId = null;
 
-  function access(callback) {
+  function getLockedOps(callback) {
     operations.getLockedOperations(function (err, _lockedOperations) {
       if (err) {
         return callback(err);
       }
       lockedOperations = _lockedOperations;
-    });
 
+      return callback(null);
+    });
+  }
+
+  function access(callback) {
     // Trusted API clients are allowed read access to all contacts.
     if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
       req.userCanExport = true;
@@ -494,6 +498,7 @@ function get(req, res, next) {
 
   // Define workflow.
   var steps = [
+    getLockedOps,
     access
   ];
   if (req.query.id) {
