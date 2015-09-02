@@ -1035,15 +1035,17 @@ function addUpdatedFields(contactFields, origContact){
 
   //Departure Date
   valuesChanged = false;
-  var origDep = new Date(origContact.departureDate),
-      newDep = new Date(contactNew.departureDate);
-  if (origDep.valueOf() != newDep.valueOf()){
-    valuesChanged = true;
-  }
-  if (valuesChanged){
-    var dateOptions = { day: "numeric", month: "long", year: "numeric" };
-    actions.english.push('Departure date was updated to ' + newDep.toLocaleDateString('en', dateOptions));
-    actions.french.push('Date de départ mise à jour au ' + newDep.toLocaleDateString('fr', dateOptions));
+  if (origContact.type == 'local') {
+    var origDep = new Date(origContact.departureDate),
+        newDep = new Date(contactNew.departureDate);
+    if (origDep.valueOf() != newDep.valueOf() && newDep.valueOf() != 0){
+      valuesChanged = true;
+    }
+    if (valuesChanged){
+      var dateOptions = { day: "numeric", month: "long", year: "numeric" };
+      actions.english.push('Departure date was updated to ' + newDep.toLocaleDateString('en', dateOptions));
+      actions.french.push('Date de départ mise à jour au ' + newDep.toLocaleDateString('fr', dateOptions));
+    }
   }
 
   //Notes
