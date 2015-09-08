@@ -4,6 +4,7 @@ var async = require('async'),
   config = require('../config'),
   operations = require('../lib/operations'),
   List = require('../models').List,
+  Contact = require('../models').Contact,
   Profile = require('../models').Profile,
   stringify = require('csv-stringify'),
   roles = require('../lib/roles'),
@@ -90,9 +91,11 @@ function get(req, res, next) {
         return callback(err);
         //return res.json({status: "error", message: "There was an error retrieving the custom contact list."});
       }
-      //res.json({ status: "ok", lists: list, totalCount: totalCount });
-      list = contactList;
-      return callback(null);
+      Contact.populate(contactList.contacts, {path: '_profile'}, function (err) {
+        //res.json({ status: "ok", lists: list, totalCount: totalCount });
+        list = contactList;
+        return callback(null);
+      });
     });
   }
 
