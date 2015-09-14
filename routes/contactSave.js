@@ -67,6 +67,7 @@ function post(req, res, next) {
   var adminEmail = req.body.adminEmail || null;
   var message = null;
   var isGhost = false;
+  var isNewUser = false;
   var authEmail;
 
   var result = {},
@@ -144,18 +145,10 @@ function post(req, res, next) {
                 //If is_new returns a 0, auth service found an existing user record and no notification was sent
                 //Create a notify_checkin email to notify of the user being checked into a location
                 if (obj.data.is_new === 0){
-                  var email = {
-                    type: 'notify_checkin',
-                    recipientFirstName: contactFields.nameGiven,
-                    recipientLastName: contactFields.nameFamily,
-                    recipientEmail: contactFields.email[0].address,
-                    adminName: adminName,
-                    locationName: contactFields.location
-                  };
-                  notifyEmail = email;
                   return cb();
                 }
                 else{
+                  isNewUser = true;
                   return cb();
                 }
               }
@@ -546,7 +539,7 @@ function post(req, res, next) {
         notifyEmail.adminName = adminContact.fullName();
         notifyEmail.adminEmail = adminContact.mainEmail(false);
         
-        if (notifyEmail.type == 'notify_edit' || notifyEmail.type == 'notify_checkin' || notifyEmail.type == 'notify_checkout') {
+        if (notifyEmail.type == 'notify_edit' || (notifyEmail.type == 'notify_checkin' && !isNewUser) || notifyEmail.type == 'notify_checkout') {
           var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actions, actionsEN, actionsFR, actionsFound, templateName;
 
           actions = [];
