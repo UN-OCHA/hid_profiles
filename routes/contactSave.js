@@ -68,6 +68,8 @@ function post(req, res, next) {
   var message = null;
   var isGhost = false;
   var isNewUser = false;
+  var isUserActive = false;
+  var resetUrl = '';
   var authEmail;
 
   var result = {},
@@ -100,7 +102,7 @@ function post(req, res, next) {
         log.warn({'type': 'contactSave:error', 'message': 'contactSave: invalid request: No user ID was specified.', 'req': req});
         return cb(true);
       }
-      else if ((!userid || !userid.length) && isNewContact){
+      else {
         //New contact
         if (!contactFields.email[0].address || !contactFields.email[0].address.length){
           //This is a ghost account (no email) so create a new userid
@@ -145,6 +147,12 @@ function post(req, res, next) {
                 //If is_new returns a 0, auth service found an existing user record and no notification was sent
                 //Create a notify_checkin email to notify of the user being checked into a location
                 if (obj.data.is_new === 0){
+                  if (obj.data.active) {
+                    isUserActive = true;
+                  }
+                  else {
+                    resetUrl = obj.data.reset_url;
+                  }
                   return cb();
                 }
                 else{
@@ -158,9 +166,6 @@ function post(req, res, next) {
             return cb(true);
           });
         }
-      }
-      else {
-        return cb();
       }
     },
     // Try to load the contact profile to determine if updating or creating
@@ -531,7 +536,9 @@ function post(req, res, next) {
             notifyEmail.type = 'notify_checkin';
           }
         }
-        notifyEmail.recipientEmail = emailContact.email[0].address;
+        if (emailContact.email.length && emailContact.email[0].address) {
+          notifyEmail.recipientEmail = emailContact.email[0].address;
+        }
         notifyEmail.recipientFirstName = emailContact.nameGiven;
         notifyEmail.locationName = emailContact.location || '';
         notifyEmail.locationType = emailContact.type;
@@ -539,7 +546,7 @@ function post(req, res, next) {
         notifyEmail.adminName = adminContact.fullName();
         notifyEmail.adminEmail = adminContact.mainEmail(false);
         
-        if (notifyEmail.type == 'notify_edit' || (notifyEmail.type == 'notify_checkin' && !isNewUser) || notifyEmail.type == 'notify_checkout') {
+        if (notifyEmail.recipientEmail && (notifyEmail.type == 'notify_edit' || (notifyEmail.type == 'notify_checkin' && !isNewUser) || notifyEmail.type == 'notify_checkout')) {
           var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actions, actionsEN, actionsFR, actionsFound, templateName;
 
           actions = [];
@@ -585,7 +592,9 @@ function post(req, res, next) {
             locationName: notifyEmail.locationName || '',
             adminName: notifyEmail.adminName,
             actionsEN: actionsEN,
-            actionsFR: actionsFR
+            actionsFR: actionsFR,
+            isUserActive: isUserActive,
+            reset_url: resetUrl
           };
 
           // Send mail
