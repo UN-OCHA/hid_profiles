@@ -898,7 +898,7 @@ function addUpdatedFields(contactFields, origContact){
 
   //Phone
   valuesChanged = false;
-  if (origContact.phone.length != contactNew.phone.length) {
+  if (origContact.phone.length != contactNew.phone.length && contactNew.phone.length != 0) {
     valuesChanged = true;
   }
   else {
