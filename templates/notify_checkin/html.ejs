@@ -7,6 +7,11 @@
 
 <p>If you feel that this action was not correct, simply log into your Humanitarian ID account and modify your profile for <%= locationName %>.</p>
 
+<% if (isUserActive == 0) { %>
+<p>We noticed that you have previously not completed your account setup on Humanitarian ID. Since Humanitarian ID gives you the power to control your details on contact lists, we strongly encourage you to complete the account creation process. it will only take a minute. The link below will help you complete the process including the ability to set your own password. Once your account is created, you can then easily update your details on the <%= locationName %> contact list.</p>
+<p><a href="<%= reset_url %>"><%= reset_url %></a></p>
+<% } %>
+
 <% include ../includes/footer_en %>
 
 <hr />
@@ -19,5 +24,11 @@
 </ul>
 
 <p>Si cette action est incorrecte, merci de bien vouloir vous connecter sur Humanitarian ID et modifier votre profil pour <%= locationName %>.</p>
+
+<% if (isUserActive == 0) { %>
+<p>Nous avons remarqué que vous n'aviez pas vérifié votre adresse email sur Humanitarian ID. Humanitarian ID vous donne la possibilité de contrôler vos informations de contact sur des listes de contacts, nous vous encourageons donc à terminer le processus de création de compte. Cela ne prendra qu'une minute. Le lien ci-dessous vous permettra de terminer le processus, et vous donnera la possibilité de créer ou changer votre mot de passe. Lorsque votre compte sera créé, vous pourrez facilement mettre à jour vos informations sur la liste de contact en/au <%= locationName %>.</p>
+<p><a href="<%= reset_url %>"><%= reset_url %></a></p>
+<% } %>
+
 
 <% include ../includes/footer_fr %>

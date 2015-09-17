@@ -68,6 +68,8 @@ function post(req, res, next) {
   var message = null;
   var isGhost = false;
   var isNewUser = false;
+  var isUserActive = false;
+  var resetUrl = '';
   var authEmail;
 
   var result = {},
@@ -100,64 +102,97 @@ function post(req, res, next) {
         log.warn({'type': 'contactSave:error', 'message': 'contactSave: invalid request: No user ID was specified.', 'req': req});
         return cb(true);
       }
-      else if ((!userid || !userid.length) && isNewContact){
+      else {
         //New contact
         if (!contactFields.email[0].address || !contactFields.email[0].address.length){
           //This is a ghost account (no email) so create a new userid
           userid =  Date.now();
           isGhost = true;
-          return cb();
         }
-        else{
-          authEmail = contactFields.email[0].address;
-          //Create a new auth record for the new profile
-          var request = {
-            "email": authEmail,
-            "nameFirst": contactFields.nameGiven,
-            "nameLast": contactFields.nameFamily,
-            "adminName": adminName,
-            "adminEmail": adminEmail,
-            "location": contactFields.location,
-            "active": 1,
-            'emailFlag': '1' //Orphan email
-          };
+        return cb();
+      }
+    },
+    // Check to see if the user exists on the auth side
+    function (cb) {
+      authEmail = contactFields.email[0].address;
+      var request = {
+        "email": authEmail
+      };
+      var new_access_key = middleware.require.getAuthAccessKey(request);
+      request["access_key"] = new_access_key.toString();
 
-          var new_access_key = middleware.require.getAuthAccessKey(request);
-          request["access_key"] = new_access_key.toString();
+      var client_key = config.authClientId;
+      request["client_key"] = client_key
 
-          var client_key = config.authClientId;
-          request["client_key"] = client_key
-
-          var client = restify.createJsonClient({
-            url: config.authBaseUrl,
-            version: '*'
-          });
-
-          client.post("/api/register", request, function(err, req, res, data) {
-            client.close();
-
-            if (res.statusCode == 200 && res.body) {
-              var obj = JSON.parse(res.body);
-              if (obj && obj.data && obj.data.user_id) {
-                // Set userid to the userid returned from the auth service
-                userid =  obj.data.user_id;
-
-                //If is_new returns a 0, auth service found an existing user record and no notification was sent
-                //Create a notify_checkin email to notify of the user being checked into a location
-                if (obj.data.is_new === 0){
-                  return cb();
-                }
-                else{
-                  isNewUser = true;
-                  return cb();
-                }
-              }
+      var client = restify.createJsonClient({
+        url: config.authBaseUrl,
+        version: '*'
+      });
+      client.post("/api/users", request, function (err, req, res, data) {
+        client.close();
+        if (res.statusCode == 200 && res.body) {
+          var obj = JSON.parse(res.body);
+          if (obj.status && obj.status == 'error') {
+            // Assume no user was found
+            isNewUser = true;
+            return cb();
+          }
+          else if (obj.user_id) {
+            if (obj.active) {
+              isUserActive = true;
             }
-            log.warn({'type': 'contactSave:error', 'message': 'contactSave: An unsuccessful response was received when trying to create a user account on the authentication service.', 'req': req, 'res': res});
-            result = {status: "error", message: "Could not create user account. Please try again or contact an administrator."};
-            return cb(true);
-          });
+            else {
+              resetUrl = obj.reset_url;
+            }
+            return cb();
+          }
         }
+        log.warn({'type': 'contactSave:error', 'message': 'contactSave: An unsuccessful response was received when trying to retrieve a user account on the authentication service.', 'req': req, 'res': res});
+        result = {status: "error", message: "Could not retrieve user account. Please try again or contact an administrator."};
+        return cb(true);
+      });
+    },
+    function (cb) {
+      if (isNewUser) {
+        authEmail = contactFields.email[0].address;
+        //Create a new auth record for the new profile
+        var request = {
+          "email": authEmail,
+          "nameFirst": contactFields.nameGiven,
+          "nameLast": contactFields.nameFamily,
+          "adminName": adminName,
+          "adminEmail": adminEmail,
+          "location": contactFields.location,
+          "active": 1,
+          'emailFlag': '1' //Orphan email
+        };
+
+        var new_access_key = middleware.require.getAuthAccessKey(request);
+        request["access_key"] = new_access_key.toString();
+
+        var client_key = config.authClientId;
+        request["client_key"] = client_key
+
+        var client = restify.createJsonClient({
+          url: config.authBaseUrl,
+          version: '*'
+        });
+
+        client.post("/api/register", request, function(err, req, res, data) {
+          client.close();
+
+          if (res.statusCode == 200 && res.body) {
+            var obj = JSON.parse(res.body);
+            if (obj && obj.data && obj.data.user_id) {
+              // Set userid to the userid returned from the auth service
+              userid =  obj.data.user_id;
+              return cb();
+            }
+          }
+          log.warn({'type': 'contactSave:error', 'message': 'contactSave: An unsuccessful response was received when trying to create a user account on the authentication service.', 'req': req, 'res': res});
+          result = {status: "error", message: "Could not create user account. Please try again or contact an administrator."};
+          return cb(true);
+        });
       }
       else {
         return cb();
@@ -531,7 +566,9 @@ function post(req, res, next) {
             notifyEmail.type = 'notify_checkin';
           }
         }
-        notifyEmail.recipientEmail = emailContact.email[0].address;
+        if (emailContact.email.length && emailContact.email[0].address) {
+          notifyEmail.recipientEmail = emailContact.email[0].address;
+        }
         notifyEmail.recipientFirstName = emailContact.nameGiven;
         notifyEmail.locationName = emailContact.location || '';
         notifyEmail.locationType = emailContact.type;
@@ -539,7 +576,7 @@ function post(req, res, next) {
         notifyEmail.adminName = adminContact.fullName();
         notifyEmail.adminEmail = adminContact.mainEmail(false);
         
-        if (notifyEmail.type == 'notify_edit' || (notifyEmail.type == 'notify_checkin' && !isNewUser) || notifyEmail.type == 'notify_checkout') {
+        if (notifyEmail.recipientEmail && (notifyEmail.type == 'notify_edit' || (notifyEmail.type == 'notify_checkin' && !isNewUser) || notifyEmail.type == 'notify_checkout')) {
           var mailText, mailSubject, mailOptions, mailWarning, mailInfo, actions, actionsEN, actionsFR, actionsFound, templateName;
 
           actions = [];
@@ -585,7 +622,9 @@ function post(req, res, next) {
             locationName: notifyEmail.locationName || '',
             adminName: notifyEmail.adminName,
             actionsEN: actionsEN,
-            actionsFR: actionsFR
+            actionsFR: actionsFR,
+            isUserActive: isUserActive,
+            reset_url: resetUrl
           };
 
           // Send mail
