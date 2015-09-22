@@ -104,7 +104,7 @@ function post(req, res, next) {
       }
       else {
         //New contact
-        if (!contactFields.email[0].address || !contactFields.email[0].address.length){
+        if (isNewContact && (!contactFields.email[0].address || !contactFields.email[0].address.length)){
           //This is a ghost account (no email) so create a new userid
           userid =  Date.now();
           isGhost = true;
@@ -114,43 +114,46 @@ function post(req, res, next) {
     },
     // Check to see if the user exists on the auth side
     function (cb) {
-      authEmail = contactFields.email[0].address;
-      var request = {
-        "email": authEmail
-      };
-      var new_access_key = middleware.require.getAuthAccessKey(request);
-      request["access_key"] = new_access_key.toString();
+      authEmail = (contactFields.email && contactFields.email.length && contactFields.email[0].address) ? contactFields.email[0].address : '';
+      if (authEmail) {
+        var request = {
+          "email": authEmail
+        };
+        var new_access_key = middleware.require.getAuthAccessKey(request);
+        request["access_key"] = new_access_key.toString();
 
-      var client_key = config.authClientId;
-      request["client_key"] = client_key
+        var client_key = config.authClientId;
+        request["client_key"] = client_key
 
-      var client = restify.createJsonClient({
-        url: config.authBaseUrl,
-        version: '*'
-      });
-      client.post("/api/users", request, function (err, req, res, data) {
-        client.close();
-        if (res.statusCode == 200 && res.body) {
-          var obj = JSON.parse(res.body);
-          if (obj.status && obj.status == 'error') {
-            // Assume no user was found
-            isNewUser = true;
-            return cb();
-          }
-          else if (obj.user_id) {
-            if (obj.active) {
-              isUserActive = true;
+        var client = restify.createJsonClient({
+          url: config.authBaseUrl,
+          version: '*'
+        });
+        client.post("/api/users", request, function (err, req, res, data) {
+          client.close();
+          if (res.statusCode == 200 && res.body) {
+            var obj = JSON.parse(res.body);
+            if (obj.status && obj.status == 'error') {
+              // Assume no user was found
+              isNewUser = true;
+              return cb();
             }
-            else {
-              resetUrl = obj.reset_url;
+            else if (obj.user_id) {
+              if (obj.active) {
+                isUserActive = true;
+              }
+              else {
+                resetUrl = obj.reset_url;
+              }
+              return cb();
             }
-            return cb();
           }
-        }
-        log.warn({'type': 'contactSave:error', 'message': 'contactSave: An unsuccessful response was received when trying to retrieve a user account on the authentication service.', 'req': req, 'res': res});
-        result = {status: "error", message: "Could not retrieve user account. Please try again or contact an administrator."};
-        return cb(true);
-      });
+          log.warn({'type': 'contactSave:error', 'message': 'contactSave: An unsuccessful response was received when trying to retrieve a user account on the authentication service.', 'req': req, 'res': res});
+          result = {status: "error", message: "Could not retrieve user account. Please try again or contact an administrator."};
+          return cb(true);
+        });
+      }
+      return cb();
     },
     function (cb) {
       if (isNewUser) {
