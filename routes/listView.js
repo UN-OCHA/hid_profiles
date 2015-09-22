@@ -196,10 +196,13 @@ function get(req, res, next) {
         sort = sort.substr(1);
       }
       contacts = contacts.sort(function (a, b) {
-        if (sort == 'nameGiven') {
-          if (a.nameGiven > b.nameGiven)
+        if (sort == 'name') {
+          var aname = '', bname = '';
+          aname = a.nameGiven + ' ' + a.nameFamily;
+          bname = b.nameGiven + ' ' + b.nameFamily;
+          if (aname > bname)
             return mod * 1;
-          if (a.nameGiven < b.nameGiven)
+          if (aname < bname)
             return mod * -1;
           return 0;
         }
