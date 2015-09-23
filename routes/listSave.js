@@ -64,7 +64,8 @@ function post(req, res, next) {
       } else {
         updatedList = new List({
           userid: req.apiAuth.userId,
-          users: [req.apiAuth.userId]
+          users: [req.apiAuth.userId],
+          privacy: 'me'
         });
 
         cb();
@@ -81,6 +82,10 @@ function post(req, res, next) {
 
       if (req.body._id && req.body.users) {
         updatedList.users = req.body.users;
+      }
+
+      if (req.body.privacy) {
+        updatedList.privacy = req.body.privacy;
       }
 
       cb();
