@@ -6,6 +6,7 @@ var listSchema = new Schema({
   userid:   {type: String, required: true},
   users:    [{type: String}],
   contacts: [ { type: Schema.Types.ObjectId, ref: 'Contact' } ],
+  privacy: {type: String, required: true},
 });
 
 mongoose.model('List', listSchema);

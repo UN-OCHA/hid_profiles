@@ -62,6 +62,15 @@ function get(req, res, next) {
           if (profile.verified) {
             req.userCanViewAllContacts = true;
           }
+
+          // Check list privacy settings
+          if (req.query.id && list.privacy) {
+            if ((list.privacy == 'me' && req.apiAuth.userId != list.userid) || (list.privacy == 'verified' && !profile.verified)) {
+              res.send(403, 'Access Denied');
+              res.end();
+              return callback(true);
+            }
+          }
           return callback(null);
         }
         else {
@@ -572,14 +581,15 @@ function get(req, res, next) {
 
   // Define workflow.
   var steps = [
-    getLockedOps,
-    access
+    getLockedOps
   ];
   if (req.query.id) {
     steps.push(fetchSingle);
+    steps.push(access);
     steps.push(filterContacts);
     steps.push(sortContacts);
   } else {
+    steps.push(access);
     steps.push(fetchAll);
   }
 
