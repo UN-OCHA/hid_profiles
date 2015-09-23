@@ -185,6 +185,77 @@ function get(req, res, next) {
     return callback(null);
   }
 
+  function sortContacts(callback) {
+    var contacts = list.contacts;
+    if (req.query.hasOwnProperty('sort')) {
+      var sort = req.query['sort'];
+      var first = sort.charAt(0);
+      var mod = 1;
+      if (first == '-') {
+        mod = -1;
+        sort = sort.substr(1);
+      }
+      contacts = contacts.sort(function (a, b) {
+        if (sort == 'name') {
+          var aname = '', bname = '';
+          aname = a.nameGiven + ' ' + a.nameFamily;
+          bname = b.nameGiven + ' ' + b.nameFamily;
+          if (aname > bname)
+            return mod * 1;
+          if (aname < bname)
+            return mod * -1;
+          return 0;
+        }
+        if (sort == 'verified') {
+          var averified, bverified;
+          if (a._profile && a._profile.verified) {
+            averified = a._profile.verified;
+          }
+          else {
+            averified = false;
+          }
+          if (b._profile && b._profile.verified) {
+            bverified = b._profile.verified;
+          }
+          else {
+            bverified = false;
+          }
+          if (averified === bverified)
+            return 0;
+          if (averified === true)
+            return mod * -1;
+          if (bverified === true)
+            return mod * 1;
+        }
+        if (sort == 'jobtitle') {
+          if (a.jobtitle > b.jobtitle)
+            return mod * 1;
+          if (a.jobtitle < b.jobtitle)
+            return mod * -1;
+          return 0;
+        }
+        if (sort == 'organization') {
+          var aorg = '', borg = '';
+          if (a.organization && a.organization.length && a.organization[0] && a.organization[0].name) {
+            aorg = a.organization[0].name;
+          }
+          if (b.organization && b.organization.length && b.organization[0] && b.organization[0].name) {
+            borg = b.organization[0].name;
+          }
+          if (aorg > borg)
+            return mod * 1;
+          if (aorg < borg)
+            return mod * -1;
+          return 0;
+        }
+        return 0;
+      });
+    }
+    list.contacts = contacts;
+    return callback(null);
+  }
+
+
   function returnJSON(callback) {
     if (req.query.id) {
       return res.json({ status: "ok", lists: list, totalCount: totalCount });
@@ -507,6 +578,7 @@ function get(req, res, next) {
   if (req.query.id) {
     steps.push(fetchSingle);
     steps.push(filterContacts);
+    steps.push(sortContacts);
   } else {
     steps.push(fetchAll);
   }

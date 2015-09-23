@@ -212,12 +212,28 @@ function get(req, res) {
         });
     }
 
+    var sort = {};
+    if (!req.query.sort) {
+      sort = {nameGiven: 1, nameFamily: 1};
+    }
+    else {
+      if (req.query.sort == 'name') {
+        sort = {nameGiven: 1, nameFamily: 1};
+      }
+      if (req.query.sort == 'jobtitle') {
+        sort = {jobtitle: 1};
+      }
+      if (req.query.sort != 'jobtitle' && req.query.sort != 'name') {
+        sort = {nameGiven: 1, nameFamily: 1};
+      }
+    }
+
     // Perform query with populate to include associated profile documents.
     Contact
       .find(query)
       .skip(range.skip)
       .limit(range.limit)
-      .sort({nameGiven: 1, nameFamily: 1})
+      .sort(sort)
       .populate('_profile')
       .exec(function (err, _contacts) {
         if (err) {
