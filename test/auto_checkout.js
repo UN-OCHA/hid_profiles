@@ -36,7 +36,7 @@ describe('automated checkout testing', function() {
 
     it('should not automatically checkout if the date of the reminder checkout email is passed by less than 12 days', function (done) {
       var current = new Date();
-      var checkoutEmailDate = new Date(current - (11 * 3600 * 1000));
+      var checkoutEmailDate = new Date(current - (11 * 24 * 3600 * 1000));
       var reminded = new Contact({
         type: 'local',
         email: [{

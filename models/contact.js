@@ -129,7 +129,7 @@ contactSchema.methods.shouldDoAutomatedCheckout = function() {
   }
   var current = Date.now();
   var remindedCheckoutDate = new Date(this.remindedCheckoutDate);
-  if (current.valueOf() - remindedCheckoutDate.valueOf() > 12 * 3600 * 1000) {
+  if (current.valueOf() - remindedCheckoutDate.valueOf() > 12 * 24 * 3600 * 1000) {
     return true;
   }
   return false;
