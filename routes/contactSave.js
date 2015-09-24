@@ -152,6 +152,7 @@ function post(req, res, next) {
           result = {status: "error", message: "Could not retrieve user account. Please try again or contact an administrator."};
           return cb(true);
         });
+        return;
       }
       return cb();
     },
