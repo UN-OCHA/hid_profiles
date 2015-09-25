@@ -152,6 +152,7 @@ function post(req, res, next) {
           result = {status: "error", message: "Could not retrieve user account. Please try again or contact an administrator."};
           return cb(true);
         });
+        return;
       }
       return cb();
     },
@@ -272,6 +273,39 @@ function post(req, res, next) {
           }
           return cb();
         });
+      }
+    },
+    // Make sure a contact of this type does not already exist for the profile
+    function (cb) {
+      if (!contactFields._id) { // We are creating a new contact
+        if (contactFields.type == 'global') {
+          Contact.findOne({'type': 'global', '_profile': _profile}, function (err, doc) {
+            if (!err && doc) {
+              // Contact already exists
+              result = {status: 'error', message: 'A global profile for this profile already exists'};
+              return cb(true);
+            }
+            return cb();
+          });
+        }
+        else if (contactFields.type == 'local') {
+          if (contactFields.locationId) {
+            Contact.findOne({'type': 'local', '_profile': _profile, 'locationId': contactFields.locationId, 'status': 1}, function (err, doc) {
+              if (!err && doc) {
+                result = {status: 'error', message: 'A local contact for this profile in this country already exists'};
+                return cb(true);
+              }
+              return cb();
+            });
+          }
+          else {
+            result = {status: 'error', message: 'Can not create a local contact without a locationId'};
+            return cb(true);
+          }
+        }
+      }
+      else {
+        return cb();
       }
     },
     // If new roles are set, filter them by the valid roles list.
