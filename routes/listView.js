@@ -209,11 +209,9 @@ function get(req, res, next) {
           var aname = '', bname = '';
           aname = a.nameGiven + ' ' + a.nameFamily;
           bname = b.nameGiven + ' ' + b.nameFamily;
-          if (aname > bname)
-            return mod * 1;
-          if (aname < bname)
-            return mod * -1;
-          return 0;
+          aname = aname.toUpperCase();
+          bname = bname.toUpperCase();
+          return aname.localeCompare(bname);
         }
         if (sort == 'verified') {
           var averified, bverified;
@@ -237,11 +235,9 @@ function get(req, res, next) {
             return mod * 1;
         }
         if (sort == 'jobtitle') {
-          if (a.jobtitle > b.jobtitle)
-            return mod * 1;
-          if (a.jobtitle < b.jobtitle)
-            return mod * -1;
-          return 0;
+          var ajt = a.jobtitle.toUpperCase();
+          var bjt = b.jobtitle.toUpperCase();
+          return ajt.localeCompare(bjt);
         }
         if (sort == 'organization') {
           var aorg = '', borg = '';
@@ -251,11 +247,9 @@ function get(req, res, next) {
           if (b.organization && b.organization.length && b.organization[0] && b.organization[0].name) {
             borg = b.organization[0].name;
           }
-          if (aorg > borg)
-            return mod * 1;
-          if (aorg < borg)
-            return mod * -1;
-          return 0;
+          aorg = aorg.toUpperCase();
+          borg = borg.toUpperCase();
+          return aorg.localeCompare(borg);
         }
         return 0;
       });

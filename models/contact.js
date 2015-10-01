@@ -89,6 +89,15 @@ contactSchema.methods.fullName = function() {
   return this.nameGiven + " " + this.nameFamily;
 };
 
+contactSchema.methods.mainOrganization = function () {
+  if (this.organization.length > 0) {
+    return this.organization[0];
+  }
+  else {
+    return false;
+  }
+};
+
 contactSchema.methods.mainEmail = function(emailOnly) {
   if (this.email.length > 0) {
     if (typeof emailOnly === 'undefined' || emailOnly == true) {
