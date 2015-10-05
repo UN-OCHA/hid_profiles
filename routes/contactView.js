@@ -213,6 +213,8 @@ function get(req, res) {
     }
 
     var sort = {};
+    var sortskip = range.skip;
+    var sortlimit = range.limit;
     if (!req.query.sort) {
       sort = {nameGiven: 1, nameFamily: 1};
     }
@@ -225,6 +227,10 @@ function get(req, res) {
       }
       if (req.query.sort != 'jobtitle' && req.query.sort != 'name') {
         sort = {nameGiven: 1, nameFamily: 1};
+      }
+      if (req.query.sort == 'organization' || req.query.sort == 'verified') {
+        range.skip = 0;
+        range.limit = 5000;
       }
     }
 
@@ -274,6 +280,65 @@ function get(req, res) {
             if (skipCount) {
               count = contacts.length;
             }
+
+            if (req.query.sort == 'verified') {
+              contacts = contacts.sort(function (a, b) {
+                var aprofile = a._profile ? a._profile.toObject() : false;
+                var bprofile = b._profile ? b._profile.toObject() : false;
+                var aname = a.fullName();
+                var bname = b.fullName();
+                if (aprofile && aprofile.verified) {
+                  if (bprofile && bprofile.verified) {
+                    if (aname > bname) {
+                      return 1;
+                    }
+                    else if (aname < bname) {
+                      return -1;
+                    }
+                    return 0;
+                  }
+                  else {
+                    return -1;
+                  }
+                }
+                if (bprofile && bprofile.verified) {
+                  return 1;
+                }
+                if (aname > bname) {
+                  return 1;
+                }
+                else if (aname < bname) {
+                  return -1;
+                }
+                return 0;
+              });
+              contacts = contacts.slice(sortskip, sortskip + sortlimit);
+            }
+
+           if (req.query.sort == 'organization') {
+             contacts = contacts.sort(function (a, b) {
+               var aname = a.fullName().toUpperCase();
+               var bname = b.fullName().toUpperCase();
+               var aorg = a.mainOrganization();
+               var borg = b.mainOrganization();
+               var aorgname = '';
+               var borgname = '';
+               if (aorg && aorg.name) {
+                 aorgname = aorg.name;
+               }
+               if (borg && borg.name) {
+                 borgname = borg.name;
+               }
+               aorgname = aorgname.toUpperCase();
+               borgname = borgname.toUpperCase();
+               var out = aorgname.localeCompare(borgname);
+               if (out == 0) {
+                 out = aname.localeCompare(bname);
+               }
+               return out;
+             });
+             contacts = contacts.slice(sortskip, sortskip + sortlimit);
+           }
           }
           return callback(null, contacts, count);
         }

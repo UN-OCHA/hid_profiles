@@ -18,6 +18,7 @@ async.auto({
   checkout: contacts.doAutomatedCheckout,
   reminderCheckin: contacts.sendReminderCheckinEmails,
   reminderUpdate: contacts.sendReminderUpdateEmails,
+  removeDuplicateProfiles: contacts.removeDuplicateProfiles,
   appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'orgTypes', 'disasters', operations.buildAppData]
 },
 function (err, results) {
