@@ -84,8 +84,12 @@ function post(req, res, next) {
         updatedList.users = req.body.users;
       }
 
-      if (req.body.privacy && (req.body.privacy == 'me' || req.body.privacy == 'all' || req.body.privacy == 'verified')) {
+      if (req.body.privacy && (req.body.privacy == 'me' || req.body.privacy == 'all' || req.body.privacy == 'verified' || req.body.privacy == 'some')) {
         updatedList.privacy = req.body.privacy;
+      }
+
+      if (req.body.readers) {
+        updatedList.readers = req.body.readers;
       }
 
       cb();

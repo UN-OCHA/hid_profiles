@@ -65,7 +65,15 @@ function get(req, res, next) {
 
           // Check list privacy settings
           if (req.query.id && list.privacy) {
-            if ((list.privacy == 'me' && req.apiAuth.userId != list.userid) || (list.privacy == 'verified' && !profile.verified)) {
+            var check = [];
+            if (list.privacy == 'some' && list.readers.length) {
+              check = list.readers.filter(function (obj) {
+                return obj.userid === req.apiAuth.userId;
+              });
+            }
+            if (req.apiAuth.userId != list.userid && (list.privacy == 'me' 
+              || (list.privacy == 'verified' && !profile.verified) 
+              || (list.privacy == 'some' && !check.length))) {
               res.send(403, 'Access Denied');
               res.end();
               return callback(true);
@@ -95,6 +103,7 @@ function get(req, res, next) {
   function fetchSingle(callback) {
     List.findOne({_id:req.query.id})
     .populate('contacts')
+    .populate('readers')
     .exec(function (err, contactList) {
       if (err) {
         return callback(err);
