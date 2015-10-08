@@ -1,0 +1,21 @@
+<p>Dear <%= firstName %>,</p>
+
+<p>You were given the ability to view the contact list "<%= list.name %>" on Humanitarian ID.</p>
+
+<p>With the link below, you can view the contact list. Once there, you can use the "Follow" button to add it to your personal Custom Contact Lists. This way you can easily find it on your dashboard at any time.</p>
+
+<p><a href="<%= listUrl %>">Click here to open the list</a></p>
+
+<% include ../includes/footer_en %>
+
+<hr />
+
+<p>Bonjour <%= firstName %>,</p>
+
+<p>Vous avez été autorisé à voir la liste de contacts "<%= list.name %>" sur Humanitarian ID.</p>
+
+<p>Avec le lien ci-dessous, vous pouvez voir la list de contacts. Vous pourrez par ailleurs utiliser le bouton "Follow" pour l'ajouter à vos listes de contacts personnelles. De cette manière, vous pourrez la retrouver facilement depuis votre tableau de bord.</p>
+
+<p><a href="<%= listUrl %>">Cliquez ici pour ouvrir la liste</a></p>
+
+<% include ../includes/footer_fr %>
