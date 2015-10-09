@@ -62,7 +62,7 @@ function post(req, res, next) {
     }
   }
   var isNewContact = req.body.isNewContact || false;
-  var notifyEmail = req.body.notifyEmail || null;
+  var notify = req.body.notify || null;
   var adminName = req.body.adminName || null;
   var adminEmail = req.body.adminEmail || null;
   var message = null;
@@ -590,7 +590,7 @@ function post(req, res, next) {
     // Send emails (if applicable)
     function (cb) {
       var isOwnProfile = req.apiAuth.userId && req.apiAuth.userId === req.body.userid;
-      if (!isOwnProfile) {
+      if (!isOwnProfile && notify == true) {
         var emailContact = null, notifyEmail = { };
         if (req.body.status == 0) {
           emailContact = origContact._doc;
