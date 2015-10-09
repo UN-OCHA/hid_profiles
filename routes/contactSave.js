@@ -871,15 +871,28 @@ function addUpdatedFields(contactFields, origContact){
   var disastersAdded = new Array(),
       disastersRemoved = new Array();
   if (origContact.disasters.length > 0 || contactNew.disasters.length > 0){
+    var newCheck = [], origCheck = [];
     origContact.disasters.forEach(function(value, i) {
-      if (contactNew.disasters.indexOf(value) == -1) {
+      newCheck = contactNew.disasters.filter(function (elt) {
+        if (elt.remote_id == value.remote_id) {
+          return elt;
+        }
+      });
+      if (newCheck.length == 0) {
         disastersRemoved.push(value.name);
       }
+      newCheck = [];
     });
     contactNew.disasters.forEach(function (value, i) {
-      if (origContact.disasters.indexOf(value) == -1) {
+      origCheck = origContact.disasters.filter(function (elt) {
+        if (elt.remote_id == value.remote_id) {
+          return elt;
+        }
+      });
+      if (origCheck.length == 0) {
         disastersAdded.push(value.name);
       }
+      origCheck = [];
     });
   }
   if (disastersRemoved.length || disastersAdded.length){
