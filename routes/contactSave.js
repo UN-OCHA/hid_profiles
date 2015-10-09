@@ -139,6 +139,7 @@ function post(req, res, next) {
               return cb();
             }
             else if (obj.user_id) {
+              userid = obj.user_id;
               if (obj.active) {
                 isUserActive = true;
               }
