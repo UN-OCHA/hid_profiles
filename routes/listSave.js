@@ -1,7 +1,10 @@
 var async = require('async'),
   _ = require('lodash'),
   log = require('../log'),
-  List = require('../models').List;
+  config = require('../config'),
+  mail = require('../mail'),
+  List = require('../models').List,
+  Contact = require('../models').Contact;
 
 // Middleware function to grant/deny access to the listSave routes.
 function postAccess(req, res, next) {
@@ -46,7 +49,7 @@ function postAccess(req, res, next) {
 }
 
 function post(req, res, next) {
-  var updatedList = {};
+  var origList = {}, updatedList = {};
 
   async.series([
     function(cb) {
@@ -58,6 +61,8 @@ function post(req, res, next) {
           }
 
           updatedList = list;
+          // Clone list into origList
+          origList = JSON.parse(JSON.stringify(list));
 
           cb();
         });
@@ -84,8 +89,12 @@ function post(req, res, next) {
         updatedList.users = req.body.users;
       }
 
-      if (req.body.privacy && (req.body.privacy == 'me' || req.body.privacy == 'all' || req.body.privacy == 'verified')) {
+      if (req.body.privacy && (req.body.privacy == 'me' || req.body.privacy == 'all' || req.body.privacy == 'verified' || req.body.privacy == 'some')) {
         updatedList.privacy = req.body.privacy;
+      }
+
+      if (req.body.readers) {
+        updatedList.readers = req.body.readers;
       }
 
       cb();
@@ -95,8 +104,48 @@ function post(req, res, next) {
         if (err) {
           return cb(err);
         }
+        cb();
       });
 
+    },
+    function (cb) {
+      var usersAdded = [];
+      if (updatedList.privacy == 'some') {
+        // Get new readers
+        var usersAdded = [];
+        updatedList.readers.forEach(function(value, i) {
+          if (value != null && origList.readers.indexOf(value.toString()) == -1) {
+            usersAdded.push(value);
+          }
+        });
+        if (usersAdded.length) {
+          usersAdded.forEach(function (value) {
+            // Get global contact from profile
+            Contact.findOne({'_profile': value, 'type': 'global'}, function (err, contact) {
+              if (err) {
+                return;
+              }
+              var mailOptions = {
+                to: contact.mainEmail(false),
+                subject: 'You were given the ability to view ' + updatedList.name + ' on Humanitarian ID',
+                list: updatedList,
+                listUrl: config.appBaseUrl + '#/list/contacts?id=' + updatedList._id,
+                firstName: contact.nameGiven
+              };
+
+              // Send mail
+              mail.sendTemplate('notify_custom_list', mailOptions, function (err, info) {
+                if (err) {
+                  log.warn({'type': 'listSave:error', 'message': 'listSave: Error sending email to ' + mailOptions.to + '.'});
+                }
+                else {
+                  log.info({'type': 'listSave:success', 'message': 'Notify custom contact list email sending successful to ' + mailOptions.to + '.'});
+                }
+              });
+            });
+          });
+        }
+      }
       cb();
     }
   ], function(err, list) {

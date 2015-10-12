@@ -62,7 +62,7 @@ function post(req, res, next) {
     }
   }
   var isNewContact = req.body.isNewContact || false;
-  var notifyEmail = req.body.notifyEmail || null;
+  var notify = req.body.notify || null;
   var adminName = req.body.adminName || null;
   var adminEmail = req.body.adminEmail || null;
   var message = null;
@@ -139,6 +139,7 @@ function post(req, res, next) {
               return cb();
             }
             else if (obj.user_id) {
+              userid = obj.user_id;
               if (obj.active) {
                 isUserActive = true;
               }
@@ -590,7 +591,7 @@ function post(req, res, next) {
     // Send emails (if applicable)
     function (cb) {
       var isOwnProfile = req.apiAuth.userId && req.apiAuth.userId === req.body.userid;
-      if (!isOwnProfile) {
+      if (!isOwnProfile && notify == true) {
         var emailContact = null, notifyEmail = { };
         if (req.body.status == 0) {
           emailContact = origContact._doc;
@@ -870,15 +871,28 @@ function addUpdatedFields(contactFields, origContact){
   var disastersAdded = new Array(),
       disastersRemoved = new Array();
   if (origContact.disasters.length > 0 || contactNew.disasters.length > 0){
+    var newCheck = [], origCheck = [];
     origContact.disasters.forEach(function(value, i) {
-      if (contactNew.disasters.indexOf(value) == -1) {
+      newCheck = contactNew.disasters.filter(function (elt) {
+        if (elt.remote_id == value.remote_id) {
+          return elt;
+        }
+      });
+      if (newCheck.length == 0) {
         disastersRemoved.push(value.name);
       }
+      newCheck = [];
     });
     contactNew.disasters.forEach(function (value, i) {
-      if (origContact.disasters.indexOf(value) == -1) {
+      origCheck = origContact.disasters.filter(function (elt) {
+        if (elt.remote_id == value.remote_id) {
+          return elt;
+        }
+      });
+      if (origCheck.length == 0) {
         disastersAdded.push(value.name);
       }
+      origCheck = [];
     });
   }
   if (disastersRemoved.length || disastersAdded.length){
