@@ -172,6 +172,22 @@ function post(req, res, next) {
           'emailFlag': '1' //Orphan email
         };
 
+        if (contactFields.inviter) {
+          // TODO: make this synchronous
+          Profile.findOne({'userid': contactFields.inviter}, function (err, profile) {
+            if (!err) {
+              Contact.findOne({'_profile': profile._id}, function (err, contact) {
+                if (!err) {
+                  contactFields.inviter = {};
+                  contactFields.inviter.name = contact.nameGiven + ' ' + contact.nameFamily;
+                  contactFields.inviter.email = contact.email[0].address;
+                  request.inviter = contactFields.inviter;
+                }
+              });
+            }
+          });
+        }
+
         var new_access_key = middleware.require.getAuthAccessKey(request);
         request["access_key"] = new_access_key.toString();
 
