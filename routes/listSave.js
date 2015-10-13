@@ -27,9 +27,8 @@ function postAccess(req, res, next) {
 
               // Check to see if we are following or unfollowing. If we are then strip
               // everything from the request except users.
-              var diff = _.difference(list.users, req.body.users);
-              var diff2 = _.difference(req.body.users, list.users);
-              if (diff.length > 0 || diff2.length > 0) {
+              var diff = _.uniq(list.users, req.body.users);
+              if (diff.length > 0) {
                 delete req.body.name;
                 delete req.body.contacts;
                 delete req.body.readers;
