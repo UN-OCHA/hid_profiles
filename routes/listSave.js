@@ -25,12 +25,15 @@ function postAccess(req, res, next) {
               return next();
             } else {
 
-              // Check to see if we are unfollowing. If we are then strip
+              // Check to see if we are following or unfollowing. If we are then strip
               // everything from the request except users.
               var diff = _.difference(list.users, req.body.users);
-              if (diff.length == 1 && diff[0] == req.apiAuth.userId) {
+              var diff2 = _.difference(req.body.users, list.users);
+              if (diff.length > 0 || diff2.length > 0) {
                 delete req.body.name;
                 delete req.body.contacts;
+                delete req.body.readers;
+                delete req.body.privacy;
                 return next();
               }
               return next(false);
