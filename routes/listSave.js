@@ -4,8 +4,7 @@ var async = require('async'),
   config = require('../config'),
   mail = require('../mail'),
   List = require('../models').List,
-  Contact = require('../models').Contact,
-  Profile = require('../models').Profile;
+  Contact = require('../models').Contact;
 
 // Middleware function to grant/deny access to the listSave routes.
 function postAccess(req, res, next) {
@@ -49,13 +48,13 @@ function postAccess(req, res, next) {
               if ((list.userid == req.apiAuth.userId || checkEditor.length)) {
                 return next();
               } else {
-                log.warn({'type': 'listSaveAccess:error', 'message': 'Client not authorized to save list', 'req': req});
-                res.send(401, new Error('Client not authorized to save list'));
+                log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
+                res.send(401, new Error('Client or user not authorized to save list'));
                 return next(false);
               }
             } else {
-              log.warn({'type': 'listSaveAccess:error', 'message': 'Client not authorized to save list', 'req': req});
-              res.send(401, new Error('Client not authorized to save list'));
+              log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
+              res.send(401, new Error('Client or user not authorized to save list'));
               return next(false);
             }
           });
@@ -66,8 +65,8 @@ function postAccess(req, res, next) {
     }
   }
   else {
-    log.warn({'type': 'listSaveAccess:error', 'message': 'Client not authorized to save list', 'req': req});
-    res.send(401, new Error('Client not authorized to save list'));
+    log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
+    res.send(401, new Error('Client or user not authorized to save list'));
     return next(false);
   }
 }
