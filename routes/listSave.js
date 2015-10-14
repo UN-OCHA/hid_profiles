@@ -15,39 +15,60 @@ function postAccess(req, res, next) {
     }
     else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
       if (req.body._id) {
-        List.findById(req.body._id, function(err, list){
-          if (!err) {
-            if (list) {
-              req.apiAuth.customList = list;
-            }
-
-            if (list.userid == req.apiAuth.userId) {
-              return next();
-            } else {
+        List.findById(req.body._id)
+          .populate('editors')
+          .exec(function(err, list){
+            if (!err) {
+              if (list) {
+                req.apiAuth.customList = list;
+              }
 
               // Check to see if we are following or unfollowing. If we are then strip
               // everything from the request except users.
-              var diff = _.uniq(list.users, req.body.users);
-              if (diff.length > 0) {
+              var diff = _.difference(list.users, req.body.users);
+              var diff2 = _.difference(req.body.users, list.users);
+              if (diff.length > 0 || diff2.length > 0) {
                 delete req.body.name;
                 delete req.body.contacts;
                 delete req.body.readers;
                 delete req.body.privacy;
+                delete req.body.editors;
                 return next();
               }
+
+              var checkEditor = [];
+              if (list.editors && list.editors.length) {
+                checkEditor = list.editors.filter(function (value) {
+                  if (value.userid == req.apiAuth.userId) {
+                    return value;
+                  }
+                });
+              }
+            
+              if ((list.userid == req.apiAuth.userId || checkEditor.length)) {
+                return next();
+              } else {
+                log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
+                res.send(401, new Error('Client or user not authorized to save list'));
+                return next(false);
+              }
+            } else {
+              log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
+              res.send(401, new Error('Client or user not authorized to save list'));
               return next(false);
             }
-          } else {
-            return next(false);
-          }
-        });
+          });
       }
-      return next();
+      else {
+        return next();
+      }
     }
   }
-  log.warn({'type': 'listSaveAccess:error', 'message': 'Client not authorized to save list', 'req': req});
-  res.send(401, new Error('Client not authorized to save list'));
-  return next(false);
+  else {
+    log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
+    res.send(401, new Error('Client or user not authorized to save list'));
+    return next(false);
+  }
 }
 
 function post(req, res, next) {
@@ -97,6 +118,10 @@ function post(req, res, next) {
 
       if (req.body.readers) {
         updatedList.readers = req.body.readers;
+      }
+
+      if (req.body.editors) {
+        updatedList.editors = req.body.editors;
       }
 
       cb();
