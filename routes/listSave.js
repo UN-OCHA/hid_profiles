@@ -39,7 +39,7 @@ function postAccess(req, res, next) {
               var checkEditor = [];
               if (list.editors && list.editors.length) {
                 checkEditor = list.editors.filter(function (value) {
-                  if (value.userid == req.apiAuth.userId) {
+                  if (value && value.userid && value.userid == req.apiAuth.userId) {
                     return value;
                   }
                 });
