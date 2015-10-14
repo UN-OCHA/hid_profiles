@@ -68,13 +68,17 @@ function get(req, res, next) {
             var check = [], checkEditors = [];
             if (list.privacy == 'some' && list.readers.length) {
               check = list.readers.filter(function (obj) {
-                return obj.userid === req.apiAuth.userId;
+                if (obj != null && obj.userid) {
+                  return obj.userid === req.apiAuth.userId;
+                }
               });
             }
 
             if (list.editors && list.editors.length) {
               checkEditors = list.editors.filter(function (obj) {
-                return obj.userid === req.apiAuth.userId;
+                if (obj != null && obj.userid) {
+                  return obj.userid === req.apiAuth.userId;
+                }
               });
             }
 

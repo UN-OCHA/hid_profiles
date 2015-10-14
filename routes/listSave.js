@@ -117,10 +117,17 @@ function post(req, res, next) {
       }
 
       if (req.body.readers) {
+        if (req.body.readers.length && req.body.readers.indexOf(null) != -1) {
+          // Make sure none of the readers is set to null
+          return cb('Could not save contact list because one of the readers is set to null');
+        }
         updatedList.readers = req.body.readers;
       }
 
       if (req.body.editors) {
+        if (req.body.editors.length && req.body.editors.indexOf(null) != -1) {
+          return cb('Could not save contact list because one of the editors is set to null');
+        }
         updatedList.editors = req.body.editors;
       }
 
