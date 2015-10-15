@@ -144,41 +144,59 @@ function post(req, res, next) {
     },
     function (cb) {
       var usersAdded = [];
+      // Get new readers
+      var usersAdded = [], editorsAdded = [];
+      updatedList.editors.forEach(function (value, i) {
+        if (value != null && origList.editors.indexOf(value.toString()) == -1) {
+          editorsAdded.push(value);
+        }
+      });
       if (updatedList.privacy == 'some') {
-        // Get new readers
-        var usersAdded = [];
         updatedList.readers.forEach(function(value, i) {
-          if (value != null && origList.readers.indexOf(value.toString()) == -1) {
+          if (value != null && origList.readers.indexOf(value.toString()) == -1 && editorsAdded.indexOf(value) == -1) {
             usersAdded.push(value);
           }
         });
-        if (usersAdded.length) {
-          usersAdded.forEach(function (value) {
-            // Get global contact from profile
-            Contact.findOne({'_profile': value, 'type': 'global'}, function (err, contact) {
+      }
+      if (usersAdded.length || editorsAdded.length) {
+        var emailCallback = function (value, i) {
+          var action = this.action;
+          // Get global contact from profile
+          Contact.findOne({'_profile': value, 'type': 'global'}, function (err, contact) {
+            if (err) {
+              return;
+            }
+            var mailOptions = {
+              to: contact.mainEmail(false),
+              subject: 'You were given the ability to ' + action.EN + ' ' + updatedList.name + ' on Humanitarian ID',
+              list: updatedList,
+              listUrl: config.appBaseUrl + '#/list/contacts?id=' + updatedList._id,
+              firstName: contact.nameGiven,
+              action: action
+            };
+            // Send mail
+            mail.sendTemplate('notify_custom_list', mailOptions, function (err, info) {
               if (err) {
-                return;
+                log.warn({'type': 'listSave:error', 'message': 'listSave: Error sending email to ' + mailOptions.to + '.'});
               }
-              var mailOptions = {
-                to: contact.mainEmail(false),
-                subject: 'You were given the ability to view ' + updatedList.name + ' on Humanitarian ID',
-                list: updatedList,
-                listUrl: config.appBaseUrl + '#/list/contacts?id=' + updatedList._id,
-                firstName: contact.nameGiven
-              };
-
-              // Send mail
-              mail.sendTemplate('notify_custom_list', mailOptions, function (err, info) {
-                if (err) {
-                  log.warn({'type': 'listSave:error', 'message': 'listSave: Error sending email to ' + mailOptions.to + '.'});
-                }
-                else {
-                  log.info({'type': 'listSave:success', 'message': 'Notify custom contact list email sending successful to ' + mailOptions.to + '.'});
-                }
-              });
+              else {
+                log.info({'type': 'listSave:success', 'message': 'Notify custom contact list email sending successful to ' + mailOptions.to + '.'});
+              }
             });
           });
+        };
+        var action = {
+          action: {
+            EN: 'view',
+            FR: 'voir'
+          }
+        };
+        if (updatedList.privacy == 'some') {
+          usersAdded.forEach(emailCallback, action);
         }
+        action.action.EN = 'edit';
+        action.action.FR = 'éditer';
+        editorsAdded.forEach(emailCallback, action);
       }
       cb();
     }
