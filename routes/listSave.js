@@ -162,9 +162,15 @@ function post(req, res, next) {
         var emailCallback = function (value, i) {
           var action = this.action;
           // Get global contact from profile
-          Contact.findOne({'_profile': value, 'type': 'global'}, function (err, contact) {
+          Contact.findOne({'_profile': value, 'type': 'global'})
+          .populate('_profile')
+          .exec(function (err, contact) {
             if (err) {
               return;
+            }
+            if (contact._profile && contact._profile.userid && updatedList.users && updatedList.users.indexOf(contact._profile.userid) == -1) {
+              updatedList.users.push(contact._profile.userid);
+              updatedList.save();
             }
             var mailOptions = {
               to: contact.mainEmail(false),
