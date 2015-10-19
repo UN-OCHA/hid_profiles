@@ -163,13 +163,12 @@ function post(req, res, next) {
       // If invitation sent on behalf of local admin/inviter
       if (inviter && inviter.profileid) {
         Contact.findOne({'_profile': inviter.profileid}, function (err, contact) {
-          if (!err) {
+          if (!err && contact) {
             inviterRequest = {};
             inviterRequest.name = contact.nameGiven + ' ' + contact.nameFamily;
             inviterRequest.email = contact.email[0].address;
-
-            return cb();
           }
+          return cb();
         });
       }
       else {
