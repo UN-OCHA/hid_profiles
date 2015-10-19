@@ -65,6 +65,7 @@ function post(req, res, next) {
   var notify = req.body.notify || null;
   var adminName = req.body.adminName || null;
   var adminEmail = req.body.adminEmail || null;
+  var inviter = req.body.inviter || null;
   var message = null;
   var isGhost = false;
   var isNewUser = false;
@@ -90,7 +91,8 @@ function post(req, res, next) {
     newProtectedRoles = [],
     setProtectedBundles = false,
     newProtectedBundles = [],
-    setOrgEditorRoles = false;
+    setOrgEditorRoles = false,
+    inviterRequest = null;
 
   async.series([
     //Check to see if userid is set - if isNewContact is false, return an error
@@ -158,6 +160,23 @@ function post(req, res, next) {
       return cb();
     },
     function (cb) {
+      // If invitation sent on behalf of local admin/inviter
+      if (inviter && inviter.profileid) {
+        Contact.findOne({'_profile': inviter.profileid}, function (err, contact) {
+          if (!err) {
+            inviterRequest = {};
+            inviterRequest.name = contact.nameGiven + ' ' + contact.nameFamily;
+            inviterRequest.email = contact.email[0].address;
+
+            return cb();
+          }
+        });
+      }
+      else {
+        return cb();
+      }
+    },
+    function (cb) {
       if (isNewUser) {
         authEmail = contactFields.email[0].address;
         //Create a new auth record for the new profile
@@ -171,21 +190,8 @@ function post(req, res, next) {
           "active": 1,
           'emailFlag': '1' //Orphan email
         };
-
-        if (contactFields.inviter) {
-          // TODO: make this synchronous
-          Profile.findOne({'userid': contactFields.inviter}, function (err, profile) {
-            if (!err) {
-              Contact.findOne({'_profile': profile._id}, function (err, contact) {
-                if (!err) {
-                  contactFields.inviter = {};
-                  contactFields.inviter.name = contact.nameGiven + ' ' + contact.nameFamily;
-                  contactFields.inviter.email = contact.email[0].address;
-                  request.inviter = contactFields.inviter;
-                }
-              });
-            }
-          });
+        if (inviterRequest) {
+          request.inviter = inviterRequest;
         }
 
         var new_access_key = middleware.require.getAuthAccessKey(request);
