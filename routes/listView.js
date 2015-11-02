@@ -65,13 +65,24 @@ function get(req, res, next) {
 
           // Check list privacy settings
           if (req.query.id && list.privacy) {
-            var check = [];
+            var check = [], checkEditors = [];
             if (list.privacy == 'some' && list.readers.length) {
               check = list.readers.filter(function (obj) {
-                return obj.userid === req.apiAuth.userId;
+                if (obj != null && obj.userid) {
+                  return obj.userid === req.apiAuth.userId;
+                }
               });
             }
-            if (req.apiAuth.userId != list.userid && (list.privacy == 'me' 
+
+            if (list.editors && list.editors.length) {
+              checkEditors = list.editors.filter(function (obj) {
+                if (obj != null && obj.userid) {
+                  return obj.userid === req.apiAuth.userId;
+                }
+              });
+            }
+
+            if (req.apiAuth.userId != list.userid && !checkEditors.length && (list.privacy == 'me' 
               || (list.privacy == 'verified' && !profile.verified) 
               || (list.privacy == 'some' && !check.length))) {
               res.send(403, 'Access Denied');
@@ -89,14 +100,19 @@ function get(req, res, next) {
   }
 
   function fetchAll(callback) {
-    List.find({users: req.apiAuth.userId }, function(err, contactLists){
+    Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
       if (err) {
         return callback(err);
-        //return res.json({status: "error", message: "There was an error retrieving the custom contact lists."});
       }
-      lists = contactLists;
-      //return res.json({ status: "ok", lists: lists });
-      return callback(null);
+      List.find({$or: [{users: req.apiAuth.userId }, { editors: profile._id }]}, function(err, contactLists){
+        if (err) {
+          return callback(err);
+          //return res.json({status: "error", message: "There was an error retrieving the custom contact lists."});
+        }
+        lists = contactLists;
+        //return res.json({ status: "ok", lists: lists });
+        return callback(null);
+      });
     });
   }
 
@@ -104,6 +120,7 @@ function get(req, res, next) {
     List.findOne({_id:req.query.id})
     .populate('contacts')
     .populate('readers')
+    .populate('editors')
     .exec(function (err, contactList) {
       if (err) {
         return callback(err);

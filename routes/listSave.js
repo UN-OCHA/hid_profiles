@@ -15,37 +15,60 @@ function postAccess(req, res, next) {
     }
     else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
       if (req.body._id) {
-        List.findById(req.body._id, function(err, list){
-          if (!err) {
-            if (list) {
-              req.apiAuth.customList = list;
-            }
+        List.findById(req.body._id)
+          .populate('editors')
+          .exec(function(err, list){
+            if (!err) {
+              if (list) {
+                req.apiAuth.customList = list;
+              }
 
-            if (list.userid == req.apiAuth.userId) {
-              return next();
-            } else {
-
-              // Check to see if we are unfollowing. If we are then strip
+              // Check to see if we are following or unfollowing. If we are then strip
               // everything from the request except users.
               var diff = _.difference(list.users, req.body.users);
-              if (diff.length == 1 && diff[0] == req.apiAuth.userId) {
+              var diff2 = _.difference(req.body.users, list.users);
+              if (diff.length > 0 || diff2.length > 0) {
                 delete req.body.name;
                 delete req.body.contacts;
+                delete req.body.readers;
+                delete req.body.privacy;
+                delete req.body.editors;
                 return next();
               }
+
+              var checkEditor = [];
+              if (list.editors && list.editors.length) {
+                checkEditor = list.editors.filter(function (value) {
+                  if (value && value.userid && value.userid == req.apiAuth.userId) {
+                    return value;
+                  }
+                });
+              }
+            
+              if ((list.userid == req.apiAuth.userId || checkEditor.length)) {
+                return next();
+              } else {
+                log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
+                res.send(401, new Error('Client or user not authorized to save list'));
+                return next(false);
+              }
+            } else {
+              log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
+              res.send(401, new Error('Client or user not authorized to save list'));
               return next(false);
             }
-          } else {
-            return next(false);
-          }
-        });
+          });
       }
-      return next();
+      else {
+        return next();
+      }
     }
   }
-  log.warn({'type': 'listSaveAccess:error', 'message': 'Client not authorized to save list', 'req': req});
-  res.send(401, new Error('Client not authorized to save list'));
-  return next(false);
+  else {
+    log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
+    res.send(401, new Error('Client or user not authorized to save list'));
+    return next(false);
+  }
 }
 
 function post(req, res, next) {
@@ -94,7 +117,18 @@ function post(req, res, next) {
       }
 
       if (req.body.readers) {
+        if (req.body.readers.length && req.body.readers.indexOf(null) != -1) {
+          // Make sure none of the readers is set to null
+          return cb('Could not save contact list because one of the readers is set to null');
+        }
         updatedList.readers = req.body.readers;
+      }
+
+      if (req.body.editors) {
+        if (req.body.editors.length && req.body.editors.indexOf(null) != -1) {
+          return cb('Could not save contact list because one of the editors is set to null');
+        }
+        updatedList.editors = req.body.editors;
       }
 
       cb();
@@ -110,41 +144,65 @@ function post(req, res, next) {
     },
     function (cb) {
       var usersAdded = [];
+      // Get new readers
+      var usersAdded = [], editorsAdded = [];
+      updatedList.editors.forEach(function (value, i) {
+        if (value != null && origList.editors.indexOf(value.toString()) == -1) {
+          editorsAdded.push(value);
+        }
+      });
       if (updatedList.privacy == 'some') {
-        // Get new readers
-        var usersAdded = [];
         updatedList.readers.forEach(function(value, i) {
-          if (value != null && origList.readers.indexOf(value.toString()) == -1) {
+          if (value != null && origList.readers.indexOf(value.toString()) == -1 && editorsAdded.indexOf(value) == -1) {
             usersAdded.push(value);
           }
         });
-        if (usersAdded.length) {
-          usersAdded.forEach(function (value) {
-            // Get global contact from profile
-            Contact.findOne({'_profile': value, 'type': 'global'}, function (err, contact) {
+      }
+      if (usersAdded.length || editorsAdded.length) {
+        var emailCallback = function (value, i) {
+          var action = this.action;
+          // Get global contact from profile
+          Contact.findOne({'_profile': value, 'type': 'global'})
+          .populate('_profile')
+          .exec(function (err, contact) {
+            if (err) {
+              return;
+            }
+            if (contact._profile && contact._profile.userid && updatedList.users && updatedList.users.indexOf(contact._profile.userid) == -1) {
+              updatedList.users.push(contact._profile.userid);
+              updatedList.save();
+            }
+            var mailOptions = {
+              to: contact.mainEmail(false),
+              subject: 'You were given the ability to ' + action.EN + ' ' + updatedList.name + ' on Humanitarian ID',
+              list: updatedList,
+              listUrl: config.appBaseUrl + '#/list/contacts?id=' + updatedList._id,
+              firstName: contact.nameGiven,
+              action: action
+            };
+            // Send mail
+            mail.sendTemplate('notify_custom_list', mailOptions, function (err, info) {
               if (err) {
-                return;
+                log.warn({'type': 'listSave:error', 'message': 'listSave: Error sending email to ' + mailOptions.to + '.'});
               }
-              var mailOptions = {
-                to: contact.mainEmail(false),
-                subject: 'You were given the ability to view ' + updatedList.name + ' on Humanitarian ID',
-                list: updatedList,
-                listUrl: config.appBaseUrl + '#/list/contacts?id=' + updatedList._id,
-                firstName: contact.nameGiven
-              };
-
-              // Send mail
-              mail.sendTemplate('notify_custom_list', mailOptions, function (err, info) {
-                if (err) {
-                  log.warn({'type': 'listSave:error', 'message': 'listSave: Error sending email to ' + mailOptions.to + '.'});
-                }
-                else {
-                  log.info({'type': 'listSave:success', 'message': 'Notify custom contact list email sending successful to ' + mailOptions.to + '.'});
-                }
-              });
+              else {
+                log.info({'type': 'listSave:success', 'message': 'Notify custom contact list email sending successful to ' + mailOptions.to + '.'});
+              }
             });
           });
+        };
+        var action = {
+          action: {
+            EN: 'view',
+            FR: 'voir'
+          }
+        };
+        if (updatedList.privacy == 'some') {
+          usersAdded.forEach(emailCallback, action);
         }
+        action.action.EN = 'edit';
+        action.action.FR = 'éditer';
+        editorsAdded.forEach(emailCallback, action);
       }
       cb();
     }
