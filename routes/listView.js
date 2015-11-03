@@ -160,7 +160,7 @@ function get(req, res, next) {
     if (req.query.hasOwnProperty('organization.name')) {
       contacts = contacts.filter(function(contact){
         if (contact.organization.length > 0) {
-          return contact.organization.map(function(c) { return c.name; }).indexOf(req.query['organization.name']) != -1;
+          return contact.organization.map(function(c) { return (c && c.name) ? c.name : ''; }).indexOf(req.query['organization.name']) != -1;
         } else {
           return false;
         }
@@ -205,7 +205,7 @@ function get(req, res, next) {
 
     if (req.query.hasOwnProperty('verified')) {
       contacts = contacts.filter(function(contact){
-        return contact.verified == req.query['verified'];
+        return contact._profile ? contact._profile.verified : false;
       });
     }
 
