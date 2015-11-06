@@ -71,7 +71,8 @@ function postAccess(req, res, next) {
   }
 }
 
-function deleteContactAccess(req, res, next) {
+// Make sure user has write access to a custom contact list
+function writeAccess(req, res, next) {
   if (req.apiAuth && req.apiAuth.mode) {
     // Trusted API clients are allowed write access to all profiles.
     if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
@@ -118,6 +119,34 @@ function deleteContactAccess(req, res, next) {
   }
 }
 
+// Add contact to a custom contact list
+function addContact(req, res, next) {
+  List.findById(req.params.id, function (err, list) {
+    if (err) {
+      res.json({'status': 'error', 'message': 'Could not find list'});
+      return next(false);
+    }
+
+    var index = list.contacts.indexOf(req.body.contact);
+    if (index != -1) {
+      res.json({'status': 'error', 'message': 'Contact is already in list'});
+      return next(false);
+    }
+    else {
+      list.contacts.push(req.body.contact);
+      list.save(function (err) {
+        if (err) {
+          res.json({'status': 'ok', 'message': 'Unknown error saving list'});
+          return next(false);
+        }
+        res.json({'status': 'ok', 'message': 'Contact added successfully'});
+        return next();
+      });
+    }
+  });
+}
+
+// Delete contact from a list
 function deleteContact(req, res, next) {
     List.findById(req.params.list_id, function (err, list) {
       if (err) {
@@ -290,5 +319,6 @@ function post(req, res, next) {
 
 exports.postAccess = postAccess;
 exports.post = post;
-exports.deleteContactAccess = deleteContactAccess;
+exports.writeAccess = writeAccess;
+exports.addContact = addContact;
 exports.deleteContact = deleteContact;
