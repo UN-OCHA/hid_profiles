@@ -51,6 +51,8 @@ server.post(versionPrefix + 'list/save', middleware.require.appOrUser, routes.li
 server.post(v01Prefix + 'lists/:id/contacts', middleware.require.appOrUser, routes.listSave.writeAccess, routes.listSave.addContact);
 server.del(v01Prefix + 'lists/:id', middleware.require.appOrUser, routes.listDelete.deleteAccess, routes.listDelete.del);
 server.del(v01Prefix + 'lists/:list_id/contacts/:contact_id', middleware.require.appOrUser, routes.listSave.writeAccess, routes.listSave.deleteContact);
+server.put(v01Prefix + 'lists/:id/follow', middleware.require.appOrUser, routes.listFollow.access, routes.listFollow.follow);
+server.del(v01Prefix + 'lists/:id/follow', middleware.require.appOrUser, routes.listFollow.access, routes.listFollow.unfollow);
 
 server.get(versionPrefix + 'profile/view', middleware.require.appOrUser, routes.profileView.get);
 server.post(versionPrefix + 'profile/view', middleware.require.appOrUser, routes.profileView.get);

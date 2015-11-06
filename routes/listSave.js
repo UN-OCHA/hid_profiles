@@ -136,7 +136,7 @@ function addContact(req, res, next) {
       list.contacts.push(req.body.contact);
       list.save(function (err) {
         if (err) {
-          res.json({'status': 'ok', 'message': 'Unknown error saving list'});
+          res.json({'status': 'error', 'message': 'Unknown error saving list'});
           return next(false);
         }
         res.json({'status': 'ok', 'message': 'Contact added successfully'});
@@ -148,29 +148,29 @@ function addContact(req, res, next) {
 
 // Delete contact from a list
 function deleteContact(req, res, next) {
-    List.findById(req.params.list_id, function (err, list) {
-      if (err) {
-        res.json({'status': 'error', 'message': 'Could not find list'});
-        return next(false);
-      }
+  List.findById(req.params.list_id, function (err, list) {
+    if (err) {
+      res.json({'status': 'error', 'message': 'Could not find list'});
+      return next(false);
+    }
 
-      var index = list.contacts.indexOf(req.params.contact_id);
-      if (index == -1) {
-        res.json({'status': 'error', 'message': 'Contact is not in list'});
-        return next(false);
-      }
-      else {
-        list.contacts.splice(index, 1);
-        list.save(function (err) {
-          if (err) {
-            res.json({'status': 'ok', 'message': 'Unknown error saving list'});
-            return next(false);
-          }
-          res.json({'status': 'ok', 'message': 'Contact removed successfully'});
-          return next();
-        });
-      }
-    });
+    var index = list.contacts.indexOf(req.params.contact_id);
+    if (index == -1) {
+      res.json({'status': 'error', 'message': 'Contact is not in list'});
+      return next(false);
+    }
+    else {
+      list.contacts.splice(index, 1);
+      list.save(function (err) {
+        if (err) {
+          res.json({'status': 'error', 'message': 'Unknown error saving list'});
+          return next(false);
+        }
+        res.json({'status': 'ok', 'message': 'Contact removed successfully'});
+        return next();
+      });
+    }
+  });
 }
 
 
