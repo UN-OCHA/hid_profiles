@@ -102,7 +102,7 @@ function writeAccess(req, res, next) {
               }
             } else {
               log.warn({'type': 'listSaveAccess:error', 'message': 'Could not find list', 'req': req});
-              res.send(401, new Error('Could not find list'));
+              res.send(404, new Error('Could not find list'));
               return next(false);
             }
           });

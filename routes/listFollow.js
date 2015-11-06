@@ -55,14 +55,14 @@ function access(req, res, next) {
                 }
               }
               else {
-                res.send(403, new Error('Could not find profile associated to user'));
+                res.send(401, new Error('Could not find profile associated to user'));
                 return next(false);
               }
             });
           }
           else {
             log.warn({'type': 'listFollowAccess:error', 'message': 'List not found', 'req': req});
-            res.send(401, new Error('List not found'));
+            res.send(404, new Error('List not found'));
             return next(false);
           }
         });
