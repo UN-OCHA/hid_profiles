@@ -16,6 +16,7 @@ function access(req, res, next) {
     }
     else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
       List.findById(req.params.id)
+        .populate('readers')
         .populate('editors')
         .exec(function(err, list){
           if (!err) {
