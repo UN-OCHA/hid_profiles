@@ -49,12 +49,12 @@ function postAccess(req, res, next) {
                 return next();
               } else {
                 log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
-                res.send(401, new Error('Client or user not authorized to save list'));
+                res.send(403, new Error('Client or user not authorized to save list'));
                 return next(false);
               }
             } else {
-              log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
-              res.send(401, new Error('Client or user not authorized to save list'));
+              log.warn({'type': 'listSaveAccess:error', 'message': 'Could not find list', 'req': req});
+              res.send(401, new Error('Could not find list'));
               return next(false);
             }
           });
@@ -65,11 +65,114 @@ function postAccess(req, res, next) {
     }
   }
   else {
-    log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
-    res.send(401, new Error('Client or user not authorized to save list'));
+    log.warn({'type': 'listSaveAccess:error', 'message': 'Invalid authentication', 'req': req});
+    res.send(401, new Error('Invalid authentication'));
     return next(false);
   }
 }
+
+// Make sure user has write access to a custom contact list
+function writeAccess(req, res, next) {
+  if (req.apiAuth && req.apiAuth.mode) {
+    // Trusted API clients are allowed write access to all profiles.
+    if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+      return next();
+    }
+    else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
+      if (req.params.list_id && req.params.contact_id) {
+        List.findById(req.params.list_id)
+          .populate('editors')
+          .exec(function(err, list){
+            if (!err) {
+              var checkEditor = [];
+              if (list.editors && list.editors.length) {
+                checkEditor = list.editors.filter(function (value) {
+                  if (value && value.userid && value.userid == req.apiAuth.userId) {
+                    return value;
+                  }
+                });
+              }
+
+              if ((list.userid == req.apiAuth.userId || checkEditor.length)) {
+                return next();
+              } else {
+                log.warn({'type': 'listSaveAccess:error', 'message': 'Client or user not authorized to save list', 'req': req});
+                res.send(403, new Error('Client or user not authorized to save list'));
+                return next(false);
+              }
+            } else {
+              log.warn({'type': 'listSaveAccess:error', 'message': 'Could not find list', 'req': req});
+              res.send(404, new Error('Could not find list'));
+              return next(false);
+            }
+          });
+      }
+      else {
+        return next();
+      }
+    }
+  }
+  else {
+    log.warn({'type': 'listSaveAccess:error', 'message': 'Invalid authentication', 'req': req});
+    res.send(401, new Error('Invalid authentication'));
+    return next(false);
+  }
+}
+
+// Add contact to a custom contact list
+function addContact(req, res, next) {
+  List.findById(req.params.id, function (err, list) {
+    if (err) {
+      res.json({'status': 'error', 'message': 'Could not find list'});
+      return next(false);
+    }
+
+    var index = list.contacts.indexOf(req.body.contact);
+    if (index != -1) {
+      res.json({'status': 'error', 'message': 'Contact is already in list'});
+      return next(false);
+    }
+    else {
+      list.contacts.push(req.body.contact);
+      list.save(function (err) {
+        if (err) {
+          res.json({'status': 'error', 'message': 'Unknown error saving list'});
+          return next(false);
+        }
+        res.json({'status': 'ok', 'message': 'Contact added successfully'});
+        return next();
+      });
+    }
+  });
+}
+
+// Delete contact from a list
+function deleteContact(req, res, next) {
+  List.findById(req.params.list_id, function (err, list) {
+    if (err) {
+      res.json({'status': 'error', 'message': 'Could not find list'});
+      return next(false);
+    }
+
+    var index = list.contacts.indexOf(req.params.contact_id);
+    if (index == -1) {
+      res.json({'status': 'error', 'message': 'Contact is not in list'});
+      return next(false);
+    }
+    else {
+      list.contacts.splice(index, 1);
+      list.save(function (err) {
+        if (err) {
+          res.json({'status': 'error', 'message': 'Unknown error saving list'});
+          return next(false);
+        }
+        res.json({'status': 'ok', 'message': 'Contact removed successfully'});
+        return next();
+      });
+    }
+  });
+}
+
 
 function post(req, res, next) {
   var origList = {}, updatedList = {};
@@ -216,3 +319,6 @@ function post(req, res, next) {
 
 exports.postAccess = postAccess;
 exports.post = post;
+exports.writeAccess = writeAccess;
+exports.addContact = addContact;
+exports.deleteContact = deleteContact;

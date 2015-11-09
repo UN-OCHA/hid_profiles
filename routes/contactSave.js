@@ -117,7 +117,7 @@ function post(req, res, next) {
     // Check to see if the user exists on the auth side
     function (cb) {
       authEmail = (contactFields.email && contactFields.email.length && contactFields.email[0].address) ? contactFields.email[0].address : '';
-      if (authEmail) {
+      if (authEmail && !contactFields._profile) {
         var request = {
           "email": authEmail
         };
