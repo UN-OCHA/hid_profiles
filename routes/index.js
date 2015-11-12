@@ -8,3 +8,4 @@ exports.listSave = require('./listSave');
 exports.listView = require('./listView');
 exports.listDelete = require('./listDelete');
 exports.listFollow = require('./listFollow');
+exports.services = require('./services');

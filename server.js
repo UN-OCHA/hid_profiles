@@ -65,6 +65,12 @@ server.post(versionPrefix + 'contact/save', middleware.require.appOrUser, routes
 server.post(versionPrefix + 'contact/resetpw', middleware.require.appOrUser, routes.contactSave.postAccess, routes.contactSave.resetPasswordPost);
 server.post(versionPrefix + 'contact/notifyContact', middleware.require.appOrUser, routes.contactSave.notifyContact);
 
+server.post(v01Prefix + '/services', middleware.require.appOrUser, routes.services.isAdminOrManager, routes.services.post);
+server.put(v01Prefix + '/services/:id', middleware.require.appOrUser, routes.services.isAdminOrOwner, routes.services.put);
+server.del(v01Prefix + '/services/:id', middleware.require.appOrUser, routes.services.isAdminOrOwner, routes.services.del);
+server.get(v01Prefix + '/services', middleware.require.appOrUser, routes.services.getAccess, routes.services.get);
+server.get(v01Prefix + '/services/:id', middleware.require.appOrUser, routes.services.getAccess, routes.services.getById);
+
 // Provide handling for OPTIONS requests for CORS.
 server.opts('.*', function(req, res, next) {
   var requestMethod,
