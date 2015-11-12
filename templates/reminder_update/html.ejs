@@ -21,25 +21,19 @@
 
 <% if (contact.phone && contact.phone.length) { %>
   <% for (var i = 0; i < contact.phone.length; i++) { %>
-    <br /><%= contact.phone[i].type %>: <%= contact.phone[i].number %>
+    <br /><% if (contact.phone[i].type) { %><%= contact.phone[i].type %>:<% } %> <%= contact.phone[i].number %>
   <% } %>
 <% } %>
 
 <% if (contact.email && contact.email.length) { %>
   <% for (var i = 0; i < contact.email.length; i++) { %>
-    <br /><%= contact.email[i].type %>: <%= contact.email[i].address %>
-  <% } %>
-<% } %>
-
-<% if (contact.phone && contact.phone.length) { %>
-  <% for (var i = 0; i < contact.phone.length; i++) { %>
-    <br /><%= contact.phone[i].type %>: <%= contact.phone[i].number %>
+    <br /><% if (contact.email[i].type) { %><%= contact.email[i].type %>:<% } %> <%= contact.email[i].address %>
   <% } %>
 <% } %>
 
 <% if (contact.voip && contact.voip.length) { %>
   <% for (var i = 0; i < contact.voip.length; i++) { %>
-    <br /><%= contact.voip[i].type %>: <%= contact.voip[i].number %>
+    <br /><% if (contact.voip[i].type) { %><%= contact.voip[i].type %>:<% } %> <%= contact.voip[i].number %>
   <% } %>
 <% } %>
 
