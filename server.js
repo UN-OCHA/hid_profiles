@@ -70,6 +70,7 @@ server.put(v01Prefix + '/services/:id', middleware.require.appOrUser, routes.ser
 server.del(v01Prefix + '/services/:id', middleware.require.appOrUser, routes.services.isAdminOrOwner, routes.services.del);
 server.get(v01Prefix + '/services', middleware.require.appOrUser, routes.services.getAccess, routes.services.get);
 server.get(v01Prefix + '/services/:id', middleware.require.appOrUser, routes.services.getAccess, routes.services.getById);
+server.get(v01Prefix + '/services/mailchimp/lists', middleware.require.appOrUser, routes.services.getAccess, routes.services.mcLists);
 
 // Provide handling for OPTIONS requests for CORS.
 server.opts('.*', function(req, res, next) {

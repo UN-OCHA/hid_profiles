@@ -1,5 +1,6 @@
 var async = require('async'),
   _ = require('lodash'),
+  mcapi = require('../node_modules/mailchimp-api/mailchimp'),
   log = require('../log'),
   config = require('../config'),
   roles = require('../lib/roles.js'),
@@ -193,7 +194,11 @@ function getById(req, res, next) {
 
 // Find services
 function get(req, res, next) {
-  Service.find({}, function (err, services) {
+  var params = {};
+  if (req.query.q) {
+    params = {name: new RegExp(req.query.q, 'i')};
+  }
+  Service.find(params, function (err, services) {
     if (err) {
       res.send(500, new Error(err));
     }
@@ -214,6 +219,15 @@ function get(req, res, next) {
   });
 }
 
+function mcLists(req, res, next) {
+  var mc = new mcapi.Mailchimp(req.query.mc_api_key);
+  mc.lists.list({}, function (listData) {
+    res.send(200, listData);
+  }, function (err) {
+    res.send(500, new Error(err.error));
+  });
+}
+
 exports.isAdminOrOwner = isAdminOrOwner;
 exports.isAdminOrManager = isAdminOrManager;
 exports.getAccess = getAccess;
@@ -222,3 +236,4 @@ exports.put = put;
 exports.del = del;
 exports.getById = getById;
 exports.get = get;
+exports.mcLists = mcLists;
