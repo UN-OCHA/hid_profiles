@@ -138,7 +138,8 @@ contactSchema.methods.shouldDoAutomatedCheckout = function() {
   }
   var current = Date.now();
   var remindedCheckoutDate = new Date(this.remindedCheckoutDate);
-  if (current.valueOf() - remindedCheckoutDate.valueOf() > 12 * 24 * 3600 * 1000) {
+  var dep = new Date(this.departureDate);
+  if ((current.valueOf() - remindedCheckoutDate.valueOf() > 12 * 24 * 3600 * 1000) && (current.valueOf() - dep.valueOf() > 14 * 24 * 3600 * 1000)) {
     return true;
   }
   return false;
