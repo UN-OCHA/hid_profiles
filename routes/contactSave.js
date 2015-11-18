@@ -544,6 +544,12 @@ function post(req, res, next) {
         contactFields.created = Date.now();
       }
 
+      // Set remindedCheckout to false when changing the departureDate on an existing contact
+      // This handles the case where a user changes his departure date after receiving a reminder_checkout email
+      if (existingContact && origContact.departureDate && origContact.departureDate.toISOString() != contactFields.departureDate) {
+        contactFields.remindedCheckout = false;
+      }
+
       Contact.update({_id: upsertId}, {'$set': contactFields}, {upsert: true}, function(err) {
         if (err) {
           log.warn({'type': 'contactSave:error', 'message': 'Error occurred while attempting to upsert contact with ID ' + upsertId, 'fields': contactFields, 'err': err});
