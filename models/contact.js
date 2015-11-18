@@ -145,14 +145,6 @@ contactSchema.methods.shouldDoAutomatedCheckout = function() {
   return false;
 };
 
-// Set remindedCheckout to false when changing the departureDate on an existing contact
-// This handles the case where a user changes his departure date after receiving a reminder_checkout email
-contactSchema.path('departureDate').set(function (newVal) {
-  if (this.departureDate && this.departureDate != newVal) {
-    this.remindedCheckout = false;
-  }
-  return newVal;
-});
 
 // Whether the contact has a local phone number entered or not
 contactSchema.methods.hasLocalPhoneNumber = function(callback) {
