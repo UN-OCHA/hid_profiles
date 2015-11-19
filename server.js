@@ -62,6 +62,7 @@ server.post(versionPrefix + 'profile/delete', middleware.require.appOrUser, rout
 server.post(versionPrefix + 'profile/save', middleware.require.appOrUser, routes.profileSave.postAccess, routes.profileSave.post);
 
 server.get(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
+server.put(v01Prefix + 'contacts/:id/checkin', middleware.require.appOrUser, routes.contactSave.putAccess, routes.contactSave.checkin);
 server.post(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
 server.post(versionPrefix + 'contact/save', middleware.require.appOrUser, routes.contactSave.postAccess, routes.contactSave.post);
 server.post(versionPrefix + 'contact/resetpw', middleware.require.appOrUser, routes.contactSave.postAccess, routes.contactSave.resetPasswordPost);
