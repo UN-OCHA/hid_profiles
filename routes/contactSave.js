@@ -101,17 +101,29 @@ function putAccess(req, res, next) {
   return next(false);
 }
 
-function checkin(req, res, next) {
-  Contact.findByIdAndUpdate(req.params.id, { $set: { 'status': true } }, function (err, contact) {
+function checkinHelper(req, res, next, stat) {
+  Contact.findByIdAndUpdate(req.params.id, { $set: { 'status': stat } }, function (err, contact) {
     if (err) {
       res.send(500, new Error(err));
       return next();
     }
-    res.send(200);
-    return next();
+    if (contact) {
+      res.send(200, contact);
+    }
+    else {
+      res.send(404, new Error('Contact ' + req.params.id + ' not found'));
+    }
+    next();
   });
 }
 
+function checkin(req, res, next) {
+  checkinHelper(req, res, next, true);
+}
+
+function checkout(req, res, next) {
+  checkinHelper(req, res, next, false);
+}
 
 function post(req, res, next) {
   var contactFields = {},
@@ -1354,3 +1366,4 @@ exports.resetPasswordPost = resetPasswordPost;
 exports.notifyContact = notifyContact;
 exports.putAccess = putAccess;
 exports.checkin = checkin;
+exports.checkout = checkout;
