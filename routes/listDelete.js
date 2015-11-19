@@ -18,13 +18,11 @@ function deleteAccess(req, res, next) {
             if (list.userid == req.apiAuth.userId) {
               return next();
             } else {
-              log.warn({'type': 'listDeleteAccess:error', 'message': 'Client not authorized to delete list', 'req': req});
               res.send(403, new Error('Client not authorized to delete list'));
               return next(false);
             }
           } else {
-            log.warn({'type': 'listDeleteAccess:error', 'message': 'List not found', 'req': req});
-            res.send(401, new Error('List not found'));
+            res.send(404, new Error('List' + req.params.id + ' not found'));
             return next(false);
           }
         });
@@ -32,27 +30,23 @@ function deleteAccess(req, res, next) {
       return;
     }
   }
-  log.warn({'type': 'listDeleteAccess:error', 'message': 'No authentication provided', 'req': req});
   res.send(401, new Error('No authentication provided'));
   return next(false);
 }
 
 function del(req, res, next) {
-  async.series([
-    function(cb) {
-      List.findByIdAndRemove(req.params.id, function(err, list){
-        if (err) {
-          return cb(err);
-        }
-
-        cb();
-      });
-    }
-  ], function(err, list) {
+  List.findByIdAndRemove(req.params.id, function (err, list) {
     if (err) {
-      return res.json({status: "error", message: "Could not delete contact list."});
+      res.send(500, new Error(err));
+      return next(err);
     }
-    return res.json({ status: 'ok', message: "List deleted"});
+    if (!list) {
+      res.send(404, new Error('List ' + req.params.id + ' not found'));
+    }
+    else {
+      res.send(204);
+    }
+    next();
   });
 }
 
