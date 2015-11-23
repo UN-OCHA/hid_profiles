@@ -219,12 +219,92 @@ function get(req, res, next) {
   });
 }
 
+// Get mailchimp lists from API key
 function mcLists(req, res, next) {
   var mc = new mcapi.Mailchimp(req.query.mc_api_key);
   mc.lists.list({}, function (listData) {
     res.send(200, listData);
   }, function (err) {
     res.send(500, new Error(err.error));
+  });
+}
+
+// Subscribe a profile to a service
+function subscribe(req, res, next) {
+  Profile.findById(req.params.id, function (err, profile) {
+    if (err) {
+      res.send(500, new Error(err));
+      return next();
+    }
+    if (!profile) {
+      res.send(404, new Error('Profile ' + req.params.id + ' not found'));
+      return next();
+    }
+    Service.findById(req.body.service, function (err2, service) {
+      if (err2) {
+        res.send(500, new Error(err));
+        return next();
+      }
+      if (!service) {
+        res.send(400, new Error('Service ' + req.body.id + ' not found'));
+        return next();
+      }
+      if (profile.isSubscribed(service._id)) {
+        res.send(409, new Error('Profile ' + req.params.id + ' already subscribed to ' + req.body.service));
+        return next();
+      }
+      profile.subscribe(service);
+      res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
+      res.send(204);
+      return next();
+    });
+  });
+}
+
+// Unsubscribe a profile from a service
+function unsubscribe(req, res, next) {
+  Profile.findById(req.params.id, function (err, profile) {
+    if (err) {
+      res.send(500, new Error(err));
+      return next();
+    }
+    if (!profile) {
+      res.send(404, new Error('Profile ' + req.params.id + ' not found'));
+      return next();
+    }
+    Service.findById(req.params.serviceId, function (err2, service) {
+      if (err2) {
+        res.send(500, new Error(err));
+        return next();
+      }
+      if (!service) {
+        res.send(404, new Error('Service ' + req.params.serviceId + ' not found'));
+        return next();
+      }
+      if (!profile.isSubscribed(service._id)) {
+        res.send(404, new Error('Subscription not found'));
+        return next();
+      }
+      profile.unsubscribe(service);
+      res.send(204);
+      return next();
+    });
+  });
+}
+
+// Return subscriptions of a profile
+function subscriptions(req, res, next) {
+  Profile.findById(req.params.id, function (err, profile) {
+    if (err) {
+      res.send(500, new Error(err));
+      return next();
+    }
+    if (!profile) {
+      res.send(404, new Error('Profile ' + req.params.id + ' not found'));
+      return next();
+    }
+    res.send(200, profile.subscriptions);
+    return next();
   });
 }
 
@@ -237,3 +317,6 @@ exports.del = del;
 exports.getById = getById;
 exports.get = get;
 exports.mcLists = mcLists;
+exports.subscribe = subscribe;
+exports.unsubscribe = unsubscribe;
+exports.subscriptions = subscriptions;

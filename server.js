@@ -58,6 +58,10 @@ server.get(versionPrefix + 'profile/view', middleware.require.appOrUser, routes.
 server.post(versionPrefix + 'profile/view', middleware.require.appOrUser, routes.profileView.get);
 server.post(versionPrefix + 'profile/delete', middleware.require.appOrUser, routes.profileDelete.postAccess, routes.profileDelete.post);
 server.post(versionPrefix + 'profile/save', middleware.require.appOrUser, routes.profileSave.postAccess, routes.profileSave.post);
+// TODO: add proper permissions
+server.post(v01Prefix + '/profiles/:id/subscriptions', middleware.require.appOrUser, routes.services.subscribe);
+server.del(v01Prefix + '/profiles/:id/subscriptions/:serviceId', middleware.require.appOrUser, routes.services.unsubscribe);
+server.get(v01Prefix + '/profiles/:id/subscriptions', middleware.require.appOrUser, routes.services.subscriptions);
 
 server.get(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
 server.post(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
