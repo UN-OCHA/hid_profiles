@@ -100,10 +100,22 @@ describe('automated checkout testing', function() {
       done();
     });
 
-    after(function(done) {
-      Contact.remove({}, function() {
-        done();
+    it('should not automatically checkout if departure date is not passed by 14 days at least', function (done) {
+      var current = new Date();
+      var departureDate = new Date(current + (11 * 24 * 3600 * 1000));
+      var contact = new Contact({
+        type: 'local',
+        departureDate: departureDate.toISOString(),
+        email: [{
+          address: 'test@test.com',
+        }],
+        remindedCheckout: true,
+        remindedCheckoutDate: '2010-08-11T22:00:00.000Z',
+        status: true
       });
+      var out = contact.shouldDoAutomatedCheckout();
+      should(out).eql(false);
+      done();
     });
 
 });

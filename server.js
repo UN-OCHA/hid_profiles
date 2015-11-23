@@ -47,6 +47,8 @@ var v01Prefix = '/v0.1/';
 server.get(versionPrefix + 'app/data', middleware.require.appOrUser, routes.appData.get);
 
 server.get(versionPrefix + 'list/view', middleware.require.appOrUser, routes.listView.get);
+server.get(v01Prefix + 'lists/:id', middleware.require.appOrUser, routes.listView01.get);
+server.get(v01Prefix + 'lists/:id/profiles', middleware.require.appOrUser, routes.listView01.getProfiles);
 server.post(versionPrefix + 'list/save', middleware.require.appOrUser, routes.listSave.postAccess, routes.listSave.post);
 server.post(v01Prefix + 'lists/:id/contacts', middleware.require.appOrUser, routes.listSave.writeAccess, routes.listSave.addContact);
 server.del(v01Prefix + 'lists/:id', middleware.require.appOrUser, routes.listDelete.deleteAccess, routes.listDelete.del);
@@ -60,6 +62,8 @@ server.post(versionPrefix + 'profile/delete', middleware.require.appOrUser, rout
 server.post(versionPrefix + 'profile/save', middleware.require.appOrUser, routes.profileSave.postAccess, routes.profileSave.post);
 
 server.get(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
+server.put(v01Prefix + 'contacts/:id/checkin', middleware.require.appOrUser, routes.contactSave.putAccess, routes.contactSave.checkin);
+server.del(v01Prefix + 'contacts/:id/checkin', middleware.require.appOrUser, routes.contactSave.putAccess, routes.contactSave.checkout);
 server.post(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
 server.post(versionPrefix + 'contact/save', middleware.require.appOrUser, routes.contactSave.postAccess, routes.contactSave.post);
 server.post(versionPrefix + 'contact/resetpw', middleware.require.appOrUser, routes.contactSave.postAccess, routes.contactSave.resetPasswordPost);

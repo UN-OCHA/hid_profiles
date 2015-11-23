@@ -52,6 +52,79 @@ function postAccess(req, res, next) {
   return next(false);
 }
 
+function putAccess(req, res, next) {
+  if (req.apiAuth && req.apiAuth.mode) {
+    // Trusted API clients are allowed write access to all contacts.
+    if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+      return next();
+    }
+    // Users are allowed write access only to their own contacts, unless they
+    // have an administrative role.
+    else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
+      Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
+        if (err) {
+          res.send(500, new Error(err));
+          return next(err);
+        }
+        if (userProfile) {
+          req.apiAuth.userProfile = userProfile;
+        }
+
+        if (userProfile.roles && userProfile.roles.length && roles.has(userProfile, /[^admin$|^manager:|^editor:]/)) {
+          return next();
+        }
+
+        Contact.findById(req.params.id, function (err2, contact) {
+          if (err2) {
+            res.send(500, new Error(err2));
+            return next(err2);
+          }
+
+          if (!contact) {
+            res.send(404, new Error('Contact ' + req.params.id + ' not found'));
+            return next(true);
+          }
+
+          if (userProfile._id == contact._profile) {
+            return next();
+          }
+          else {
+            res.send(403, new Error('User not authorized to update contact.'));
+            return next(false);
+          }
+        });
+      });
+      return;
+    }
+  }
+  res.send(401, new Error('Client not authorized to update contact'));
+  return next(false);
+}
+
+function checkinHelper(req, res, next, stat) {
+  Contact.findByIdAndUpdate(req.params.id, { $set: { 'status': stat } }, function (err, contact) {
+    if (err) {
+      res.send(500, new Error(err));
+      return next();
+    }
+    if (contact) {
+      res.send(200, contact);
+    }
+    else {
+      res.send(404, new Error('Contact ' + req.params.id + ' not found'));
+    }
+    next();
+  });
+}
+
+function checkin(req, res, next) {
+  checkinHelper(req, res, next, true);
+}
+
+function checkout(req, res, next) {
+  checkinHelper(req, res, next, false);
+}
+
 function post(req, res, next) {
   var contactFields = {},
     contactModel = (new Contact(req.body)).toObject();
@@ -542,6 +615,12 @@ function post(req, res, next) {
       contactFields.revised = Date.now();
       if (!existingContact){
         contactFields.created = Date.now();
+      }
+
+      // Set remindedCheckout to false when changing the departureDate on an existing contact
+      // This handles the case where a user changes his departure date after receiving a reminder_checkout email
+      if (existingContact && origContact.departureDate && origContact.departureDate.toISOString() != contactFields.departureDate) {
+        contactFields.remindedCheckout = false;
       }
 
       Contact.update({_id: upsertId}, {'$set': contactFields}, {upsert: true}, function(err) {
@@ -1285,3 +1364,6 @@ exports.post = post;
 exports.postAccess = postAccess;
 exports.resetPasswordPost = resetPasswordPost;
 exports.notifyContact = notifyContact;
+exports.putAccess = putAccess;
+exports.checkin = checkin;
+exports.checkout = checkout;

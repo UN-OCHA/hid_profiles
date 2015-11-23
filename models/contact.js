@@ -138,20 +138,13 @@ contactSchema.methods.shouldDoAutomatedCheckout = function() {
   }
   var current = Date.now();
   var remindedCheckoutDate = new Date(this.remindedCheckoutDate);
-  if (current.valueOf() - remindedCheckoutDate.valueOf() > 12 * 24 * 3600 * 1000) {
+  var dep = new Date(this.departureDate);
+  if ((current.valueOf() - remindedCheckoutDate.valueOf() > 12 * 24 * 3600 * 1000) && (current.valueOf() - dep.valueOf() > 14 * 24 * 3600 * 1000)) {
     return true;
   }
   return false;
 };
 
-// Set remindedCheckout to false when changing the departureDate on an existing contact
-// This handles the case where a user changes his departure date after receiving a reminder_checkout email
-contactSchema.path('departureDate').set(function (newVal) {
-  if (this.departureDate && this.departureDate != newVal) {
-    this.remindedCheckout = false;
-  }
-  return newVal;
-});
 
 // Whether the contact has a local phone number entered or not
 contactSchema.methods.hasLocalPhoneNumber = function(callback) {
