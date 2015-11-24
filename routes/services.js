@@ -220,6 +220,10 @@ function subscribeAccess(req, res, next) {
 
 // Subscribe a profile to a service
 function subscribe(req, res, next) {
+  if (!req.body || !req.body.service || !req.body.email) {
+    res.send(400, new Error('Missing parameters'));
+    return next();
+  }
   Profile.findById(req.params.id, function (err, profile) {
     if (err) {
       res.send(500, new Error(err));
@@ -238,14 +242,26 @@ function subscribe(req, res, next) {
         res.send(400, new Error('Service ' + req.body.service + ' not found'));
         return next();
       }
-      if (profile.isSubscribed(service._id)) {
+      if (profile.isSubscribed(service)) {
         res.send(409, new Error('Profile ' + req.params.id + ' already subscribed to ' + req.body.service));
         return next();
       }
-      profile.subscribe(service);
-      res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
-      res.send(204);
-      return next();
+      if (!profile.subscriptions) {
+        profile.subscriptions = [];
+      }
+      profile.subscriptions.push({ service: service, email: req.body.email});
+      if (service.type == 'mailchimp') {
+        var mc = new mcapi.Mailchimp(service.mc_api_key);
+        mc.lists.subscribe({id: service.mc_list.id, email: {email: req.body.email}, double_optin: false}, function (data) {
+          profile.save();
+          res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
+          res.send(204);
+          return next();
+        }, function (error) {
+          res.send(500, new Error(error.error));
+          return next();
+        });
+      }
     });
   });
 }
@@ -263,20 +279,35 @@ function unsubscribe(req, res, next) {
     }
     Service.findById(req.params.serviceId, function (err2, service) {
       if (err2) {
-        res.send(500, new Error(err));
+        res.send(500, new Error(err2));
         return next();
       }
       if (!service) {
         res.send(404, new Error('Service ' + req.params.serviceId + ' not found'));
         return next();
       }
-      if (!profile.isSubscribed(service._id)) {
+      if (!profile.isSubscribed(service)) {
         res.send(404, new Error('Subscription not found'));
         return next();
       }
-      profile.unsubscribe(service);
-      res.send(204);
-      return next();
+      var index = -1;
+      for (var i = 0; i < profile.subscriptions.length; i++) {
+        if (profile.subscriptions[i].service.equals(service._id)) {
+          index = i;
+        }
+      }
+      if (service.type == 'mailchimp') {
+        var mc = new mcapi.Mailchimp(service.mc_api_key);
+        mc.lists.unsubscribe({id: service.mc_list.id, email: {email: profile.subscriptions[index].email}}, function (data) {
+          profile.subscriptions.splice(index, 1);
+          profile.save();
+          res.send(204);
+          return next();
+        }, function (error) {
+          res.send(500, new Error(error.error));
+          return next();
+        });
+      }
     });
   });
 }
