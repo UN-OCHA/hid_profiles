@@ -187,6 +187,37 @@ function mcLists(req, res, next) {
   });
 }
 
+// Middleware access function to check permissions to subscribe/unsubscribe a profile to a service
+function subscribeAccess(req, res, next) {
+  async.series([
+    function (cb) {
+      middleware.require.access(req, res, cb);
+    },
+    function (cb) {
+      if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+        return cb();
+      }
+      if (req.apiAuth.userProfile) {
+        if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, /[^admin$|^manager:]/)) {
+          return cb();
+        }
+        else {
+          if (req.apiAuth.userProfile._id == req.params.id) {
+            return cb();
+          }
+        }
+        res.send(403, new Error('You are not allowed to do this'));
+        cb(false);
+      }
+    }], function (err) {
+      if (err) {
+        return next(false);
+      }
+      next();
+    }
+  );
+}
+
 // Subscribe a profile to a service
 function subscribe(req, res, next) {
   Profile.findById(req.params.id, function (err, profile) {
@@ -204,7 +235,7 @@ function subscribe(req, res, next) {
         return next();
       }
       if (!service) {
-        res.send(400, new Error('Service ' + req.body.id + ' not found'));
+        res.send(400, new Error('Service ' + req.body.service + ' not found'));
         return next();
       }
       if (profile.isSubscribed(service._id)) {
@@ -274,6 +305,7 @@ exports.del = del;
 exports.getById = getById;
 exports.get = get;
 exports.mcLists = mcLists;
+exports.subscribeAccess = subscribeAccess;
 exports.subscribe = subscribe;
 exports.unsubscribe = unsubscribe;
 exports.subscriptions = subscriptions;
