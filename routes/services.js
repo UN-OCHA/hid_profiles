@@ -5,119 +5,77 @@ var async = require('async'),
   config = require('../config'),
   roles = require('../lib/roles.js'),
   mail = require('../mail'),
+  middleware = require('../middleware'),
   Service = require('../models').Service,
   Profile = require('../models').Profile;
 
-// Middleware function to grant/deny access to the listSave routes.
-function isAdminOrOwner(req, res, next) {
-  if (req.apiAuth && req.apiAuth.mode) {
-    // Trusted API clients are allowed write access to all profiles.
-    if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
-      return next();
-    }
-    else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
-      Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
-        if (err) {
-          res.send(500, new Error(err));
-          return next(false);
-        }
-        if (!userProfile) {
-          res.send(401, new Error('No profile associated to this user id was found'));
-          return next(false);
-        }
-
-        req.apiAuth.userProfile = userProfile;
-        if (userProfile.roles && userProfile.roles.length && roles.has(userProfile, /[^admin$|^manager:]/)) {
-          return next();
+// Middleware function to grant/deny access to the put and delete routes
+function putdelAccess(req, res, next) {
+  async.series([
+    function (cb) {
+      middleware.require.access(req, res, cb);
+    },
+    function (cb) {
+      if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+        return cb();
+      }
+      if (req.apiAuth.userProfile) {
+        if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, /[^admin$|^manager:]/)) {
+          return cb();
         }
         else {
-          Service.findById(req.params.id, function (err2, service) {
-            if (err2) {
+          Service.findById(req.params.id, function (err, service) {
+            if (err) {
               res.send(500, new Error(err));
-              return next(false);
+              return cb(false);
             }
             if (!service) {
               res.send(404, new Error('Service ' + req.params.id + ' not found'));
-              return next(false);
+              return cb(false);
             }
             if (service.userid != req.apiAuth.userId) {
               res.send(403, new Error('You are not allowed to do this'));
-              return next(false);
+              return cb(false);
             }
             else {
-              return next();
+              return cb();
             }
           });
         }
-      });
-    }
-  }
-  else {
-    res.send(401, new Error('Invalid authentication'));
-    return next(false);
-  }
+      }
+    }], function (err) {
+      if (err) {
+        return next(false);
+      }
+      next();
+    });
 }
 
-function isAdminOrManager(req, res, next) {
-  if (req.apiAuth && req.apiAuth.mode) {
-    // Trusted API clients are allowed write access to all profiles.
-    if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
-      return next();
-    }
-    else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
-      Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
-        if (err) {
-          res.send(500, new Error(err));
-          return next(false);
-        }
-        if (!userProfile) {
-          res.send(401, new Error('No profile associated to this user id was found'));
-          return next(false);
-        }
-
-        req.apiAuth.userProfile = userProfile;
-        if (userProfile.roles && userProfile.roles.length && roles.has(userProfile, /[^admin$|^manager:]/)) {
-          return next();
+function postAccess(req, res, next) {
+  async.series([
+    function (cb) {
+      middleware.require.access(req, res, cb);
+    },
+    function (cb) {
+      if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+        return cb();
+      }
+      if (req.apiAuth.userProfile) {
+        if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, /[^admin$|^manager:]/)) {
+          return cb();
         }
         else {
           res.send(403, new Error('You are not allowed to do this'));
-          return next(false);
+          return cb(false);
         }
-      });
+      }
+    }], function (err) {
+      if (err) {
+        return next(false);
+      }
+      next();
     }
-  }
-  else {
-    res.send(401, new Error('Invalid authentication'));
-    return next(false);
-  }
-}
-
-function getAccess(req, res, next) {
-  if (req.apiAuth && req.apiAuth.mode) {
-    // Trusted API clients are allowed write access to all profiles.
-    if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
-      return next();
-    }
-    else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
-      Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
-        if (err) {
-          res.send(500, new Error(err));
-          return next(false);
-        }
-        if (!userProfile) {
-          res.send(401, new Error('No profile associated to this user id was found'));
-          return next(false);
-        }
-
-        req.apiAuth.userProfile = userProfile;
-        return next();
-      });
-    }
-  }
-  else {
-    res.send(401, new Error('Invalid authentication'));
-    return next(false);
-  }
+  );
 }
 
 // Create a new service
@@ -308,9 +266,8 @@ function subscriptions(req, res, next) {
   });
 }
 
-exports.isAdminOrOwner = isAdminOrOwner;
-exports.isAdminOrManager = isAdminOrManager;
-exports.getAccess = getAccess;
+exports.putdelAccess = putdelAccess;
+exports.postAccess = postAccess;
 exports.post = post;
 exports.put = put;
 exports.del = del;
