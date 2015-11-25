@@ -314,7 +314,10 @@ function unsubscribe(req, res, next) {
 
 // Return subscriptions of a profile
 function subscriptions(req, res, next) {
-  Profile.findById(req.params.id, function (err, profile) {
+  Profile
+    .findById(req.params.id)
+    .populate('subscriptions.service')
+    .exec(function (err, profile) {
     if (err) {
       res.send(500, new Error(err));
       return next();
@@ -323,7 +326,7 @@ function subscriptions(req, res, next) {
       res.send(404, new Error('Profile ' + req.params.id + ' not found'));
       return next();
     }
-    res.send(200, profile.subscriptions);
+    res.send(200, profile.subscriptions.map(function (value) { value.service.sanitize(); return value;}));
     return next();
   });
 }
