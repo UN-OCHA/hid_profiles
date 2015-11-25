@@ -2,6 +2,7 @@ var restify = require('restify'),
   async = require('async'),
   config = require('../config'),
   Client = require('../models').Client,
+  Profile = require('../models').Profile,
   log = require('../log');
 
 function appOrUser(req, res, next) {
@@ -130,4 +131,34 @@ function flattenValues(q) {
   return tempList;
 }
 
+// Generic access middleware method
+function access(req, res, cb) {
+  if (req.apiAuth && req.apiAuth.mode) {
+    // Trusted API clients are allowed write access to all profiles.
+    if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+      return cb();
+    }
+    else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
+      Profile.findOne({userid: req.apiAuth.userId}, function (err, userProfile) {
+        if (err) {
+          res.send(500, new Error(err));
+          return cb(false);
+        }
+        if (!userProfile) {
+          res.send(401, new Error('No profile associated to this user id was found'));
+          return cb(false);
+        }
+
+        req.apiAuth.userProfile = userProfile;
+        return cb();
+      });
+    }
+  }
+  else {
+    res.send(401, new Error('Invalid authentication'));
+    return cb(false);
+  }
+}
+
 exports.appOrUser = appOrUser;
+exports.access = access;
