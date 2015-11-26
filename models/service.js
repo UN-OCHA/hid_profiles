@@ -12,7 +12,8 @@ var serviceSchema = new Schema({
   userid:   {type: String, required: true},
   type:     {type: String, required: true, enum: validType},
   mc_api_key: {type: String},
-  mc_list: { id: String, name: String}
+  mc_list: { id: String, name: String},
+  status: { type: Boolean, default: true}
 });
 
 serviceSchema.pre('remove', function (next) {

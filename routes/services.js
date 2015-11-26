@@ -110,24 +110,16 @@ function put(req, res, next) {
   });
 }
 
-// Delete a service
+// Delete a service: set its status to false
 function del(req, res, next) {
-  Service.findById(req.params.id, function(err, service) {
+  Service.findByIdAndUpdate(req.params.id, { $set: { status: false }}, function(err, service) {
     if (err) {
       res.send(500, new Error(err));
       return next();
     } else {
       if (service) {
-        service.remove(function(err, removed) {
-          if (!err) {
-            res.send(204);
-            return next();
-          }
-          else {
-            res.send(500, new Error(err));
-            return next();
-          }
-        });
+        res.send(204);
+        return next();
       }
       else {
         res.send(404, new Error("Service " + req.params.id + " not found"));
@@ -165,6 +157,9 @@ function get(req, res, next) {
   var params = {};
   if (req.query.q) {
     params = {name: new RegExp(req.query.q, 'i')};
+  }
+  if (req.query.status) {
+    params.status = req.query.status;
   }
   Service.find(params, function (err, services) {
     if (err) {
