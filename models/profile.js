@@ -1,5 +1,4 @@
-var mongoose = require('mongoose'),
-  mcapi = require('../node_modules/mailchimp-api/mailchimp');
+var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var contactListSchema = new Schema({

@@ -112,18 +112,28 @@ function put(req, res, next) {
 
 // Delete a service
 function del(req, res, next) {
-  Service.findByIdAndRemove(req.params.id, function(err, service) {
+  Service.findById(req.params.id, function(err, service) {
     if (err) {
       res.send(500, new Error(err));
+      return next();
     } else {
       if (service) {
-        res.send(204);
+        service.remove(function(err, removed) {
+          if (!err) {
+            res.send(204);
+            return next();
+          }
+          else {
+            res.send(500, new Error(err));
+            return next();
+          }
+        });
       }
       else {
         res.send(404, new Error("Service " + req.params.id + " not found"));
+        return next();
       }
     }
-    next();
   });
 }
 
@@ -179,12 +189,20 @@ function get(req, res, next) {
 
 // Get mailchimp lists from API key
 function mcLists(req, res, next) {
-  var mc = new mcapi.Mailchimp(req.query.mc_api_key);
-  mc.lists.list({}, function (listData) {
-    res.send(200, listData);
-  }, function (err) {
-    res.send(500, new Error(err.error));
-  });
+  if (req.query.mc_api_key) {
+    var mc = new mcapi.Mailchimp(req.query.mc_api_key);
+    mc.lists.list({}, function (listData) {
+      res.send(200, listData);
+      next();
+    }, function (err) {
+      res.send(500, new Error(err.error));
+      next();
+    });
+  }
+  else {
+    res.send(400, new Error('missing Mailchimp API key'));
+    next();
+  }
 }
 
 // Middleware access function to check permissions to subscribe/unsubscribe a profile to a service
