@@ -7,7 +7,8 @@ var async = require('async'),
   mail = require('../mail'),
   middleware = require('../middleware'),
   Service = require('../models').Service,
-  Profile = require('../models').Profile;
+  Profile = require('../models').Profile,
+  Contact = require('../models').Contact;
 
 // Middleware function to grant/deny access to the put and delete routes
 function putdelAccess(req, res, next) {
@@ -267,6 +268,9 @@ function subscribe(req, res, next) {
         var mc = new mcapi.Mailchimp(service.mc_api_key);
         mc.lists.subscribe({id: service.mc_list.id, email: {email: req.body.email}, double_optin: false}, function (data) {
           profile.save();
+          if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
+            subscribeEmail('notify_subscribe', req.body.email, profile, req.apiAuth.userProfile, service);
+          }
           res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
           res.send(204);
           return next();
@@ -278,6 +282,51 @@ function subscribe(req, res, next) {
     });
   });
 }
+
+function subscribeEmail(template, to, profile, adminProfile, service) {
+  var mailOptions = {
+    to: to,
+    subject: template === 'notify_subscribe' ? 'You have been subscribed to ' + service.name: 'You have been unsubscribed from ' + service.name,
+    serviceName: service.name
+  };
+
+  async.series([
+    function (cb) {
+      Contact.findOne({type: 'local', _profile: profile}, function (err, contact) {
+        if (err) {
+          return cb(err);
+        }
+        if (contact) {
+          mailOptions.recipientFirstName = contact.nameGiven;
+        }
+        return cb();
+      });
+    },
+    function (cb) {
+      Contact.findOne({type: 'local', _profile: adminProfile}, function (err, contact) {
+        if (err) {
+          return cb(err);
+        }
+        if (contact) {
+          mailOptions.cc = contact.mainEmail(false);
+          console.log(mailOptions.cc);
+          mailOptions.adminName = contact.fullName();
+        }
+        return cb();
+      });
+    }], function (err) {
+      if (!err) {
+        // Send mail
+        mail.sendTemplate(template, mailOptions, function (err, info) {
+          if (err) {
+            log.warn(err);
+          }
+        });
+      }
+    }
+  );
+}
+
 
 // Unsubscribe a profile from a service
 function unsubscribe(req, res, next) {
@@ -312,8 +361,12 @@ function unsubscribe(req, res, next) {
       if (service.type == 'mailchimp') {
         var mc = new mcapi.Mailchimp(service.mc_api_key);
         mc.lists.unsubscribe({id: service.mc_list.id, email: {email: profile.subscriptions[index].email}}, function (data) {
+          var email = profile.subscriptions[index].email;
           profile.subscriptions.splice(index, 1);
           profile.save();
+          if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
+            subscribeEmail('notify_unsubscribe', email, profile, req.apiAuth.userProfile, service);
+          }
           res.send(204);
           return next();
         }, function (error) {
