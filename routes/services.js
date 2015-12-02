@@ -275,6 +275,12 @@ function subscribe(req, res, next) {
           res.send(204);
           return next();
         }, function (error) {
+          if (error.name === 'List_AlreadySubscribed') {
+            profile.save();
+            res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
+            res.send(204);
+            return next();
+          }
           res.send(500, new Error(error.error));
           return next();
         });
@@ -370,6 +376,13 @@ function unsubscribe(req, res, next) {
           res.send(204);
           return next();
         }, function (error) {
+          // if email is already unsubscribed, perform the action
+          if (error.name === 'List_NotSubscribed') {
+            profile.subscriptions.splice(index, 1);
+            profile.save();
+            res.send(204);
+            return next();
+          }
           res.send(500, new Error(error.error));
           return next();
         });
