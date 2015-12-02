@@ -377,7 +377,7 @@ function unsubscribe(req, res, next) {
           return next();
         }, function (error) {
           // if email is already unsubscribed, perform the action
-          if (error.name === 'List_NotSubscribed') {
+          if (error.name === 'Email_NotExists') {
             profile.subscriptions.splice(index, 1);
             profile.save();
             res.send(204);
