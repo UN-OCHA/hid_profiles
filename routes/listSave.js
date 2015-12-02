@@ -215,7 +215,7 @@ function post(req, res, next) {
         updatedList.users = req.body.users;
       }
 
-      if (req.body.privacy && (req.body.privacy == 'me' || req.body.privacy == 'all' || req.body.privacy == 'verified' || req.body.privacy == 'some')) {
+      if (req.body.privacy) {
         updatedList.privacy = req.body.privacy;
       }
 
