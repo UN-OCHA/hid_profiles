@@ -21,7 +21,7 @@ function putdelAccess(req, res, next) {
         return cb();
       }
       if (req.apiAuth.userProfile) {
-        if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, /[^admin$|^manager:]/)) {
+        if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && (roles.has(req.apiAuth.userProfile, 'admin') || roles.has(req.apiAuth.userProfile, 'manager'))) {
           return cb();
         }
         else {
@@ -62,7 +62,7 @@ function postAccess(req, res, next) {
         return cb();
       }
       if (req.apiAuth.userProfile) {
-        if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, /[^admin$|^manager:]/)) {
+        if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && (roles.has(req.apiAuth.userProfile, 'admin') || roles.has(req.apiAuth.userProfile, 'manager'))) {
           return cb();
         }
         else {
@@ -137,7 +137,7 @@ function getById(req, res, next) {
       res.send(500, new Error(err));
     } else {
       if (service) {
-        if (req.apiAuth.userId == service.userid || (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, /[^admin$]/))) {
+        if (req.apiAuth.userId == service.userid || (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, 'admin'))) {
           res.send(200, service);
         }
         else {
@@ -165,12 +165,15 @@ function get(req, res, next) {
   if (req.query.hidden) {
     params.hidden = req.query.hidden;
   }
+  if (!roles.has(req.apiAuth.userProfile, 'admin') && !roles.has(req.apiAuth.userProfile, 'manager')) {
+    params = { $and: [params, { $or: [ {hidden: false }, {userid: req.apiAuth.userProfile.userId } ] } ] };
+  }
   Service.find(params, function (err, services) {
     if (err) {
       res.send(500, new Error(err));
     }
     else {
-      if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, /[^admin$]/)) {
+      if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, 'admin')) {
           res.send(200, services);
       }
       else {
@@ -215,7 +218,7 @@ function subscribeAccess(req, res, next) {
         return cb();
       }
       if (req.apiAuth.userProfile) {
-        if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, /[^admin$|^manager:]/)) {
+        if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && (roles.has(req.apiAuth.userProfile, 'admin') || roles.has(req.apiAuth.userProfile, 'manager'))) {
           return cb();
         }
         else {
