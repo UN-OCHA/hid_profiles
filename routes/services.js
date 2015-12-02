@@ -162,6 +162,9 @@ function get(req, res, next) {
   if (req.query.status) {
     params.status = req.query.status;
   }
+  if (req.query.hidden) {
+    params.hidden = req.query.hidden;
+  }
   Service.find(params, function (err, services) {
     if (err) {
       res.send(500, new Error(err));
