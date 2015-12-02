@@ -82,9 +82,19 @@ function get(req, res, next) {
               });
             }
 
+            var isInList = [];
+            if (list.privacy == 'inlist') {
+              isInList = list.contacts.filter(function (obj) {
+                if (profile._id.equals(obj._profile._id)) {
+                  return true;
+                }
+              });
+            }
+
             if (req.apiAuth.userId != list.userid && !checkEditors.length && (list.privacy == 'me' 
               || (list.privacy == 'verified' && !profile.verified) 
-              || (list.privacy == 'some' && !check.length))) {
+              || (list.privacy == 'some' && !check.length)
+              || (list.privacy == 'inlist' && !isInList.length))) {
               res.send(403, 'Access Denied');
               res.end();
               return callback(true);
