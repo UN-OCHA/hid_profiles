@@ -13,7 +13,8 @@ var serviceSchema = new Schema({
   type:     {type: String, required: true, enum: validType},
   mc_api_key: {type: String},
   mc_list: { id: String, name: String},
-  status: { type: Boolean, default: true}
+  status: { type: Boolean, default: true},
+  hidden: { type: Boolean, default: false}
 });
 
 serviceSchema.pre('remove', function (next) {
