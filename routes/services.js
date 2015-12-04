@@ -304,7 +304,7 @@ function subscribeEmail(template, to, profile, adminProfile, service) {
 
   async.series([
     function (cb) {
-      Contact.findOne({type: 'local', _profile: profile}, function (err, contact) {
+      Contact.findOne({type: 'global', _profile: profile}, function (err, contact) {
         if (err) {
           return cb(err);
         }
@@ -315,13 +315,12 @@ function subscribeEmail(template, to, profile, adminProfile, service) {
       });
     },
     function (cb) {
-      Contact.findOne({type: 'local', _profile: adminProfile}, function (err, contact) {
+      Contact.findOne({type: 'global', _profile: adminProfile}, function (err, contact) {
         if (err) {
           return cb(err);
         }
         if (contact) {
           mailOptions.cc = contact.mainEmail(false);
-          console.log(mailOptions.cc);
           mailOptions.adminName = contact.fullName();
         }
         return cb();
