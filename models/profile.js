@@ -27,6 +27,7 @@ var profileSchema = new mongoose.Schema({
   orgEditorRoles:     [ orgEditorRoleSchema ],
   verified:           Boolean,
   contactLists:       [ contactListSchema ],
+  subscriptions:      [ {service: {type: Schema.Types.ObjectId, ref: 'Service'}, email: String} ]
 });
 
 profileSchema.methods.isOrphan = function() {
@@ -35,6 +36,19 @@ profileSchema.methods.isOrphan = function() {
   }
   else {
     return true;
+  }
+};
+
+// Check if a user is subscribed to a service
+profileSchema.methods.isSubscribed = function (service) {
+  if (this.subscriptions && this.subscriptions.length) {
+    var found = this.subscriptions.filter(function (item) {
+      return item.service.equals(service._id);
+    });
+    return found.length ? true : false;
+  }
+  else {
+    return false;
   }
 };
 
