@@ -1,13 +1,17 @@
 <p>Dear <%= recipientFirstName %>,</p>
 
-<p>We wanted to let you know that one of our locally based managers <%= adminName %>, subscribed your email address, <%= to %>, to the service <%= serviceName %>.</p>
+<p><%= adminName %> has just added you to the subscription service <%= serviceName %> on Humanitarian ID.</p>
 
-<p>If you feel that this action was not correct, simply log into your Humanitarian ID account and remove this subscription.</p>
+<p>If you do not wish to subscribe to <%= serviceName %>, please log into Humanitarian ID and unsubscribe from <%= serviceName %>.</p>
 
 <% include ../includes/footer_en %>
 
 <hr />
 
 <p>Bonjour <%= recipientFirstName %>,</p>
+
+<p><%= adminName %> vient juste de vous inscrire au service <%= serviceName %> sur Humanitarian ID.</p>
+
+<p>Si vous ne voulez pas être inscrit, veuillez vous connecter sur Humanitarian ID et vous désinscrire de <%= serviceName %>.</p>
 
 <% include ../includes/footer_fr %>
