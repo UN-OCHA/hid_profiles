@@ -322,6 +322,12 @@ function subscribeEmail(template, to, profile, adminProfile, service) {
         if (contact) {
           mailOptions.cc = contact.mainEmail(false);
           mailOptions.adminName = contact.fullName();
+          if (template === 'notify_subscribe') {
+            mailOptions.subject = mailOptions.adminName + ' has subscribed you to ' + service.name + ' on Humanitarian ID';
+          }
+          else {
+            mailOptions.subject = mailOptions.adminName + ' has unsubscribed you from ' + service.name + ' on Humanitarian ID';
+          }
         }
         return cb();
       });
