@@ -14,7 +14,8 @@ var serviceSchema = new Schema({
   mc_api_key: {type: String},
   mc_list: { id: String, name: String},
   status: { type: Boolean, default: true},
-  hidden: { type: Boolean, default: false}
+  hidden: { type: Boolean, default: false},
+  locations: [ { name: String, remote_id: String } ]
 });
 
 serviceSchema.pre('remove', function (next) {
