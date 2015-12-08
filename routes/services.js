@@ -165,6 +165,9 @@ function get(req, res, next) {
   if (req.query.hidden) {
     params.hidden = req.query.hidden;
   }
+  if (req.query.location) {
+    params['locations.remote_id'] = req.query.location;
+  }
   if (!roles.has(req.apiAuth.userProfile, 'admin') && !roles.has(req.apiAuth.userProfile, 'manager')) {
     params = { $and: [params, { $or: [ {hidden: false }, {userid: req.apiAuth.userProfile.userId } ] } ] };
   }
