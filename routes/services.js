@@ -79,10 +79,37 @@ function postAccess(req, res, next) {
   );
 }
 
+function managerAllowedLocations(req, service) {
+  if (req.apiAuth.mode !== 'client' && !roles.has(req.apiAuth.userProfile, 'admin') && service.locations.length > 0) {
+    // Check the locations to make sure the user has the right to add them
+    var managerLocs = [];
+    req.apiAuth.userProfile.roles.forEach(function (val) {
+      managerLocs.push(val.replace('manager:', ''));
+    });
+    var invalid = service.locations.filter(function (loc) {
+      var valid = false;
+      for (var i = 0; i < managerLocs.length; i++) {
+        if (loc.remote_id === managerLocs[i]) {
+          valid = true;
+        }
+      }
+      if (!valid) return loc;
+    });
+    return invalid.length ? false : true;
+  }
+  else {
+    return true;
+  }
+}
+
 // Create a new service
 function post(req, res, next) {
   // TODO: verify that the service is valid (ie API key is valid)
   var serviceModel = new Service(req.body);
+  if (!managerAllowedLocations(req, serviceModel)) {
+    res.send(400, new Error('Invalid locations in your service'));
+    return next();
+  }
   serviceModel.save(function(err, service) {
     if (err) {
       res.send(400, new Error(err));
@@ -97,6 +124,11 @@ function post(req, res, next) {
 
 // Update an existing service
 function put(req, res, next) {
+  if (!managerAllowedLocations(req, req.body)) {
+    res.send(400, new Error('Invalid locations in your service'));
+    return next();
+  }
+
   Service.findByIdAndUpdate(req.params.id, req.body, function(err, service) {
     if (err) {
       res.send(400, new Error(err));
