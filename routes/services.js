@@ -129,7 +129,10 @@ function put(req, res, next) {
     return next();
   }
 
-  Service.findByIdAndUpdate(req.params.id, req.body, function(err, service) {
+  Service
+    .findByIdAndUpdate(req.params.id, req.body)
+    .populate('owners')
+    .exec(function(err, service) {
     if (err) {
       res.send(400, new Error(err));
     } else {
@@ -164,7 +167,10 @@ function del(req, res, next) {
 
 // Find a service by ID
 function getById(req, res, next) {
-  Service.findById(req.params.id, function(err, service) {
+  Service
+    .findById(req.params.id)
+    .populate('owners')
+    .exec(function(err, service) {
     if (err) {
       res.send(500, new Error(err));
     } else {
