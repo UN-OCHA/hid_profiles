@@ -25,7 +25,10 @@ function putdelAccess(req, res, next) {
           return cb();
         }
         else {
-          Service.findById(req.params.id, function (err, service) {
+          Service
+            .findById(req.params.id)
+            .populate('owners')
+            .exec(function (err, service) {
             if (err) {
               res.send(500, new Error(err));
               return cb(false);
@@ -37,6 +40,18 @@ function putdelAccess(req, res, next) {
             if (service.userid != req.apiAuth.userId) {
               res.send(403, new Error('You are not allowed to do this'));
               return cb(false);
+            }
+            // check if user owns the service
+            if (service.owners) {
+              var owner = service.owners.filter(function (elt) {
+                if (elt.userid === req.apiAuth.userId) {
+                  return elt;
+                }
+              });
+              if (!owner.length) {
+                res.send(403, new Error('You are not allowed to do this'));
+                return cb(false);
+              }
             }
             else {
               return cb();
@@ -129,7 +144,10 @@ function put(req, res, next) {
     return next();
   }
 
-  Service.findByIdAndUpdate(req.params.id, req.body, function(err, service) {
+  Service
+    .findByIdAndUpdate(req.params.id, req.body)
+    .populate('owners')
+    .exec(function(err, service) {
     if (err) {
       res.send(400, new Error(err));
     } else {
@@ -164,12 +182,23 @@ function del(req, res, next) {
 
 // Find a service by ID
 function getById(req, res, next) {
-  Service.findById(req.params.id, function(err, service) {
+  Service
+    .findById(req.params.id)
+    .populate('owners')
+    .exec(function(err, service) {
     if (err) {
       res.send(500, new Error(err));
     } else {
       if (service) {
-        if (req.apiAuth.userId == service.userid || (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, 'admin'))) {
+        var isOwner = false;
+        if (service.owners) {
+          service.owners.forEach(function (owner) {
+            if(owner._id.equals(req.apiAuth.userProfile._id)) {
+              isOwner = true;
+            }
+          });
+        }
+        if (req.apiAuth.userId == service.userid || (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, 'admin')) || isOwner) {
           res.send(200, service);
         }
         else {
