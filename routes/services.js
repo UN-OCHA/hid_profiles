@@ -25,7 +25,10 @@ function putdelAccess(req, res, next) {
           return cb();
         }
         else {
-          Service.findById(req.params.id, function (err, service) {
+          Service
+            .findById(req.params.id)
+            .populate('owners')
+            .exec(function (err, service) {
             if (err) {
               res.send(500, new Error(err));
               return cb(false);
@@ -37,6 +40,18 @@ function putdelAccess(req, res, next) {
             if (service.userid != req.apiAuth.userId) {
               res.send(403, new Error('You are not allowed to do this'));
               return cb(false);
+            }
+            // check if user owns the service
+            if (service.owners) {
+              var owner = service.owners.filter(function (elt) {
+                if (elt.userid === req.apiAuth.userId) {
+                  return elt;
+                }
+              });
+              if (!owner.length) {
+                res.send(403, new Error('You are not allowed to do this'));
+                return cb(false);
+              }
             }
             else {
               return cb();
@@ -79,10 +94,37 @@ function postAccess(req, res, next) {
   );
 }
 
+function managerAllowedLocations(req, service) {
+  if (req.apiAuth.mode !== 'client' && !roles.has(req.apiAuth.userProfile, 'admin') && service.locations.length > 0) {
+    // Check the locations to make sure the user has the right to add them
+    var managerLocs = [];
+    req.apiAuth.userProfile.roles.forEach(function (val) {
+      managerLocs.push(val.replace('manager:', ''));
+    });
+    var invalid = service.locations.filter(function (loc) {
+      var valid = false;
+      for (var i = 0; i < managerLocs.length; i++) {
+        if (loc.remote_id === managerLocs[i]) {
+          valid = true;
+        }
+      }
+      if (!valid) return loc;
+    });
+    return invalid.length ? false : true;
+  }
+  else {
+    return true;
+  }
+}
+
 // Create a new service
 function post(req, res, next) {
   // TODO: verify that the service is valid (ie API key is valid)
   var serviceModel = new Service(req.body);
+  if (!managerAllowedLocations(req, serviceModel)) {
+    res.send(400, new Error('Invalid locations in your service'));
+    return next();
+  }
   serviceModel.save(function(err, service) {
     if (err) {
       res.send(400, new Error(err));
@@ -97,7 +139,15 @@ function post(req, res, next) {
 
 // Update an existing service
 function put(req, res, next) {
-  Service.findByIdAndUpdate(req.params.id, req.body, function(err, service) {
+  if (!managerAllowedLocations(req, req.body)) {
+    res.send(400, new Error('Invalid locations in your service'));
+    return next();
+  }
+
+  Service
+    .findByIdAndUpdate(req.params.id, req.body)
+    .populate('owners')
+    .exec(function(err, service) {
     if (err) {
       res.send(400, new Error(err));
     } else {
@@ -132,12 +182,23 @@ function del(req, res, next) {
 
 // Find a service by ID
 function getById(req, res, next) {
-  Service.findById(req.params.id, function(err, service) {
+  Service
+    .findById(req.params.id)
+    .populate('owners')
+    .exec(function(err, service) {
     if (err) {
       res.send(500, new Error(err));
     } else {
       if (service) {
-        if (req.apiAuth.userId == service.userid || (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, 'admin'))) {
+        var isOwner = false;
+        if (service.owners) {
+          service.owners.forEach(function (owner) {
+            if(owner._id.equals(req.apiAuth.userProfile._id)) {
+              isOwner = true;
+            }
+          });
+        }
+        if (req.apiAuth.userId == service.userid || (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, 'admin')) || isOwner) {
           res.send(200, service);
         }
         else {
@@ -164,6 +225,9 @@ function get(req, res, next) {
   }
   if (req.query.hidden) {
     params.hidden = req.query.hidden;
+  }
+  if (req.query.location) {
+    params['locations.remote_id'] = req.query.location;
   }
   if (!roles.has(req.apiAuth.userProfile, 'admin') && !roles.has(req.apiAuth.userProfile, 'manager')) {
     params = { $and: [params, { $or: [ {hidden: false }, {userid: req.apiAuth.userProfile.userId } ] } ] };

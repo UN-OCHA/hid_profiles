@@ -235,7 +235,7 @@ function post(req, res, next) {
     function (cb) {
       // If invitation sent on behalf of local admin/inviter
       if (inviter && inviter.profileid) {
-        Contact.findOne({'_profile': inviter.profileid}, function (err, contact) {
+        Contact.findOne({'type': 'global', '_profile': inviter.profileid}, function (err, contact) {
           if (!err && contact) {
             inviterRequest = {};
             inviterRequest.name = contact.nameGiven + ' ' + contact.nameFamily;
