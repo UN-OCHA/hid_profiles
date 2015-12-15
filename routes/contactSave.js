@@ -577,7 +577,7 @@ function post(req, res, next) {
 
         //If the user currently has orgEditorRoles and the request contains a different length, 
         //then make setOrgEditorRoles true so we update the profile
-        if (userProfile.orgEditorRoles && newOrgEditorRoles ){
+        if (userProfile && userProfile.orgEditorRoles && newOrgEditorRoles ){
           if (userProfile.orgEditorRoles.length != newOrgEditorRoles.length){
             setOrgEditorRoles = true;
           }
