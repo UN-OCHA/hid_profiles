@@ -16,6 +16,14 @@ var serviceCredentialsSchema = new Schema({
   }
 });
 
+// Sanitize service credentials before presenting it to users
+serviceCredentialsSchema.methods.sanitize = function() {
+  if (this.googlegroup) {
+    this.googlegroup.secrets = undefined;
+    this.googlegroup.token = undefined;
+  }
+};
+
 mongoose.model('ServiceCredentials', serviceCredentialsSchema);
 
 var ServiceCredentials = mongoose.model('ServiceCredentials');
