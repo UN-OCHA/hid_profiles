@@ -10,3 +10,4 @@ exports.listView01 = require('./listView01');
 exports.listDelete = require('./listDelete');
 exports.listFollow = require('./listFollow');
 exports.services = require('./services');
+exports.serviceCredentials = require('./serviceCredentials');

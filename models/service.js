@@ -3,7 +3,7 @@ var mongoose = require('mongoose'),
 var Schema = mongoose.Schema;
 
 var validType = {
-  values: 'mailchimp'.split(' '),
+  values: 'mailchimp googlegroup'.split(' '),
   message: '{VALUE} is not a valid service type.'
 };
 
@@ -13,6 +13,10 @@ var serviceSchema = new Schema({
   type:     {type: String, required: true, enum: validType},
   mc_api_key: {type: String},
   mc_list: { id: String, name: String},
+  googlegroup: {
+    domain: { type: String },
+    group: { id: String, name: String }
+  },
   status: { type: Boolean, default: true},
   hidden: { type: Boolean, default: false},
   locations: [ { name: String, remote_id: String } ],

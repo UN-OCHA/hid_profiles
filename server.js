@@ -79,6 +79,8 @@ server.del(v01Prefix + '/services/:id', middleware.require.appOrUser, routes.ser
 server.get(v01Prefix + '/services', middleware.require.appOrUser, middleware.require.access, routes.services.get);
 server.get(v01Prefix + '/services/:id', middleware.require.appOrUser, middleware.require.access, routes.services.getById);
 server.get(v01Prefix + '/services/mailchimp/lists', middleware.require.appOrUser, middleware.require.access, routes.services.mcLists);
+server.get(v01Prefix + '/services/google/groups', middleware.require.appOrUser, middleware.require.access, routes.services.googleGroups);
+server.get(v01Prefix + '/service_credentials', middleware.require.appOrUser, middleware.require.access, routes.serviceCredentials.get);
 
 // Provide handling for OPTIONS requests for CORS.
 server.opts('.*', function(req, res, next) {
