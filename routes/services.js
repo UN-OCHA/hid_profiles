@@ -122,7 +122,6 @@ function managerAllowedLocations(req, service) {
 
 // Helper function to verify integrity of data provided to put and post
 function verifyService(req, res, cb) {
-  // TODO: verify that mailchimp API key is valid
   if (!managerAllowedLocations(req, req.body)) {
     res.send(400, new Error('Invalid locations in your service'));
     return cb(true);
@@ -142,11 +141,32 @@ function verifyService(req, res, cb) {
         res.send(400, new Error('Invalid domain provided for googlegroup'));
         return cb(true);
       }
-      return cb();
+      Service.findOne({status: true, type: 'googlegroup', 'googlegroup.domain': req.body.googlegroup.domain, 'googlegroup.group.id': req.body.googlegroup.group.id}, function (err, srv) {
+        if (err) {
+          res.send(500, new Error(err));
+          return cb(true);
+        }
+        if (srv) {
+          res.send(409, new Error('A connection to this service has already been made'));
+          return cb(true);
+        }
+        return cb();
+      });
     });
   }
-  else {
-    return cb();
+  else if (req.body.type === 'mailchimp') {
+    // TODO: verify that mailchimp API key is valid
+    Service.findOne({status: true, type: 'mailchimp', 'mc_api_key': req.body.mc_api_key, 'mc_list.id': req.body.mc_list.id}, function (err, srv) {
+      if (err) {
+        res.send(500, new Error(err));
+        return cb(true);
+      }
+      if (srv) {
+        res.send(409, new Error('A connection to this service has already been made'));
+        return cb(true);
+      }
+      return cb();
+    });
   }
 }
 
