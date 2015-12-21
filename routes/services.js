@@ -1,5 +1,7 @@
 var async = require('async'),
   _ = require('lodash'),
+  google = require('googleapis'),
+  googleAuth = require('google-auth-library'),
   mcapi = require('../node_modules/mailchimp-api/mailchimp'),
   log = require('../log'),
   config = require('../config'),
@@ -7,6 +9,7 @@ var async = require('async'),
   mail = require('../mail'),
   middleware = require('../middleware'),
   Service = require('../models').Service,
+  ServiceCredentials = require('../models').ServiceCredentials,
   Profile = require('../models').Profile,
   Contact = require('../models').Contact;
 
@@ -117,47 +120,98 @@ function managerAllowedLocations(req, service) {
   }
 }
 
+// Helper function to verify integrity of data provided to put and post
+function verifyService(req, res, cb) {
+  if (!managerAllowedLocations(req, req.body)) {
+    res.send(400, new Error('Invalid locations in your service'));
+    return cb(true);
+  }
+  // If service is a google group, verify that it has a valid domain
+  if (req.body.type === 'googlegroup') {
+    if (!req.body.googlegroup || !req.body.googlegroup.domain) {
+      res.send(400, new Error('No domain provided for google group'));
+      return cb(true);
+    }
+    ServiceCredentials.findOne({type: 'googlegroup', 'googlegroup.domain': req.body.googlegroup.domain}, function (err, creds) {
+      if (err) {
+        res.send(500, new Error(err));
+        return cb(true);
+      }
+      if (!creds) {
+        res.send(400, new Error('Invalid domain provided for googlegroup'));
+        return cb(true);
+      }
+      Service.findOne({status: true, type: 'googlegroup', 'googlegroup.domain': req.body.googlegroup.domain, 'googlegroup.group.id': req.body.googlegroup.group.id}, function (err, srv) {
+        if (err) {
+          res.send(500, new Error(err));
+          return cb(true);
+        }
+        if (srv) {
+          res.send(409, new Error('A connection to this service has already been made'));
+          return cb(true);
+        }
+        return cb();
+      });
+    });
+  }
+  else if (req.body.type === 'mailchimp') {
+    // TODO: verify that mailchimp API key is valid
+    Service.findOne({status: true, type: 'mailchimp', 'mc_api_key': req.body.mc_api_key, 'mc_list.id': req.body.mc_list.id}, function (err, srv) {
+      if (err) {
+        res.send(500, new Error(err));
+        return cb(true);
+      }
+      if (srv) {
+        res.send(409, new Error('A connection to this service has already been made'));
+        return cb(true);
+      }
+      return cb();
+    });
+  }
+}
+
 // Create a new service
 function post(req, res, next) {
   // TODO: verify that the service is valid (ie API key is valid)
-  var serviceModel = new Service(req.body);
-  if (!managerAllowedLocations(req, serviceModel)) {
-    res.send(400, new Error('Invalid locations in your service'));
-    return next();
-  }
-  serviceModel.save(function(err, service) {
+  verifyService(req, res, function (err) {
     if (err) {
-      res.send(400, new Error(err));
-    } else {
-      res.status(201);
-      res.header('Location', '/v0.1/services/' + service._id);
-      res.json(service);
+      return next();
     }
-    next();
+    var serviceModel = new Service(req.body);
+    serviceModel.save(function(err, service) {
+      if (err) {
+        res.send(400, new Error(err));
+      } else {
+        res.status(201);
+        res.header('Location', '/v0.1/services/' + service._id);
+        res.json(service);
+      }
+      next();
+    });
   });
 }
 
 // Update an existing service
 function put(req, res, next) {
-  if (!managerAllowedLocations(req, req.body)) {
-    res.send(400, new Error('Invalid locations in your service'));
-    return next();
-  }
-
-  Service
-    .findByIdAndUpdate(req.params.id, req.body)
-    .populate('owners')
-    .exec(function(err, service) {
+  verifyService(req, res, function (err) {
     if (err) {
-      res.send(400, new Error(err));
-    } else {
-      if (service) {
-        res.send(200, service);
-      } else {
-        res.send(404, new Error('Service ' + req.params.id + ' not found'));
-      }
+      return next();
     }
-    next();
+    Service
+      .findByIdAndUpdate(req.params.id, req.body)
+      .populate('owners')
+      .exec(function(err, service) {
+        if (err) {
+          res.send(400, new Error(err));
+        } else {
+          if (service) {
+            res.send(200, service);
+          } else {
+            res.send(404, new Error('Service ' + req.params.id + ' not found'));
+          }
+        }
+        next();
+      });
   });
 }
 
@@ -271,6 +325,60 @@ function mcLists(req, res, next) {
   }
 }
 
+/**
+ * Create an OAuth2 client with the given credentials, and then execute the
+ * given callback function.
+ *
+ * @param {Object} credentials The authorization client credentials.
+ * @param {function} callback The callback to call with the authorized client.
+ */
+function googleGroupsAuthorize(credentials, callback) {
+  var clientSecret = credentials.secrets.installed.client_secret;
+  var clientId = credentials.secrets.installed.client_id;
+  var redirectUrl = credentials.secrets.installed.redirect_uris[0];
+  var auth = new googleAuth();
+  var oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+  oauth2Client.credentials = credentials.token;
+  callback(oauth2Client);
+}
+
+// Get google groups from a domain
+function googleGroups(req, res, next) {
+  if (req.query.domain) {
+    // Find service credentials associated to domain
+    ServiceCredentials.findOne({ type: 'googlegroup', 'googlegroup.domain': req.query.domain}, function (err, creds) {
+      if (err) {
+        res.send(500, new Error(err));
+        return next();
+      }
+      if (!creds) {
+        res.send(400, new Error('Invalid domain'));
+        return next();
+      }
+      googleGroupsAuthorize(creds.googlegroup, function (auth) {
+        var service = google.admin('directory_v1');
+        service.groups.list({
+          auth: auth,
+          customer: 'my_customer',
+          maxResults: 10
+        }, function (err, response) {
+          if (err) {
+            res.send(500, new Error(err));
+            return next();
+          }
+          var groups = response.groups;
+          res.send(200, groups);
+          next();
+        });
+      });
+    });
+  }
+  else {
+    res.send(400, new Error('missing domain URL'));
+    next();
+  }
+}
+
 // Middleware access function to check permissions to subscribe/unsubscribe a profile to a service
 function subscribeAccess(req, res, next) {
   async.series([
@@ -334,7 +442,7 @@ function subscribe(req, res, next) {
         profile.subscriptions = [];
       }
       profile.subscriptions.push({ service: service, email: req.body.email});
-      if (service.type == 'mailchimp') {
+      if (service.type === 'mailchimp') {
         var mc = new mcapi.Mailchimp(service.mc_api_key);
         mc.lists.subscribe({id: service.mc_list.id, email: {email: req.body.email}, double_optin: false}, function (data) {
           profile.save();
@@ -353,6 +461,41 @@ function subscribe(req, res, next) {
           }
           res.send(500, new Error(error.error));
           return next();
+        });
+      }
+      else if (service.type === 'googlegroup') {
+        // Subscribe email to google group
+        ServiceCredentials.findOne({ type: 'googlegroup', 'googlegroup.domain': service.googlegroup.domain}, function (err, creds) {
+          if (err) {
+            res.send(500, new Error(err));
+            return next();
+          }
+          if (!creds) {
+            res.send(400, new Error('Invalid domain'));
+            return next();
+          }
+          googleGroupsAuthorize(creds.googlegroup, function (auth) {
+            var gservice = google.admin('directory_v1');
+            gservice.members.insert({
+              auth: auth,
+              groupKey: service.googlegroup.group.id,
+              resource: { 'email': req.body.email, 'role': 'MEMBER' }
+            }, function (err, response) {
+              if (!err || (err && err.code === 409)) {
+                profile.save();
+                if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
+                  subscribeEmail('notify_subscribe', req.body.email, profile, req.apiAuth.userProfile, service);
+                }
+                res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
+                res.send(204);
+                return next();
+              }
+              else {
+                res.send(500, new Error(err));
+                return next();
+              }
+            });
+          });
         });
       }
     });
@@ -439,7 +582,7 @@ function unsubscribe(req, res, next) {
           index = i;
         }
       }
-      if (service.type == 'mailchimp') {
+      if (service.type === 'mailchimp') {
         var mc = new mcapi.Mailchimp(service.mc_api_key);
         mc.lists.unsubscribe({id: service.mc_list.id, email: {email: profile.subscriptions[index].email}}, function (data) {
           var email = profile.subscriptions[index].email;
@@ -460,6 +603,41 @@ function unsubscribe(req, res, next) {
           }
           res.send(500, new Error(error.error));
           return next();
+        });
+      }
+      else if (service.type === 'googlegroup') {
+        // Unsubscribe user from google group
+        ServiceCredentials.findOne({ type: 'googlegroup', 'googlegroup.domain': service.googlegroup.domain}, function (err, creds) {
+          if (err) {
+            res.send(500, new Error(err));
+            return next();
+          }
+          if (!creds) {
+            res.send(400, new Error('Invalid domain'));
+            return next();
+          }
+          googleGroupsAuthorize(creds.googlegroup, function (auth) {
+            var gservice = google.admin('directory_v1');
+            gservice.members.delete({
+              auth: auth,
+              groupKey: service.googlegroup.group.id,
+              memberKey: profile.subscriptions[index].email
+            }, function (err, response) {
+              if (!err || (err && err.code === 404)) {
+                profile.subscriptions.splice(index, 1);
+                profile.save();
+                if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
+                  subscribeEmail('notify_unsubscribe', email, profile, req.apiAuth.userProfile, service);
+                }
+                res.send(204);
+                return next();
+              }
+              else {
+                res.send(500, new Error(err));
+                return next();
+              }
+            });
+          });
         });
       }
     });
@@ -493,6 +671,7 @@ exports.del = del;
 exports.getById = getById;
 exports.get = get;
 exports.mcLists = mcLists;
+exports.googleGroups = googleGroups;
 exports.subscribeAccess = subscribeAccess;
 exports.subscribe = subscribe;
 exports.unsubscribe = unsubscribe;
