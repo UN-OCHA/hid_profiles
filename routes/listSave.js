@@ -1,7 +1,6 @@
 var async = require('async'),
   _ = require('lodash'),
   log = require('../log'),
-  config = require('../config'),
   mail = require('../mail'),
   List = require('../models').List,
   Contact = require('../models').Contact;
@@ -279,7 +278,7 @@ function post(req, res, next) {
               to: contact.mainEmail(false),
               subject: 'You were given the ability to ' + action.EN + ' ' + updatedList.name + ' on Humanitarian ID',
               list: updatedList,
-              listUrl: config.appBaseUrl + '#/list/contacts?id=' + updatedList._id,
+              listUrl: process.env.APP_BASE_URL + '#/list/contacts?id=' + updatedList._id,
               firstName: contact.nameGiven,
               action: action
             };

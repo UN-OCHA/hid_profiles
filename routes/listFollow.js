@@ -1,7 +1,6 @@
 var async = require('async'),
   _ = require('lodash'),
   log = require('../log'),
-  config = require('../config'),
   mail = require('../mail'),
   List = require('../models').List,
   Contact = require('../models').Contact,

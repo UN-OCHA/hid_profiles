@@ -1,7 +1,6 @@
 var async = require('async'),
   _ = require('lodash'),
   log = require('../log'),
-  config = require('../config'),
   operations = require('../lib/operations'),
   List = require('../models').List,
   Contact = require('../models').Contact,
@@ -399,7 +398,7 @@ function get(req, res, next) {
       var template = Handlebars.compile(String(templateData)),
         isGlobal = false,
         tokens = {
-          appBaseUrl: config.appBaseUrl,
+          appBaseUrl: process.env.APP_BASE_URL,
           listTitle: listTitle,
           isGlobal: isGlobal,
           queryCount: contacts.length,
@@ -412,8 +411,8 @@ function get(req, res, next) {
           'html' : result
         }),
         options = {
-          hostname: config.wkhtmltopdfHost,
-          port: config.wkhtmltopdfPort || 80,
+          hostname: process.env.WKHTMLTOPDF_HOST,
+          port: process.env.WKHTMLTOPDF_PORT || 80,
           path: '/htmltopdf',
           method: 'POST',
           headers: {

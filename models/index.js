@@ -1,7 +1,6 @@
-var config = require('./../config');
 var mongoose = require('mongoose');
 
-mongoose.connect(config.db);
+mongoose.connect(process.env.DATABASE);
 
 module.exports.Profile = require('./profile');
 module.exports.Contact = require('./contact');

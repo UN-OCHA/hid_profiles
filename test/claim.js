@@ -4,7 +4,6 @@ var request = require('supertest'),
     async = require('async');
 
 var server = require('../server'),
-  config = require('../config'),
   Client = require('../models').Client,
   Profile = require('../models').Profile,
   Contact = require('../models').Contact,
@@ -101,7 +100,7 @@ describe('claim', function() {
     });
 
     it('should send claim email to orphan', function (done) {
-      request(config.rootURL)
+      request(process.env.ROOT_URL)
         .post("/v0/contact/resetpw?_access_client_id=" + access.clientId + "&_access_key=" + access_key)
         .send({
           email: 'test@test.com',
@@ -116,7 +115,7 @@ describe('claim', function() {
     });
 
     it('should send claim email to user who never logged in', function (done) {
-      request(config.rootURL)
+      request(process.env.ROOT_URL)
         .post("/v0/contact/resetpw?_access_client_id=" + access.clientId + "&_access_key=" + access_key)
         .send({
           email: 'test1@test.com',
@@ -131,7 +130,7 @@ describe('claim', function() {
     });
 
     it('should not send a claim email to a non-orphan account', function (done) {
-      request(config.rootURL)
+      request(process.env.ROOT_URL)
         .post("/v0/contact/resetpw?_access_client_id=" + access.clientId + "&_access_key=" + access_key)
         .send({
           email: 'test2@test.com',

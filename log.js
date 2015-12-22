@@ -1,7 +1,6 @@
 var bunyan = require('bunyan'),
-  config = require('./config'),
   log = bunyan.createLogger({
-    name: config.name,
+    name: process.env.NAME,
     serializers: {
       req: bunyan.stdSerializers.req
     },
