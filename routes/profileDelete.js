@@ -5,7 +5,6 @@ var async = require('async'),
   Contact = require('../models').Contact,
   roles = require('../lib/roles.js'),
   log = require('../log'),
-  config = require('../config'),
   restify = require('restify'),
   middleware = require('../middleware');
   mail = require('../mail');

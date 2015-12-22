@@ -1,7 +1,6 @@
 var Contact = require('../models').Contact,
   Profile = require('../models').Profile,
   Cache = require('../models').Cache,
-  config = require('../config'),
   log = require('../log'),
   roles = require('../lib/roles'),
   orgTypes = require('../lib/orgTypes'),
@@ -652,7 +651,7 @@ function get(req, res) {
       var template = Handlebars.compile(String(templateData)),
         isGlobal = (query.type === 'global' || !query.locationId || !query.locationId.length),
         tokens = {
-          appBaseUrl: config.appBaseUrl,
+          appBaseUrl: process.env.APP_BASE_URL,
           listTitle: listTitle,
           isGlobal: isGlobal,
           queryCount: contacts.length,
@@ -665,8 +664,8 @@ function get(req, res) {
           'html' : result
         }),
         options = {
-          hostname: config.wkhtmltopdfHost,
-          port: config.wkhtmltopdfPort || 80,
+          hostname: process.env.WKHTMLTOPDF_HOST,
+          port: process.env.WKHTMLTOPDF_PORT || 80,
           path: '/htmltopdf',
           method: 'POST',
           headers: {

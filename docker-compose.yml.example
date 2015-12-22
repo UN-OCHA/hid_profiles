@@ -1,0 +1,33 @@
+mongo:
+  image: unocha/mongodb
+  volumes:
+    - /data/contactsid_profiles/mongo:/data/db
+  environment:
+    DNSDOCK_NAME: profilesmongo
+    DNSDOCK_IMAGE: contactsid
+    MONGO_OPTIONS: --journal --noprealloc --smallfiles
+profiles:
+  image: unocha/nodejs
+  volumes:
+    - .:/var/www/html
+  environment:
+    DNSDOCK_NAME: profiles
+    DNSDOCK_IMAGE: contactsid
+    PORT: 80
+    HRINFO_BASE_URL: https://www.humanitarianresponse.info
+    APP_BASE_URL: http://app.contactsid.vm
+    APP_NAME: hid_profiles-dockerdev
+    SMTP_HOST: app.mailhog.vm
+    SMTP_PORT: 1025
+    SMTP_USER: humanitarianid
+    SMTP_PASS: smtp_password
+    AUTH_BASE_URL: http://auth.contactsid.vm
+    AUTH_CLIENT_SECRET: auth_client_secret
+    DATABASE: mongodb://mongo/contactsid-profile-dev
+    WKHTMLTOPDF_HOST: pdf.contactsid.vm
+    WKHTMLTOPDF_PORT: 80
+    AUTH_CLIENT_ID: hid-local
+    REQUIRE_SSL: false
+    ROOT_URL: http://profiles.contactsid.vm
+  links:
+    - mongo:mongo
