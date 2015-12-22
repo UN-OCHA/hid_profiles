@@ -16,7 +16,7 @@ profiles:
     PORT: 80
     HRINFO_BASE_URL: https://www.humanitarianresponse.info
     APP_BASE_URL: http://app.contactsid.vm
-    NAME: hid_profiles-dockerdev
+    APP_NAME: hid_profiles-dockerdev
     SMTP_HOST: app.mailhog.vm
     SMTP_PORT: 1025
     SMTP_USER: humanitarianid
