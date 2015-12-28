@@ -5,7 +5,6 @@ var async = require('async'),
   Contact = require('../models').Contact,
   roles = require('../lib/roles.js'),
   log = require('../log'),
-  config = require('../config'),
   restify = require('restify'),
   middleware = require('../middleware');
   mail = require('../mail');
@@ -197,11 +196,11 @@ function post(req, res, next) {
         var new_access_key = middleware.require.getAuthAccessKey(request);
         request["access_key"] = new_access_key.toString();
 
-        var client_key = config.authClientId;
+        var client_key = process.env.AUTH_CLIENT_ID;
         request["client_key"] = client_key
 
         var client = restify.createJsonClient({
-          url: config.authBaseUrl,
+          url: process.env.AUTH_BASE_URL,
           version: '*'
         });
         client.post("/api/users", request, function (err, req, res, data) {
@@ -269,11 +268,11 @@ function post(req, res, next) {
         var new_access_key = middleware.require.getAuthAccessKey(request);
         request["access_key"] = new_access_key.toString();
 
-        var client_key = config.authClientId;
+        var client_key = process.env.AUTH_CLIENT_ID;
         request["client_key"] = client_key
 
         var client = restify.createJsonClient({
-          url: config.authBaseUrl,
+          url: process.env.AUTH_BASE_URL,
           version: '*'
         });
 
@@ -1286,11 +1285,11 @@ function resetPasswordPostEmail(req, res, next, request) {
   var new_access_key = middleware.require.getAuthAccessKey(request);
   request["access_key"] = new_access_key.toString();
 
-  var client_key = config.authClientId;
+  var client_key = process.env.AUTH_CLIENT_ID;
   request["client_key"] = client_key
 
   var client = restify.createJsonClient({
-    url: config.authBaseUrl,
+    url: process.env.AUTH_BASE_URL,
     version: '*'
   });
 

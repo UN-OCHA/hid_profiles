@@ -1,8 +1,8 @@
 {
-  "name": "contactsid-profiles",
+  "name": "hid-profiles",
   "version": "0.0.1",
   "private": true,
-  "description": "Node.js RESTful API for managing ContactsID profile data.",
+  "description": "Node.js RESTful API for managing Humanitarian ID profile data.",
   "dependencies": {
     "mongoose": "~3.8.27",
     "handlebars": "~3.0.0",
@@ -38,6 +38,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@bitbucket.org:phase2tech/contactsid_profiles.git"
+    "url": "git@github.com:un-ocha/hid_profiles.git"
   }
 }

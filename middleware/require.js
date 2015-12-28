@@ -1,6 +1,5 @@
 var restify = require('restify'),
   async = require('async'),
-  config = require('../config'),
   Client = require('../models').Client,
   Profile = require('../models').Profile,
   log = require('../log');
@@ -33,7 +32,7 @@ function valid_security_creds_user(req, cb) {
     delete req.query.access_token;
 
     var client = restify.createJsonClient({
-      url: config.authBaseUrl
+      url: process.env.AUTH_BASE_URL
     });
     client.get('/account.json?access_token=' + access_token, function(err, req, res, obj) {
       client.close();
@@ -110,7 +109,7 @@ module.exports.getAuthAccessKey = function(req){
   var access_key = '';
   var SHA256 = require("crypto-js/sha256");
   var data = req;
-  var valuesList = flattenValues(data, '') + config.authClientSecret;
+  var valuesList = flattenValues(data, '') + process.env.AUTH_CLIENT_SECRET;
   access_key = SHA256(valuesList);
 
   return access_key;
