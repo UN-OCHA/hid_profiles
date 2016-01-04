@@ -1,11 +1,6 @@
 <p>Dear <%= recipientFirstName %>,</p>
 
-<p>We wanted to let you know that your Humanitarian ID profile for <%= locationName %> has been updated by one of our locally based managers <%= adminName %> as follows:</p>
-<ul>
-<li> Added to contact list.</li>
-</ul>
-
-<p>If you feel that this action was not correct, simply log into your Humanitarian ID account and modify your profile for <%= locationName %>.</p>
+<p><%= adminName %> has added you to the <%= locationName %> contact list on Humanitarian ID - a contact management system for the humanitarian community. To update or add more details and connect with other responders, please log in at <a href="https://humanitarian.id">humanitarian.id</a>.</p>
 
 <% if (isUserActive == 0) { %>
 <p>We noticed that you have previously not completed your account setup on Humanitarian ID. Since Humanitarian ID gives you the power to control your details on contact lists, we strongly encourage you to complete the account creation process. it will only take a minute. The link below will help you complete the process including the ability to set your own password. Once your account is created, you can then easily update your details on the <%= locationName %> contact list.</p>
@@ -18,12 +13,7 @@
 
 <p>Bonjour <%= recipientFirstName %>,</p>
 
-<p>Nous voulions vous informer que votre profil sur Humanitarian ID en/au <%= locationName %> a été modifié par un de nos gestionnaires sur place, <%= adminName %>, de la manière suivante:</p>
-<ul>
-<li>ajouté à la liste des contacts.</li>
-</ul>
-
-<p>Si cette action est incorrecte, merci de bien vouloir vous connecter sur Humanitarian ID et modifier votre profil pour <%= locationName %>.</p>
+<p><%= adminName %> vous a ajouté à la liste de contacts humanitaires <%= locationName %> sur Humanitarian ID - un système de gestion de contact pour la communauté humanitaire. Pour mettre à jour ou ajouter plus de détails et vous connecter avec d'autres humanitaires, veuillez vous connecter sur <a href="https://humanitarian.id">humanitarian.id</a>.</p>
 
 <% if (isUserActive == 0) { %>
 <p>Nous avons remarqué que vous n'aviez pas vérifié votre adresse email sur Humanitarian ID. Humanitarian ID vous donne la possibilité de contrôler vos informations de contact sur des listes de contacts, nous vous encourageons donc à terminer le processus de création de compte. Cela ne prendra qu'une minute. Le lien ci-dessous vous permettra de terminer le processus, et vous donnera la possibilité de créer ou changer votre mot de passe. Lorsque votre compte sera créé, vous pourrez facilement mettre à jour vos informations sur la liste de contact en/au <%= locationName %>.</p>
