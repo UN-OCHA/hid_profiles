@@ -411,55 +411,88 @@ function subscribeAccess(req, res, next) {
 
 // Subscribe a profile to a service
 function subscribe(req, res, next) {
+  var profile = {}, service = {}, contact = {};
   if (!req.body || !req.body.service || !req.body.email) {
     res.send(400, new Error('Missing parameters'));
     return next();
   }
-  Profile.findById(req.params.id, function (err, profile) {
-    if (err) {
-      res.send(500, new Error(err));
-      return next();
-    }
-    if (!profile) {
-      res.send(404, new Error('Profile ' + req.params.id + ' not found'));
-      return next();
-    }
-    Service.findById(req.body.service, function (err2, service) {
-      if (err2) {
-        res.send(500, new Error(err));
-        return next();
-      }
-      if (!service) {
-        res.send(400, new Error('Service ' + req.body.service + ' not found'));
-        return next();
-      }
-      if (profile.isSubscribed(service)) {
-        res.send(409, new Error('Profile ' + req.params.id + ' already subscribed to ' + req.body.service));
-        return next();
-      }
+  async.series([
+    function (cb) {
+      // Find profile by id
+      Profile.findById(req.params.id, function (err, prof) {
+        if (err) {
+          res.send(500, new Error(err));
+          return cb(true);
+        }
+        if (!profile) {
+          res.send(404, new Error('Profile ' + req.params.id + ' not found'));
+          return cb(true);
+        }
+        profile = prof;
+        return cb();
+      });
+    },
+    function (cb) {
+      // Find service by id
+      Service.findById(req.body.service, function (err2, serv) {
+        if (err2) {
+          res.send(500, new Error(err));
+          return cb(true);
+        }
+        if (!service) {
+          res.send(400, new Error('Service ' + req.body.service + ' not found'));
+          return cb(true);
+        }
+        if (profile.isSubscribed(service)) {
+          res.send(409, new Error('Profile ' + req.params.id + ' already subscribed to ' + req.body.service));
+          return cb(true);
+        }
+        service = serv;
+        return cb();
+      });
+    },
+    function (cb) {
+      // Find global contact associated with profile
+      Contact.findOne({ 'type': 'global', _profile: profile._id }, function (err, cont) {
+        if (err) {
+          res.send(500, new Error(err));
+          return cb(true);
+        }
+        if (cont) {
+          contact = cont;
+        }
+        return cb();
+      });
+    },
+    function (cb) {
       if (!profile.subscriptions) {
         profile.subscriptions = [];
       }
       profile.subscriptions.push({ service: service, email: req.body.email});
       if (service.type === 'mailchimp') {
+        var merge_vars = {};
+        if (contact && contact.nameFamily && contact.nameGiven) {
+          merge_vars.fname = contact.nameGiven;
+          merge_vars.lname = contact.nameFamily;
+        }
         var mc = new mcapi.Mailchimp(service.mc_api_key);
-        mc.lists.subscribe({id: service.mc_list.id, email: {email: req.body.email}, double_optin: false}, function (data) {
+        mc.lists.subscribe({id: service.mc_list.id, email: {email: req.body.email}, merge_vars: merge_vars, double_optin: false}, function (data) {
           profile.save();
           if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
             subscribeEmail('notify_subscribe', req.body.email, profile, req.apiAuth.userProfile, service);
           }
           res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
           res.send(204);
-          return next();
+          return cb();
         }, function (error) {
           if (error.name === 'List_AlreadySubscribed') {
             profile.save();
             res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
             res.send(204);
-            return next();
+            return cb();
           }
           res.send(500, new Error(error.error));
-          return next();
+          return cb();
         });
       }
       else if (service.type === 'googlegroup') {
@@ -467,11 +500,11 @@ function subscribe(req, res, next) {
         ServiceCredentials.findOne({ type: 'googlegroup', 'googlegroup.domain': service.googlegroup.domain}, function (err, creds) {
           if (err) {
             res.send(500, new Error(err));
-            return next();
+            return cb();
           }
           if (!creds) {
             res.send(400, new Error('Invalid domain'));
-            return next();
+            return cb();
           }
           googleGroupsAuthorize(creds.googlegroup, function (auth) {
             var gservice = google.admin('directory_v1');
@@ -487,18 +520,20 @@ function subscribe(req, res, next) {
                 }
                 res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
                 res.send(204);
-                return next();
+                return cb();
               }
               else {
                 res.send(500, new Error(err));
-                return next();
+                return cb();
               }
             });
           });
         });
       }
-    });
-  });
+    }], function (err, result) {
+      return next();
+    }
+  );
 }
 
 function subscribeEmail(template, to, profile, adminProfile, service) {
