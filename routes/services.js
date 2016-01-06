@@ -120,7 +120,7 @@ function managerAllowedLocations(req, service) {
 }
 
 // Helper function to verify integrity of data provided to put and post
-function verifyService(req, res, cb) {
+function verifyService(method, req, res, cb) {
   if (!managerAllowedLocations(req, req.body)) {
     res.send(400, new Error('Invalid locations in your service'));
     return cb(true);
@@ -145,7 +145,7 @@ function verifyService(req, res, cb) {
           res.send(500, new Error(err));
           return cb(true);
         }
-        if (srv) {
+        if (srv && method === 'post') {
           res.send(409, new Error('A connection to this service has already been made'));
           return cb(true);
         }
@@ -160,7 +160,7 @@ function verifyService(req, res, cb) {
         res.send(500, new Error(err));
         return cb(true);
       }
-      if (srv) {
+      if (srv && method === 'post') {
         res.send(409, new Error('A connection to this service has already been made'));
         return cb(true);
       }
@@ -172,7 +172,7 @@ function verifyService(req, res, cb) {
 // Create a new service
 function post(req, res, next) {
   // TODO: verify that the service is valid (ie API key is valid)
-  verifyService(req, res, function (err) {
+  verifyService('post', req, res, function (err) {
     if (err) {
       return next();
     }
@@ -192,7 +192,7 @@ function post(req, res, next) {
 
 // Update an existing service
 function put(req, res, next) {
-  verifyService(req, res, function (err) {
+  verifyService('put', req, res, function (err) {
     if (err) {
       return next();
     }
