@@ -742,4 +742,44 @@ function get(req, res) {
   async.waterfall(steps);
 }
 
+// Get a contact by id
+function getById(req, res, next) {
+  Contact
+    .findById(req.params.id)
+    .populate('_profile')
+    .exec(function(err, contact) {
+    if (err) {
+      res.send(500, new Error(err));
+      return next();
+    }
+    if (contact) {
+      // Make sure I have permission to view contact
+      if (contact.type === 'local' && !req.apiAuth.userProfile.verified) {
+        // Get locked operations
+        operations.getLockedOperations(function (err, lockedOperations) {
+          if (err) {
+            res.send(500, new Error(err));
+            return next();
+          }
+          if (lockedOperations.indexOf(contact.locationId) !== -1) {
+            res.send(403, new Error("You do not have permission to view this contact"));
+            return next();
+          }
+          res.send(200, contact);
+          return next();
+        });
+      }
+      else {
+        res.send(200, contact);
+        return next();
+      }
+    }
+    else {
+      res.send(404, new Error("Contact " + req.params.id + " not found"));
+      return next();
+    }
+  });
+}
+
 exports.get = get;
+exports.getById = getById;
