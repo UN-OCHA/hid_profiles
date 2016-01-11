@@ -65,6 +65,7 @@ server.del(v01Prefix + '/profiles/:id/subscriptions/:serviceId', middleware.requ
 server.get(v01Prefix + '/profiles/:id/subscriptions', middleware.require.appOrUser, middleware.require.access, routes.services.subscriptions);
 
 server.get(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
+server.get(v01Prefix + 'contacts/:id', middleware.require.appOrUser, middleware.require.access, routes.contactView.getById);
 server.put(v01Prefix + 'contacts/:id/checkin', middleware.require.appOrUser, routes.contactSave.putAccess, routes.contactSave.checkin);
 server.del(v01Prefix + 'contacts/:id/checkin', middleware.require.appOrUser, routes.contactSave.putAccess, routes.contactSave.checkout);
 server.post(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
