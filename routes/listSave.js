@@ -3,7 +3,8 @@ var async = require('async'),
   log = require('../log'),
   mail = require('../mail'),
   List = require('../models').List,
-  Contact = require('../models').Contact;
+  Contact = require('../models').Contact,
+  Profile = require('../models').Profile;
 
 // Middleware function to grant/deny access to the listSave routes.
 function postAccess(req, res, next) {
@@ -233,7 +234,34 @@ function post(req, res, next) {
         updatedList.editors = req.body.editors;
       }
 
-      cb();
+      if (req.body.userid && req.body.userid != origList.userid && req.apiAuth.userId === origList.userid) {
+        updatedList.userid = req.body.userid;
+        // Make sure original owner is added as an editor and follower
+        Profile.findOne({'userid': origList.userid}, function (err, profile) {
+          if (err) {
+            return cb(err);
+          }
+          if (!profile) {
+            return cb('Wrong userid: profile could not be found');
+          }
+          if (!updatedList.editors.length) {
+            updatedList.editors = [];
+          }
+          if (updatedList.editors.indexOf(profile._id) === -1) {
+            updatedList.editors.push(profile._id);
+          }
+          if (!updatedList.users.length) {
+            updatedList.users = [];
+          }
+          if (updatedList.users.indexOf(origList.userid) === -1) {
+            updatedList.users.push(origList.userid);
+          }
+          return cb();
+        });
+      }
+      else {
+        return cb();
+      }
     },
     function(cb) {
       updatedList.save(function(err, list){
