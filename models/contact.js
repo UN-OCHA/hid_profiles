@@ -82,10 +82,8 @@ var contactSchema = new mongoose.Schema({
   remindedCheckout:   Boolean,
   remindedCheckoutDate: Date,
   remindedCheckin:    Number, //timestamp
-  remindedUpdate: Number, // timestamp
-  verifiedByID: String,
-  verifiedByName: String,
-  verificationDate: Date
+  remindedUpdate: Number // timestamp
+  
 });
 
 contactSchema.methods.fullName = function() {

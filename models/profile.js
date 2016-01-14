@@ -27,7 +27,10 @@ var profileSchema = new mongoose.Schema({
   orgEditorRoles:     [ orgEditorRoleSchema ],
   verified:           Boolean,
   contactLists:       [ contactListSchema ],
-  subscriptions:      [ {service: {type: Schema.Types.ObjectId, ref: 'Service'}, email: String} ]
+  subscriptions:      [ {service: {type: Schema.Types.ObjectId, ref: 'Service'}, email: String} ],
+  verifiedByID: String,
+  verifiedByName: String,
+  verificationDate: Date
 });
 
 profileSchema.methods.isOrphan = function() {

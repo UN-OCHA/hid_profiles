@@ -158,6 +158,12 @@ function post(req, res, next) {
     newRoles = [],
     setVerified = false,
     newVerified = false,
+    newVerifiedByID = false;
+    setVerifiedByID = null;
+    newVerifiedByName = false;
+    setVerifiedByName = null;
+    newVerificationDate = false;
+    setVerificationDate = null;
     setKeyContact = false,
     setProtectedRoles = false,
     newProtectedRoles = [],
@@ -459,6 +465,29 @@ function post(req, res, next) {
         setVerified = true;
         newVerified = req.body.verified;
       }
+      
+      if (req.body.hasOwnProperty("verifiedByID") && (isAPI || isAdmin || isManager || isEditor)) {
+        setVerifiedByID = true;
+        newVerifiedByID = req.body.verifiedByID;
+      }
+      
+      if (req.body.hasOwnProperty("verifiedByName") && (isAPI || isAdmin || isManager || isEditor)) {
+        setVerifiedByName = true;
+        newVerifiedByName = req.body.verifiedByName;
+      }
+
+      if (req.body.hasOwnProperty("verifiedByName") && (isAPI || isAdmin || isManager || isEditor)) {
+        setVerifiedByName = true;
+        newVerifiedByName = req.body.verifiedByName;
+      }
+
+      if (req.body.hasOwnProperty("verificationDate") && (isAPI || isAdmin || isManager || isEditor)) {
+        setVerificationDate = true;
+        newVerificationDate = req.body.verificationDate;
+      }
+
+
+
 
       // Allow setting protectedRoles if the user is an admin or a manager in
       // the location of this profile. Also, set the user to verified if any
@@ -651,6 +680,18 @@ function post(req, res, next) {
             if (req.body.orgEditorRoles){
               profile.orgEditorRoles = req.body.orgEditorRoles;
               profile.markModified('orgEditorRoles');
+            }
+
+            if(setVerifiedByID){
+              profile.verifiedByID = newVerifiedByID;
+            }
+
+            if(setVerifiedByName){
+              profile.verifiedByName = newVerifiedByName
+            }
+
+            if(setVerificationDate){
+              profile.verificationDate = newVerificationDate;
             }
 
             return profile.save(function (err, profile, num) {
