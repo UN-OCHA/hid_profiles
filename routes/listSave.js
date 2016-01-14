@@ -236,7 +236,7 @@ function post(req, res, next) {
 
       if (req.body.userid && req.body.userid != origList.userid && req.apiAuth.userId === origList.userid) {
         updatedList.userid = req.body.userid;
-        // Make sure original owner is added as an editor
+        // Make sure original owner is added as an editor and follower
         Profile.findOne({'userid': origList.userid}, function (err, profile) {
           if (err) {
             return cb(err);
@@ -247,14 +247,12 @@ function post(req, res, next) {
           if (!updatedList.editors.length) {
             updatedList.editors = [];
           }
-          console.log(updatedList.editors);
           if (updatedList.editors.indexOf(profile._id) === -1) {
             updatedList.editors.push(profile._id);
           }
           if (!updatedList.users.length) {
             updatedList.users = [];
           }
-          console.log(updatedList.users);
           if (updatedList.users.indexOf(origList.userid) === -1) {
             updatedList.users.push(origList.userid);
           }
