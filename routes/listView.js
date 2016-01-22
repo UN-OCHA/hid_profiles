@@ -113,7 +113,7 @@ function get(req, res, next) {
       if (err) {
         return callback(err);
       }
-      List.find({$or: [{users: req.apiAuth.userId }, { editors: profile._id }]}, function(err, contactLists){
+      List.find({$or: [{users: req.apiAuth.userId }, { editors: profile._id }, {userid: req.apiAuth.userId}]}, function(err, contactLists){
         if (err) {
           return callback(err);
           //return res.json({status: "error", message: "There was an error retrieving the custom contact lists."});
