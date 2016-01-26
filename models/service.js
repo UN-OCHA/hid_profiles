@@ -64,10 +64,27 @@ serviceSchema.methods.sanitize = function() {
 };
 
 // Subscribe email to a service
-serviceSchema.methods.subscribe = function (email, vars, onresult, onerror) {
+serviceSchema.methods.subscribe = function (profile, email, vars, onresult, onerror) {
+  if (!profile.subscriptions) {
+    profile.subscriptions = [];
+  }
+
   if (this.type === 'mailchimp') {
     var mc = new mcapi.Mailchimp(this.mc_api_key);
-    return mc.lists.subscribe({id: this.mc_list.id, email: {email: email}, merge_vars: vars, double_optin: false}, onresult, onerror);
+    return mc.lists.subscribe({id: this.mc_list.id, email: {email: email}, merge_vars: vars, double_optin: false}, function (data) {
+      profile.subscriptions.push({ service: this, email: email});
+      profile.save();
+      return onresult(data);
+    }, function (err) {
+      if (err.name === 'List_AlreadySubscribed') {
+        profile.subscriptions.push({ service: this, email: email });
+        profile.save();
+        return onresult();
+      }
+      else {
+        return onerror(new Error(err.error));
+      }
+    });
   }
   else if (service.type === 'googlegroup') {
     // Subscribe email to google group
@@ -86,6 +103,8 @@ serviceSchema.methods.subscribe = function (email, vars, onresult, onerror) {
           resource: { 'email': email, 'role': 'MEMBER' }
         }, function (err, response) {
           if (!err || (err && err.code === 409)) {
+            profile.subscriptions.push({ service: this, email: email});
+            profile.save();
             return onresult();
           }
          else {
@@ -101,10 +120,35 @@ serviceSchema.methods.subscribe = function (email, vars, onresult, onerror) {
 };
 
 // Unsubscribe wrapper
-serviceSchema.methods.unsubscribe = function (email, onresult, onerror) {
+serviceSchema.methods.unsubscribe = function (profile, onresult, onerror) {
+  var index = -1;
+  for (var i = 0; i < profile.subscriptions.length; i++) {
+    if (profile.subscriptions[i].service.equals(this._id)) {
+      index = i;
+    }
+  }
+  if (index === -1) {
+    return onerror(new Error('No subscription found'));
+  }
+
   if (this.type === 'mailchimp') {
     var mc = new mcapi.Mailchimp(this.mc_api_key);
-    return mc.lists.unsubscribe({id: this.mc_list.id, email: {email: email}}, onresult, onerror);
+    return mc.lists.unsubscribe({id: this.mc_list.id, email: {email: profile.subscriptions[index].email}}, function (data) {
+      var email = profile.subscriptions[index].email;
+      profile.subscriptions.splice(index, 1);
+      profile.save();
+      return onresult(email);
+    }, function (err) {
+      if (err.name === 'Email_NotExists') {
+        var email = profile.subscriptions[index].email;
+        profile.subscriptions.splice(index, 1);
+        profile.save();
+        return onresult(email);
+      }
+      else {
+        return onerror(new Error(err));
+      }
+    });
   }
   else if (this.type === 'googlegroup') {
     // Unsubscribe user from google group
@@ -120,9 +164,12 @@ serviceSchema.methods.unsubscribe = function (email, onresult, onerror) {
         gservice.members.delete({
           auth: auth,
           groupKey: this.googlegroup.group.id,
-          memberKey: email
+          memberKey: profile.subscriptions[index].email
         }, function (err, response) {
           if (!err || (err && err.code === 404)) {
+            var email = profile.subscriptions[index].email;
+            profile.subscriptions.splice(index, 1);
+            profile.save();
             return onresult();
           }
           else {

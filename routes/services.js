@@ -465,17 +465,12 @@ function subscribe(req, res, next) {
       });
     },
     function (cb) {
-      if (!profile.subscriptions) {
-        profile.subscriptions = [];
-      }
-      profile.subscriptions.push({ service: service, email: req.body.email});
       var merge_vars = {};
       if (contact && contact.nameFamily && contact.nameGiven) {
         merge_vars.fname = contact.nameGiven;
         merge_vars.lname = contact.nameFamily;
       }
-      service.subscribe(req.body.email, merge_vars, function (data) {
-        profile.save();
+      service.subscribe(profile, req.body.email, merge_vars, function (data) {
         if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
           subscribeEmail('notify_subscribe', req.body.email, profile, req.apiAuth.userProfile, service);
         }
@@ -483,19 +478,7 @@ function subscribe(req, res, next) {
         res.send(204);
         return cb();
       }, function (err) {
-        if (service.type === 'mailchimp') {
-          if (err.name === 'List_AlreadySubscribed') {
-            profile.save();
-            res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
-            res.send(204);
-          }
-          else {
-            res.send(500, new Error(err.error));
-          }
-        }
-        else {
-          res.send(500, err);
-        }
+        res.send(500, err);
         return cb();
       });
     }], function (err, result) {
@@ -578,37 +561,15 @@ function unsubscribe(req, res, next) {
         res.send(404, new Error('Subscription not found'));
         return next();
       }
-      var index = -1;
-      for (var i = 0; i < profile.subscriptions.length; i++) {
-        if (profile.subscriptions[i].service.equals(service._id)) {
-          index = i;
+      service.unsubscribe(profile, function (data) {
+        if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
+          subscribeEmail('notify_unsubscribe', email, profile, req.apiAuth.userProfile, service);
         }
-      }
-      service.unsubscribe(profile.subscriptions[index].email, function (data) {
-        var email = profile.subscriptions[index].email;
-          profile.subscriptions.splice(index, 1);
-          profile.save();
-          if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
-            subscribeEmail('notify_unsubscribe', email, profile, req.apiAuth.userProfile, service);
-          }
-          res.send(204);
-          return next();
+        res.send(204);
+        return next();
       }, function (err) {
-        if (service.type === 'mailchimp') {
-          // if email is already unsubscribed, perform the action
-          if (err.name === 'Email_NotExists') {
-            profile.subscriptions.splice(index, 1);
-            profile.save();
-            res.send(204);
-            return next();
-          }
-          res.send(500, new Error(err.error));
-          return next();
-        }
-        else if (service.type === 'googlegroup') {
-          res.send(500, err);
-          return next();
-        }
+        res.send(500, err);
+        return next();
       });
     });
   });

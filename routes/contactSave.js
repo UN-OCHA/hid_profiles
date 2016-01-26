@@ -724,6 +724,17 @@ function post(req, res, next) {
         return cb();
       }
     },
+    // Subscribe to automated services
+    /*function (cb) {
+      // If checking in
+      if (contactFields.status === 1 && (!origContact || (origContact && origContact.status === 0)) {
+        Service.find({ auto_add: true, operations: contactField.locationId }, function (err, services) {
+          services.forEach(function (service, i) {
+            service.subscribe(profile);
+          });
+        });
+      }
+    },*/
     // Send emails (if applicable)
     function (cb) {
       var isOwnProfile = req.apiAuth.userId && req.apiAuth.userId === req.body.userid;
