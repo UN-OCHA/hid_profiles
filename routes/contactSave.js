@@ -158,6 +158,7 @@ function post(req, res, next) {
     newRoles = [],
     setVerified = false,
     newVerified = false,
+    setVerifiedFlag = false;
     newVerifiedByID = false;
     setVerifiedByID = null;
     newVerifiedByName = false;
@@ -463,6 +464,7 @@ function post(req, res, next) {
       // manager, or editor.
       if (req.body.hasOwnProperty("verified") && (isAPI || isAdmin || isManager || isEditor)) {
         setVerified = true;
+        setVerifiedFlag = true;
         newVerified = req.body.verified;
 
       }
@@ -652,6 +654,9 @@ function post(req, res, next) {
             }
             if (setVerified) {
               profile.verified = newVerified;
+            
+            }
+            if(setVerifiedFlag){
               profile.verifiedByID = req.apiAuth.userProfile._id;
               profile.verifiedByName = "";
               profile.verificationDate =  Date.now();
