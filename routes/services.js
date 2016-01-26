@@ -469,67 +469,35 @@ function subscribe(req, res, next) {
         profile.subscriptions = [];
       }
       profile.subscriptions.push({ service: service, email: req.body.email});
-      if (service.type === 'mailchimp') {
-        var merge_vars = {};
-        if (contact && contact.nameFamily && contact.nameGiven) {
-          merge_vars.fname = contact.nameGiven;
-          merge_vars.lname = contact.nameFamily;
+      var merge_vars = {};
+      if (contact && contact.nameFamily && contact.nameGiven) {
+        merge_vars.fname = contact.nameGiven;
+        merge_vars.lname = contact.nameFamily;
+      }
+      service.subscribe(req.body.email, merge_vars, function (data) {
+        profile.save();
+        if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
+          subscribeEmail('notify_subscribe', req.body.email, profile, req.apiAuth.userProfile, service);
         }
-        var mc = new mcapi.Mailchimp(service.mc_api_key);
-        mc.lists.subscribe({id: service.mc_list.id, email: {email: req.body.email}, merge_vars: merge_vars, double_optin: false}, function (data) {
-          profile.save();
-          if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
-            subscribeEmail('notify_subscribe', req.body.email, profile, req.apiAuth.userProfile, service);
-          }
-          res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
-          res.send(204);
-          return cb();
-        }, function (error) {
-          if (error.name === 'List_AlreadySubscribed') {
+        res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
+        res.send(204);
+        return cb();
+      }, function (err) {
+        if (service.type === 'mailchimp') {
+          if (err.name === 'List_AlreadySubscribed') {
             profile.save();
             res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
             res.send(204);
-            return cb();
           }
-          res.send(500, new Error(error.error));
-          return cb();
-        });
-      }
-      else if (service.type === 'googlegroup') {
-        // Subscribe email to google group
-        ServiceCredentials.findOne({ type: 'googlegroup', 'googlegroup.domain': service.googlegroup.domain}, function (err, creds) {
-          if (err) {
-            res.send(500, new Error(err));
-            return cb();
+          else {
+            res.send(500, new Error(err.error));
           }
-          if (!creds) {
-            res.send(400, new Error('Invalid domain'));
-            return cb();
-          }
-          googleGroupsAuthorize(creds.googlegroup, function (auth) {
-            var gservice = google.admin('directory_v1');
-            gservice.members.insert({
-              auth: auth,
-              groupKey: service.googlegroup.group.id,
-              resource: { 'email': req.body.email, 'role': 'MEMBER' }
-            }, function (err, response) {
-              if (!err || (err && err.code === 409)) {
-                profile.save();
-                if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
-                  subscribeEmail('notify_subscribe', req.body.email, profile, req.apiAuth.userProfile, service);
-                }
-                res.header('Location', '/v0.1/profiles/' + profile._id + '/subscriptions/' + service._id);
-                res.send(204);
-                return cb();
-              }
-              else {
-                res.send(500, new Error(err));
-                return cb();
-              }
-            });
-          });
-        });
-      }
+        }
+        else {
+          res.send(500, err);
+        }
+        return cb();
+      });
     }], function (err, result) {
       return next();
     }
@@ -616,10 +584,8 @@ function unsubscribe(req, res, next) {
           index = i;
         }
       }
-      if (service.type === 'mailchimp') {
-        var mc = new mcapi.Mailchimp(service.mc_api_key);
-        mc.lists.unsubscribe({id: service.mc_list.id, email: {email: profile.subscriptions[index].email}}, function (data) {
-          var email = profile.subscriptions[index].email;
+      service.unsubscribe(profile.subscriptions[index].email, function (data) {
+        var email = profile.subscriptions[index].email;
           profile.subscriptions.splice(index, 1);
           profile.save();
           if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
@@ -627,53 +593,23 @@ function unsubscribe(req, res, next) {
           }
           res.send(204);
           return next();
-        }, function (error) {
+      }, function (err) {
+        if (service.type === 'mailchimp') {
           // if email is already unsubscribed, perform the action
-          if (error.name === 'Email_NotExists') {
+          if (err.name === 'Email_NotExists') {
             profile.subscriptions.splice(index, 1);
             profile.save();
             res.send(204);
             return next();
           }
-          res.send(500, new Error(error.error));
+          res.send(500, new Error(err.error));
           return next();
-        });
-      }
-      else if (service.type === 'googlegroup') {
-        // Unsubscribe user from google group
-        ServiceCredentials.findOne({ type: 'googlegroup', 'googlegroup.domain': service.googlegroup.domain}, function (err, creds) {
-          if (err) {
-            res.send(500, new Error(err));
-            return next();
-          }
-          if (!creds) {
-            res.send(400, new Error('Invalid domain'));
-            return next();
-          }
-          googleGroupsAuthorize(creds.googlegroup, function (auth) {
-            var gservice = google.admin('directory_v1');
-            gservice.members.delete({
-              auth: auth,
-              groupKey: service.googlegroup.group.id,
-              memberKey: profile.subscriptions[index].email
-            }, function (err, response) {
-              if (!err || (err && err.code === 404)) {
-                profile.subscriptions.splice(index, 1);
-                profile.save();
-                if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
-                  subscribeEmail('notify_unsubscribe', email, profile, req.apiAuth.userProfile, service);
-                }
-                res.send(204);
-                return next();
-              }
-              else {
-                res.send(500, new Error(err));
-                return next();
-              }
-            });
-          });
-        });
-      }
+        }
+        else if (service.type === 'googlegroup') {
+          res.send(500, err);
+          return next();
+        }
+      });
     });
   });
 }

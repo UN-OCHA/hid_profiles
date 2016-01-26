@@ -1,5 +1,10 @@
 var mongoose = require('mongoose'),
-    Profile = require('../models').Profile;
+    Profile = require('../models').Profile,
+    google = require('googleapis'),
+    googleAuth = require('google-auth-library'),
+    mcapi = require('../node_modules/mailchimp-api/mailchimp'),
+    ServiceCredentials = require('../models').ServiceCredentials;
+
 var Schema = mongoose.Schema;
 
 var validType = {
@@ -19,6 +24,8 @@ var serviceSchema = new Schema({
   },
   status: { type: Boolean, default: true},
   hidden: { type: Boolean, default: false},
+  auto_add: { type: Boolean, default: false},
+  auto_remove: { type: Boolean, default: false},
   locations: [ { name: String, remote_id: String } ],
   owners: [ { type: Schema.Types.ObjectId, ref: 'Profile' } ]
 });
@@ -55,6 +62,82 @@ serviceSchema.pre('remove', function (next) {
 serviceSchema.methods.sanitize = function() {
   this.mc_api_key = undefined;
 };
+
+// Subscribe email to a service
+serviceSchema.methods.subscribe = function (email, vars, onresult, onerror) {
+  if (this.type === 'mailchimp') {
+    var mc = new mcapi.Mailchimp(this.mc_api_key);
+    return mc.lists.subscribe({id: this.mc_list.id, email: {email: email}, merge_vars: vars, double_optin: false}, onresult, onerror);
+  }
+  else if (service.type === 'googlegroup') {
+    // Subscribe email to google group
+    ServiceCredentials.findOne({ type: 'googlegroup', 'googlegroup.domain': this.googlegroup.domain}, function (err, creds) {
+      if (err) {
+        return onerror(new Error(err));
+      }
+      if (!creds) {
+        return onerror(new Error('Invalid domain'));
+      }
+      googleGroupsAuthorize(creds.googlegroup, function (auth) {
+        var gservice = google.admin('directory_v1');
+        gservice.members.insert({
+          auth: auth,
+          groupKey: this.googlegroup.group.id,
+          resource: { 'email': email, 'role': 'MEMBER' }
+        }, function (err, response) {
+          if (!err || (err && err.code === 409)) {
+            return onresult();
+          }
+         else {
+           return onerror(new Error(err));
+          }
+        });
+      });
+    });
+  }
+  else {
+    return onerror(new Error('Invalid service type'));
+  }
+};
+
+// Unsubscribe wrapper
+serviceSchema.methods.unsubscribe = function (email, onresult, onerror) {
+  if (this.type === 'mailchimp') {
+    var mc = new mcapi.Mailchimp(this.mc_api_key);
+    return mc.lists.unsubscribe({id: this.mc_list.id, email: {email: email}}, onresult, onerror);
+  }
+  else if (this.type === 'googlegroup') {
+    // Unsubscribe user from google group
+    ServiceCredentials.findOne({ type: 'googlegroup', 'googlegroup.domain': this.googlegroup.domain}, function (err, creds) {
+      if (err) {
+        return onerror(new Error(err));
+      }
+      if (!creds) {
+        return onerror(new Error('Invalid domain'));
+      }
+      googleGroupsAuthorize(creds.googlegroup, function (auth) {
+        var gservice = google.admin('directory_v1');
+        gservice.members.delete({
+          auth: auth,
+          groupKey: this.googlegroup.group.id,
+          memberKey: email
+        }, function (err, response) {
+          if (!err || (err && err.code === 404)) {
+            return onresult();
+          }
+          else {
+            return onerror(new Error(err));
+          }
+        });
+      });
+    });
+  }
+  else {
+    return onerror(new Error('Invalid service type'));
+  }
+};
+
+
 
 mongoose.model('Service', serviceSchema);
 
