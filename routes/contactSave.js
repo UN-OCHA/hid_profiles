@@ -464,10 +464,7 @@ function post(req, res, next) {
       if (req.body.hasOwnProperty("verified") && (isAPI || isAdmin || isManager || isEditor)) {
         setVerified = true;
         newVerified = req.body.verified;
-        setVerifiedByName = true;
-        newVerifiedByName = "";
-        setVerifiedByID = true;
-        newVerifiedByID = req.apiAuth.userProfile._id;
+
       }
       
       // Allow setting protectedRoles if the user is an admin or a manager in
@@ -655,7 +652,7 @@ function post(req, res, next) {
             }
             if (setVerified) {
               profile.verified = newVerified;
-              profile.verifiedByID = newVerifiedByID;
+              profile.verifiedByID = req.apiAuth.userProfile._id;
               profile.verifiedByName = "";
               profile.verificationDate =  Date.now();
             }
