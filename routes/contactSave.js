@@ -163,6 +163,7 @@ function post(req, res, next) {
     setVerifiedByID = null;
     newVerifiedByName = false;
     setVerifiedByName = null;
+    setverifiedGlobalProfileID = null;
     newVerificationDate = false;
     setVerificationDate = null;
     setKeyContact = false,
@@ -658,9 +659,11 @@ function post(req, res, next) {
             }
             if(setVerifiedFlag){
               profile.verifiedByID = req.apiAuth.userProfile._id;
-              profile.verifiedByName = "";
+              profile.verifiedByName = req.body.verifiedByName;
               profile.verificationDate =  Date.now();
+              profile.verifiedGlobalProfileID = req.body.verifiedGlobalProfileID; 
             }
+
             if (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid) {
               profile.firstUpdate = Date.now();
             }

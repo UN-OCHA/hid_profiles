@@ -30,7 +30,8 @@ var profileSchema = new mongoose.Schema({
   subscriptions:      [ {service: {type: Schema.Types.ObjectId, ref: 'Service'}, email: String} ],
   verifiedByID: String,
   verifiedByName: String,
-  verificationDate: Date
+  verificationDate: Date,
+  verifiedGlobalProfileID: String
 });
 
 profileSchema.methods.isOrphan = function() {
