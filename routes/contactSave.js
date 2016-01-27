@@ -158,6 +158,7 @@ function post(req, res, next) {
     newRoles = [],
     setVerified = false,
     newVerified = false,
+    setVerifiedFlag = false;
     newVerifiedByID = false;
     setVerifiedByID = null;
     newVerifiedByName = false;
@@ -463,38 +464,18 @@ function post(req, res, next) {
       // manager, or editor.
       if (req.body.hasOwnProperty("verified") && (isAPI || isAdmin || isManager || isEditor)) {
         setVerified = true;
+        setVerifiedFlag = true;
         newVerified = req.body.verified;
+
       }
       
-      if (req.body.hasOwnProperty("verifiedByID") && (isAPI || isAdmin || isManager || isEditor)) {
-        setVerifiedByID = true;
-        newVerifiedByID = req.body.verifiedByID;
-      }
-      
-      if (req.body.hasOwnProperty("verifiedByName") && (isAPI || isAdmin || isManager || isEditor)) {
-        setVerifiedByName = true;
-        newVerifiedByName = req.body.verifiedByName;
-      }
-
-      if (req.body.hasOwnProperty("verifiedByName") && (isAPI || isAdmin || isManager || isEditor)) {
-        setVerifiedByName = true;
-        newVerifiedByName = req.body.verifiedByName;
-      }
-
-      if (req.body.hasOwnProperty("verificationDate") && (isAPI || isAdmin || isManager || isEditor)) {
-        setVerificationDate = true;
-        newVerificationDate = req.body.verificationDate;
-      }
-
-
-
-
       // Allow setting protectedRoles if the user is an admin or a manager in
       // the location of this profile. Also, set the user to verified if any
       // protected roles are granted.
       if (req.body.hasOwnProperty("newProtectedRoles") && (isAPI || isAdmin || ((isManager || isEditor) && isManagersEditorsLocation))) {
         setProtectedRoles = true;
         newProtectedRoles = req.body.newProtectedRoles;
+
 
         if (newProtectedRoles.length) {
           setVerified = true;
@@ -673,6 +654,12 @@ function post(req, res, next) {
             }
             if (setVerified) {
               profile.verified = newVerified;
+            
+            }
+            if(setVerifiedFlag){
+              profile.verifiedByID = req.apiAuth.userProfile._id;
+              profile.verifiedByName = "";
+              profile.verificationDate =  Date.now();
             }
             if (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid) {
               profile.firstUpdate = Date.now();
@@ -682,17 +669,6 @@ function post(req, res, next) {
               profile.markModified('orgEditorRoles');
             }
 
-            if(setVerifiedByID){
-              profile.verifiedByID = newVerifiedByID;
-            }
-
-            if(setVerifiedByName){
-              profile.verifiedByName = newVerifiedByName
-            }
-
-            if(setVerificationDate){
-              profile.verificationDate = newVerificationDate;
-            }
 
             return profile.save(function (err, profile, num) {
               log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile + " to change admin roles for user " + userid});
