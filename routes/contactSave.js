@@ -691,6 +691,7 @@ function post(req, res, next) {
             tempData.verifiedByID = profile._id;
             var name = profile.nameGiven + " " + profile.nameFamily;
             tempData.verifiedByName = name;
+            tempData.verificationDate = Date.now();
 
             return tempData.save(function (err, tempData, num) {
               log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile });
