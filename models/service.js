@@ -76,7 +76,7 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
     return mc.lists.subscribe({id: this.mc_list.id, email: {email: email}, merge_vars: vars, double_optin: false}, function (data) {
       profile.subscriptions.push({ service: that, email: email});
       profile.save();
-      return onresult(data);
+      return onresult(email);
     }, function (err) {
       if (err.name === 'List_AlreadySubscribed') {
         profile.subscriptions.push({ service: that, email: email });
@@ -107,7 +107,7 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
           if (!err || (err && err.code === 409)) {
             profile.subscriptions.push({ service: that, email: email});
             profile.save();
-            return onresult();
+            return onresult(email);
           }
          else {
            return onerror(new Error(err));
@@ -146,7 +146,7 @@ serviceSchema.methods.unsubscribe = function (profile, onresult, onerror) {
         var email = profile.subscriptions[index].email;
         profile.subscriptions.splice(index, 1);
         profile.save();
-        return onresult(email);
+        return onresult();
       }
       else {
         return onerror(new Error(err.error));
@@ -173,7 +173,7 @@ serviceSchema.methods.unsubscribe = function (profile, onresult, onerror) {
             var email = profile.subscriptions[index].email;
             profile.subscriptions.splice(index, 1);
             profile.save();
-            return onresult();
+            return onresult(email);
           }
           else {
             return onerror(new Error(err));

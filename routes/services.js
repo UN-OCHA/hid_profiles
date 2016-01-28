@@ -283,14 +283,31 @@ function get(req, res, next) {
     params['locations.remote_id'] = req.query.location;
   }
   if (req.query.auto_add) {
-    params.auto_add = req.query.auto_add;
+    if (req.query.auto_add == 'false') {
+      params.$or = [
+        { auto_add: false},
+        { auto_add: { $exists: false } }
+      ];
+    }
+    else {
+      params.auto_add = req.query.auto_add;
+    }
   }
   if (req.query.auto_remove) {
-    params.auto_remove = req.query.auto_remove;
+    if (req.query.auto_remove == 'false') {
+      params.$or = [
+        { auto_remove: false},
+        { auto_remove: { $exists: false } }
+      ];
+    }
+    else {
+      params.auto_remove = req.query.auto_remove;
+    }
   }
   if (!roles.has(req.apiAuth.userProfile, 'admin') && !roles.has(req.apiAuth.userProfile, 'manager')) {
     params = { $and: [params, { $or: [ {hidden: false }, {userid: req.apiAuth.userProfile.userId } ] } ] };
   }
+
   Service.find(params, function (err, services) {
     if (err) {
       res.send(500, new Error(err));
