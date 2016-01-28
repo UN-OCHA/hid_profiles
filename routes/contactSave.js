@@ -158,13 +158,14 @@ function post(req, res, next) {
     newRoles = [],
     setVerified = false,
     newVerified = false,
-    setVerifiedFlag = false;
-    newVerifiedByID = false;
-    setVerifiedByID = null;
-    newVerifiedByName = false;
-    setVerifiedByName = null;
-    newVerificationDate = false;
-    setVerificationDate = null;
+    setVerifiedFlag = false,
+    newVerifiedByID = false,
+    setVerifiedByID = null,
+    newVerifiedByName = false,
+    setVerifiedByName = null,
+    newVerificationDate = false,
+    setVerificationDate = null,
+    tempData = null,
     setKeyContact = false,
     setProtectedRoles = false,
     newProtectedRoles = [],
@@ -645,7 +646,7 @@ function post(req, res, next) {
       });
     },
     // Update the related profile
-    function (cb) {
+   function (cb) {
       if (setRoles || setVerified || setOrgEditorRoles || (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid)) {
         Profile.findOne({_id: _profile}, function (err, profile) {
           if (!err && profile) {
@@ -653,14 +654,12 @@ function post(req, res, next) {
               profile.roles = newRoles;
             }
             if (setVerified) {
-              profile.verified = newVerified;
+              profile.verified = newVerified;  
+              tempData = profile;
+            }
             
-            }
-            if(setVerifiedFlag){
-              profile.verifiedByID = req.apiAuth.userProfile._id;
-              profile.verifiedByName = "";
-              profile.verificationDate =  Date.now();
-            }
+
+
             if (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid) {
               profile.firstUpdate = Date.now();
             }
@@ -668,7 +667,6 @@ function post(req, res, next) {
               profile.orgEditorRoles = req.body.orgEditorRoles;
               profile.markModified('orgEditorRoles');
             }
-
 
             return profile.save(function (err, profile, num) {
               log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile + " to change admin roles for user " + userid});
@@ -684,6 +682,26 @@ function post(req, res, next) {
       else {
         return cb();
       }
+    },
+    function (cb) {
+    
+        if(setVerifiedFlag)
+        {
+            Contact.findOne({'_profile': req.apiAuth.userProfile._id, 'type': 'global'}, function (err, profile) {
+            tempData.verifiedByID = profile._id;
+            var name = profile.nameGiven + " " + profile.nameFamily;
+            tempData.verifiedByName = name;
+
+            return tempData.save(function (err, tempData, num) {
+              log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile });
+              return cb(err);
+            });
+          });
+        }
+        else{
+          return cb();
+        }
+      
     },
     // Find admin profile if applicable
     function (cb) {
