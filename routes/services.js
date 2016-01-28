@@ -282,6 +282,12 @@ function get(req, res, next) {
   if (req.query.location) {
     params['locations.remote_id'] = req.query.location;
   }
+  if (req.query.auto_add) {
+    params.auto_add = req.query.auto_add;
+  }
+  if (req.query.auto_remove) {
+    params.auto_remove = req.query.auto_remove;
+  }
   if (!roles.has(req.apiAuth.userProfile, 'admin') && !roles.has(req.apiAuth.userProfile, 'manager')) {
     params = { $and: [params, { $or: [ {hidden: false }, {userid: req.apiAuth.userProfile.userId } ] } ] };
   }

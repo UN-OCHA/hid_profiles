@@ -69,15 +69,17 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
     profile.subscriptions = [];
   }
 
+  var that = this;
+
   if (this.type === 'mailchimp') {
     var mc = new mcapi.Mailchimp(this.mc_api_key);
     return mc.lists.subscribe({id: this.mc_list.id, email: {email: email}, merge_vars: vars, double_optin: false}, function (data) {
-      profile.subscriptions.push({ service: this, email: email});
+      profile.subscriptions.push({ service: that, email: email});
       profile.save();
       return onresult(data);
     }, function (err) {
       if (err.name === 'List_AlreadySubscribed') {
-        profile.subscriptions.push({ service: this, email: email });
+        profile.subscriptions.push({ service: that, email: email });
         profile.save();
         return onresult();
       }
@@ -99,11 +101,11 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
         var gservice = google.admin('directory_v1');
         gservice.members.insert({
           auth: auth,
-          groupKey: this.googlegroup.group.id,
+          groupKey: that.googlegroup.group.id,
           resource: { 'email': email, 'role': 'MEMBER' }
         }, function (err, response) {
           if (!err || (err && err.code === 409)) {
-            profile.subscriptions.push({ service: this, email: email});
+            profile.subscriptions.push({ service: that, email: email});
             profile.save();
             return onresult();
           }
@@ -121,6 +123,7 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
 
 // Unsubscribe wrapper
 serviceSchema.methods.unsubscribe = function (profile, onresult, onerror) {
+  var that = this;
   var index = -1;
   for (var i = 0; i < profile.subscriptions.length; i++) {
     if (profile.subscriptions[i].service.equals(this._id)) {
@@ -139,14 +142,14 @@ serviceSchema.methods.unsubscribe = function (profile, onresult, onerror) {
       profile.save();
       return onresult(email);
     }, function (err) {
-      if (err.name === 'Email_NotExists') {
+      if (err.name === 'Email_NotExists' || err.name === 'List_NotSubscribed') {
         var email = profile.subscriptions[index].email;
         profile.subscriptions.splice(index, 1);
         profile.save();
         return onresult(email);
       }
       else {
-        return onerror(new Error(err));
+        return onerror(new Error(err.error));
       }
     });
   }
@@ -163,7 +166,7 @@ serviceSchema.methods.unsubscribe = function (profile, onresult, onerror) {
         var gservice = google.admin('directory_v1');
         gservice.members.delete({
           auth: auth,
-          groupKey: this.googlegroup.group.id,
+          groupKey: that.googlegroup.group.id,
           memberKey: profile.subscriptions[index].email
         }, function (err, response) {
           if (!err || (err && err.code === 404)) {

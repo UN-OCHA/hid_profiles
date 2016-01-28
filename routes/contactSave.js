@@ -3,6 +3,7 @@ var async = require('async'),
   mongoose = require('../models').mongoose,
   Profile = require('../models').Profile,
   Contact = require('../models').Contact,
+  Service = require('../models').Service,
   roles = require('../lib/roles.js'),
   log = require('../log'),
   restify = require('restify'),
@@ -725,16 +726,47 @@ function post(req, res, next) {
       }
     },
     // Subscribe to automated services
-    /*function (cb) {
+    function (cb) {
       // If checking in
-      if (contactFields.status === 1 && (!origContact || (origContact && origContact.status === 0)) {
-        Service.find({ auto_add: true, operations: contactField.locationId }, function (err, services) {
-          services.forEach(function (service, i) {
-            service.subscribe(profile);
+      if (contactFields.status === 1) {
+        if (!origContact || (origContact && origContact.status === 0)) {
+          var merge_vars = {
+            fname: contactFields.nameGiven,
+            lname: contactFields.nameFamily
+          };
+          Service.find({ auto_add: true, 'locations.remote_id': contactFields.locationId }, function (err, services) {
+            services.forEach(function (service, i) {
+              service.subscribe(origProfile, contactFields.email[0].address, merge_vars, function (data) {
+                // TODO: send email to notify user
+              });
+            });
+            return cb();
           });
-        });
+        }
+        else {
+          return cb();
+        }
       }
-    },*/
+      // If checking out
+      else if (contactFields.status === 0) {
+        if (origContact && origContact.status === true) {
+          Service.find({ auto_remove: true, 'locations.remote_id': origContact.locationId }, function (err, services) {
+            services.forEach(function (service, i) {
+              service.unsubscribe(origProfile, function (data) {
+                // TODO: send email to tell user he was unsubscribed
+              });
+            });
+            return cb();
+          });
+        }
+        else {
+          return cb();
+        }
+      }
+      else {
+        return cb();
+      }
+    },
     // Send emails (if applicable)
     function (cb) {
       var isOwnProfile = req.apiAuth.userId && req.apiAuth.userId === req.body.userid;
