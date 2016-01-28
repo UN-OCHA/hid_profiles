@@ -163,7 +163,6 @@ function post(req, res, next) {
     setVerifiedByID = null,
     newVerifiedByName = false,
     setVerifiedByName = null,
-    setverifiedGlobalProfileID = null,
     newVerificationDate = false,
     setVerificationDate = null,
     tempData = null,
@@ -689,11 +688,10 @@ function post(req, res, next) {
     
         if(setVerifiedFlag)
         {
-          Contact.findOne({'_profile': req.apiAuth.userProfile._id, 'type': 'global'}, function (err, profile) {
-            tempData.verfiedByID = profile._id;
+            Contact.findOne({'_profile': req.apiAuth.userProfile._id, 'type': 'global'}, function (err, profile) {
+            tempData.verifiedByID = profile._id;
             var name = profile.nameGiven + " " + profile.nameFamily;
             tempData.verifiedByName = name;
-            tempData.verifiedGlobalProfileID = profile._id;
 
             return tempData.save(function (err, tempData, num) {
               log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile });
