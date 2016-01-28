@@ -669,7 +669,6 @@ function post(req, res, next) {
             }
 
             return profile.save(function (err, profile, num) {
-              // res.send(profile);
               log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile + " to change admin roles for user " + userid});
               return cb(err);
             });

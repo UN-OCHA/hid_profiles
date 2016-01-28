@@ -28,10 +28,9 @@ var profileSchema = new mongoose.Schema({
   verified:           Boolean,
   contactLists:       [ contactListSchema ],
   subscriptions:      [ {service: {type: Schema.Types.ObjectId, ref: 'Service'}, email: String} ],
-  verifiedByID: String,
-  verifiedByName: String,
-  verificationDate: Date,
-  verifiedGlobalProfileID: String
+  verifiedByID:       String,
+  verifiedByName:     String,
+  verificationDate:   Date,
 });
 
 profileSchema.methods.isOrphan = function() {
