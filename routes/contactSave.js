@@ -3,6 +3,7 @@ var async = require('async'),
   mongoose = require('../models').mongoose,
   Profile = require('../models').Profile,
   Contact = require('../models').Contact,
+  Service = require('../models').Service,
   roles = require('../lib/roles.js'),
   log = require('../log'),
   restify = require('restify'),
@@ -714,6 +715,67 @@ function post(req, res, next) {
           }
           return cb();
         });
+      }
+      else {
+        return cb();
+      }
+    },
+    // Subscribe to automated services
+    function (cb) {
+      var mailOptions = {};
+      // If checking in
+      if (contactFields.status === 1) {
+        if (!origContact || (origContact && origContact.status === 0)) {
+          var merge_vars = {
+            fname: contactFields.nameGiven,
+            lname: contactFields.nameFamily
+          };
+          Service.find({ auto_add: true, 'locations.remote_id': contactFields.locationId }, function (err, services) {
+            services.forEach(function (service, i) {
+              service.subscribe(origProfile, contactFields.email[0].address, merge_vars, function (data) {
+                if (data) {
+                  // Send email to notify user
+                  mailOptions = {
+                    to: contactFields.email[0].address,
+                    subject: 'You were automatically subscribed to ' + service.name + ' on Humanitarian ID',
+                    recipientFirstName: contactFields.nameGiven,
+                    serviceName: service.name
+                  };
+                  mail.sendTemplate('auto_subscribe', mailOptions);
+                }
+              });
+            });
+            return cb();
+          });
+        }
+        else {
+          return cb();
+        }
+      }
+      // If checking out
+      else if (contactFields.status === 0) {
+        if (origContact && origContact.status === true) {
+          Service.find({ auto_remove: true, 'locations.remote_id': origContact.locationId }, function (err, services) {
+            services.forEach(function (service, i) {
+              service.unsubscribe(origProfile, function (data) {
+                // send email to tell user he was unsubscribed
+                if (data) {
+                  mailOptions = {
+                    to: data,
+                    subject: 'You were automatically unsubscribed from ' + service.name + ' on Humanitarian ID',
+                    recipientFirstName: origContact.nameGiven,
+                    serviceName: service.name
+                  };
+                  mail.sendTemplate('auto_unsubscribe', mailOptions);
+                }
+              });
+            });
+            return cb();
+          });
+        }
+        else {
+          return cb();
+        }
       }
       else {
         return cb();
