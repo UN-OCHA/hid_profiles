@@ -14,6 +14,7 @@ var validType = {
 
 var serviceSchema = new Schema({
   name:     {type: String, required: true},
+  description: {type: String},
   userid:   {type: String, required: true},
   type:     {type: String, required: true, enum: validType},
   mc_api_key: {type: String},
