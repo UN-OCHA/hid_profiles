@@ -89,7 +89,7 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
       }
     });
   }
-  else if (service.type === 'googlegroup') {
+  else if (this.type === 'googlegroup') {
     // Subscribe email to google group
     ServiceCredentials.findOne({ type: 'googlegroup', 'googlegroup.domain': this.googlegroup.domain}, function (err, creds) {
       if (err) {
