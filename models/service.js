@@ -23,7 +23,7 @@ var serviceSchema = new Schema({
     domain: { type: String },
     group: { id: String, name: String }
   },
-  status: { type: Boolean, default: true},
+ status: { type: Boolean, default: true},
   hidden: { type: Boolean, default: false},
   auto_add: { type: Boolean, default: false},
   auto_remove: { type: Boolean, default: false},
@@ -64,6 +64,23 @@ serviceSchema.methods.sanitize = function() {
   this.mc_api_key = undefined;
 };
 
+/**
+ * Create an OAuth2 client with the given credentials, and then execute the
+ * given callback function.
+ *
+ * @param {Object} credentials The authorization client credentials.
+ * @param {function} callback The callback to call with the authorized client.
+ */
+serviceSchema.statics.googleGroupsAuthorize = function (credentials, callback) {
+  var clientSecret = credentials.secrets.installed.client_secret;
+  var clientId = credentials.secrets.installed.client_id;
+  var redirectUrl = credentials.secrets.installed.redirect_uris[0];
+  var auth = new googleAuth();
+  var oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+  oauth2Client.credentials = credentials.token;
+  callback(oauth2Client);
+};
+
 // Subscribe email to a service
 serviceSchema.methods.subscribe = function (profile, email, vars, onresult, onerror) {
   if (!profile.subscriptions) {
@@ -98,7 +115,7 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
       if (!creds) {
         return onerror(new Error('Invalid domain'));
       }
-      googleGroupsAuthorize(creds.googlegroup, function (auth) {
+      serviceSchema.statics.googleGroupsAuthorize(creds.googlegroup, function (auth) {
         var gservice = google.admin('directory_v1');
         gservice.members.insert({
           auth: auth,
@@ -163,7 +180,7 @@ serviceSchema.methods.unsubscribe = function (profile, onresult, onerror) {
       if (!creds) {
         return onerror(new Error('Invalid domain'));
       }
-      googleGroupsAuthorize(creds.googlegroup, function (auth) {
+      serviceSchema.statics.googleGroupsAuthorize(creds.googlegroup, function (auth) {
         var gservice = google.admin('directory_v1');
         gservice.members.delete({
           auth: auth,
@@ -187,8 +204,6 @@ serviceSchema.methods.unsubscribe = function (profile, onresult, onerror) {
     return onerror(new Error('Invalid service type'));
   }
 };
-
-
 
 mongoose.model('Service', serviceSchema);
 
