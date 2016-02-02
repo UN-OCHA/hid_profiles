@@ -347,23 +347,6 @@ function mcLists(req, res, next) {
   }
 }
 
-/**
- * Create an OAuth2 client with the given credentials, and then execute the
- * given callback function.
- *
- * @param {Object} credentials The authorization client credentials.
- * @param {function} callback The callback to call with the authorized client.
- */
-function googleGroupsAuthorize(credentials, callback) {
-  var clientSecret = credentials.secrets.installed.client_secret;
-  var clientId = credentials.secrets.installed.client_id;
-  var redirectUrl = credentials.secrets.installed.redirect_uris[0];
-  var auth = new googleAuth();
-  var oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
-  oauth2Client.credentials = credentials.token;
-  callback(oauth2Client);
-}
-
 // Get google groups from a domain
 function googleGroups(req, res, next) {
   if (req.query.domain) {
@@ -377,7 +360,7 @@ function googleGroups(req, res, next) {
         res.send(400, new Error('Invalid domain'));
         return next();
       }
-      googleGroupsAuthorize(creds.googlegroup, function (auth) {
+      Service.googleGroupsAuthorize(creds.googlegroup, function (auth) {
         var service = google.admin('directory_v1');
         service.groups.list({
           auth: auth,
