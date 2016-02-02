@@ -3,6 +3,7 @@ var async = require('async'),
   mongoose = require('../models').mongoose,
   Profile = require('../models').Profile,
   Contact = require('../models').Contact,
+  Service = require('../models').Service,
   roles = require('../lib/roles.js'),
   log = require('../log'),
   restify = require('restify'),
@@ -158,6 +159,14 @@ function post(req, res, next) {
     newRoles = [],
     setVerified = false,
     newVerified = false,
+    setVerifiedFlag = false,
+    newVerifiedByID = false,
+    setVerifiedByID = null,
+    newVerifiedByName = false,
+    setVerifiedByName = null,
+    newVerificationDate = false,
+    setVerificationDate = null,
+    tempData = null,
     setKeyContact = false,
     setProtectedRoles = false,
     newProtectedRoles = [],
@@ -457,15 +466,18 @@ function post(req, res, next) {
       // manager, or editor.
       if (req.body.hasOwnProperty("verified") && (isAPI || isAdmin || isManager || isEditor)) {
         setVerified = true;
+        setVerifiedFlag = true;
         newVerified = req.body.verified;
-      }
 
+      }
+      
       // Allow setting protectedRoles if the user is an admin or a manager in
       // the location of this profile. Also, set the user to verified if any
       // protected roles are granted.
       if (req.body.hasOwnProperty("newProtectedRoles") && (isAPI || isAdmin || ((isManager || isEditor) && isManagersEditorsLocation))) {
         setProtectedRoles = true;
         newProtectedRoles = req.body.newProtectedRoles;
+
 
         if (newProtectedRoles.length) {
           setVerified = true;
@@ -635,7 +647,7 @@ function post(req, res, next) {
       });
     },
     // Update the related profile
-    function (cb) {
+   function (cb) {
       if (setRoles || setVerified || setOrgEditorRoles || (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid)) {
         Profile.findOne({_id: _profile}, function (err, profile) {
           if (!err && profile) {
@@ -643,8 +655,12 @@ function post(req, res, next) {
               profile.roles = newRoles;
             }
             if (setVerified) {
-              profile.verified = newVerified;
+              profile.verified = newVerified;  
+              tempData = profile;
             }
+            
+
+
             if (!origProfile.firstUpdate && req.apiAuth.mode === 'user' && req.apiAuth.userId === origProfile.userid) {
               profile.firstUpdate = Date.now();
             }
@@ -668,6 +684,27 @@ function post(req, res, next) {
         return cb();
       }
     },
+    function (cb) {
+    
+        if(setVerifiedFlag)
+        {
+            Contact.findOne({'_profile': req.apiAuth.userProfile._id, 'type': 'global'}, function (err, profile) {
+            tempData.verifiedByID = profile._id;
+            var name = profile.nameGiven + " " + profile.nameFamily;
+            tempData.verifiedByName = name;
+            tempData.verificationDate = Date.now();
+
+            return tempData.save(function (err, tempData, num) {
+              log.info({'type': 'contactSave:success', 'message': "Updated profile " + _profile });
+              return cb(err);
+            });
+          });
+        }
+        else{
+          return cb();
+        }
+      
+    },
     // Find admin profile if applicable
     function (cb) {
       var isOwnProfile = req.apiAuth.userId && req.apiAuth.userId === req.body.userid;
@@ -678,6 +715,67 @@ function post(req, res, next) {
           }
           return cb();
         });
+      }
+      else {
+        return cb();
+      }
+    },
+    // Subscribe to automated services
+    function (cb) {
+      var mailOptions = {};
+      // If checking in
+      if (contactFields.status === 1) {
+        if (!origContact || (origContact && origContact.status === 0)) {
+          var merge_vars = {
+            fname: contactFields.nameGiven,
+            lname: contactFields.nameFamily
+          };
+          Service.find({ auto_add: true, 'locations.remote_id': contactFields.locationId }, function (err, services) {
+            services.forEach(function (service, i) {
+              service.subscribe(origProfile, contactFields.email[0].address, merge_vars, function (data) {
+                if (data) {
+                  // Send email to notify user
+                  mailOptions = {
+                    to: contactFields.email[0].address,
+                    subject: 'You were automatically subscribed to ' + service.name + ' on Humanitarian ID',
+                    recipientFirstName: contactFields.nameGiven,
+                    serviceName: service.name
+                  };
+                  mail.sendTemplate('auto_subscribe', mailOptions);
+                }
+              });
+            });
+            return cb();
+          });
+        }
+        else {
+          return cb();
+        }
+      }
+      // If checking out
+      else if (contactFields.status === 0) {
+        if (origContact && origContact.status === true) {
+          Service.find({ auto_remove: true, 'locations.remote_id': origContact.locationId }, function (err, services) {
+            services.forEach(function (service, i) {
+              service.unsubscribe(origProfile, function (data) {
+                // send email to tell user he was unsubscribed
+                if (data) {
+                  mailOptions = {
+                    to: data,
+                    subject: 'You were automatically unsubscribed from ' + service.name + ' on Humanitarian ID',
+                    recipientFirstName: origContact.nameGiven,
+                    serviceName: service.name
+                  };
+                  mail.sendTemplate('auto_unsubscribe', mailOptions);
+                }
+              });
+            });
+            return cb();
+          });
+        }
+        else {
+          return cb();
+        }
       }
       else {
         return cb();

@@ -175,7 +175,7 @@ function deleteContact(req, res, next) {
 
 
 function post(req, res, next) {
-  var origList = {}, updatedList = {};
+  var origList = {}, updatedList = {}, newOwnerPId = '';
 
   async.series([
     function(cb) {
@@ -249,6 +249,7 @@ function post(req, res, next) {
           }
           if (updatedList.editors.indexOf(profile._id) === -1) {
             updatedList.editors.push(profile._id);
+            newOwnerPId = profile._id;
           }
           if (!updatedList.users.length) {
             updatedList.users = [];
@@ -277,7 +278,7 @@ function post(req, res, next) {
       // Get new readers
       var usersAdded = [], editorsAdded = [];
       updatedList.editors.forEach(function (value, i) {
-        if (value != null && origList.editors.indexOf(value.toString()) == -1) {
+        if (value != null && origList.editors.indexOf(value.toString()) == -1 && value != newOwnerPId) {
           editorsAdded.push(value);
         }
       });
