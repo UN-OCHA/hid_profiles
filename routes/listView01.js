@@ -17,7 +17,8 @@ var async = require('async'),
   http = require('http'),
   Handlebars = require('handlebars');
 
-var list = { };
+var list = { },
+    lists = [];
 
 function access(req, res, callback) {
   // Trusted API clients are allowed read access to all contacts.
@@ -111,11 +112,27 @@ function fetchSingle(req, res, callback) {
     });
 }
 
+function fetchAll(req, res, callback) {
+  Profile.findOne({_id: req.params.id}, function (err, profile) {
+    if (err) {
+      return callback(err);
+    }
+    List.find({$or: [{users: profile.userid }, { editors: profile._id }, {userid: profile.userid}]}, function(err, contactLists){
+      if (err) {
+        return callback(err);
+      }
+      lists = contactLists;
+      console.log(contactLists);
+      return callback(null);
+    });
+  });
+}
+
+
 
 function get(req, res, next) {
   // Initialize variables for get() scope.
   var lockedOperations = [],
-    lists = [],
     totalCount = 0;
     contacts = [];
 
@@ -621,13 +638,23 @@ function get(req, res, next) {
   async.series(steps);
 }
 
-function getProfiles(req, res, next) {
-  // Initialize variables for get() scope.
-  var lockedOperations = [],
-    lists = [],
-    totalCount = 0;
-    contacts = [];
+// Get all lists for a user
+function getForUser(req, res, next) {
+  async.series([
+    function (next) {
+      access(req, res, next);
+    },
+    function (next) {
+      fetchAll(req, res, next);
+    },
+    function (next) {
+      res.send(200, lists);
+    }
+  ]);
+}
 
+// Get profiles for a specific list
+function getProfiles(req, res, next) {
   // Initialize permissions and profile ID
   req.userCanViewAllContacts = false;
   req.userCanExport = false;
@@ -671,6 +698,7 @@ function getProfiles(req, res, next) {
 
   async.series(steps);
 }
-  
-exports.get = get;
+
+exports.getById = get;
 exports.getProfiles = getProfiles;
+exports.getForUser = getForUser;
