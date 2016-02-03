@@ -715,52 +715,45 @@ function getProfiles(req, res, next) {
 }
 
 function getAll(req, res, next) {
-  var params = {};
-  /*if (req.query.q) {
-    params = {name: new RegExp(req.query.q, 'i')};
+  var query = {};
+  if (req.query.q) {
+    query = {name: new RegExp(req.query.q, 'i')};
   }
-  if (req.query.status) {
-    params.status = req.query.status;
-  }
-  if (req.query.hidden) {
-    params.hidden = req.query.hidden;
-  }
-  if (req.query.location) {
-    params['locations.remote_id'] = req.query.location;
-  }
-  if (req.query.auto_add) {
-    if (req.query.auto_add == 'false') {
-      params.$or = [
-        { auto_add: false},
-        { auto_add: { $exists: false } }
-      ];
-    }
-    else {
-      params.auto_add = req.query.auto_add;
-    }
-  }
-  if (req.query.auto_remove) {
-    if (req.query.auto_remove == 'false') {
-      params.$or = [
-        { auto_remove: false},
-        { auto_remove: { $exists: false } }
-      ];
-    }
-    else {
-      params.auto_remove = req.query.auto_remove;
-    }
-  }
-  if (!roles.has(req.apiAuth.userProfile, 'admin') && !roles.has(req.apiAuth.userProfile, 'manager')) {
-    params = { $and: [params, { $or: [ {hidden: false }, {userid: req.apiAuth.userProfile.userId } ] } ] };
-  }*/
 
-  List.find(params, function (err, lists) {
+  Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
     if (err) {
       res.send(500, new Error(err));
+      return next();
+    }
+    var params = {};
+    var permissions = [
+      { privacy: 'all' },
+      { userid: req.apiAuth.userId },
+      { $and: [ { readers: profile._id }, { privacy: 'some' }] },
+      { editors: profile._id },
+      { privacy: 'inlist' }
+    ];
+    if (profile.verified == true) {
+      permissions.push({ privacy: 'verified' });
+    }
+    if (query.length === 0) {
+      params.$or = permissions;
     }
     else {
-      res.send(200, lists);
+      params.$and = [
+        { $or: permissions },
+        query
+      ];
     }
+    List.find(params, function (err, lists) {
+      if (err) {
+        res.send(500, new Error(err));
+      }
+      else {
+        // TODO: for the lists with privacy = inlist, make sure the current user is part of the list
+        res.send(200, lists);
+      }
+    });
   });
 }
 
