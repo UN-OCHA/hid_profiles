@@ -17,74 +17,72 @@ var async = require('async'),
   http = require('http'),
   Handlebars = require('handlebars');
 
-var list = { },
-    lists = [];
+var list = { };
 
 function access(req, res, callback) {
   // Trusted API clients are allowed read access to all contacts.
-    if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
-      req.userCanExport = true;
-      req.userCanViewAllContacts = true;
-      return callback(null);
-    }
-    // For users, we need to check their profile.
-    else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
-      Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
-        if (!err && profile && profile._id) {
-          // All users can export data.
-          req.userCanExport = true;
+  if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+    req.userCanExport = true;
+    req.userCanViewAllContacts = true;
+    return callback(null);
+  }
+  // For users, we need to check their profile.
+  else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
+    Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
+      if (!err && profile && profile._id) {
+        // All users can export data.
+        req.userCanExport = true;
+        // Set the profile ID for this user for use in a query later.
+        req.userProfileId = profile._id;
+        // Verified users can view all contacts.
+        if (profile.verified) {
+          req.userCanViewAllContacts = true;
+        }
 
-          // Set the profile ID for this user for use in a query later.
-          req.userProfileId = profile._id;
-          // Verified users can view all contacts.
-          if (profile.verified) {
-            req.userCanViewAllContacts = true;
+        // Check list privacy settings
+        if (req.params.id && list.privacy) {
+          var check = [], checkEditors = [];
+          if (list.privacy == 'some' && list.readers.length) {
+            check = list.readers.filter(function (obj) {
+              if (obj != null && obj.userid) {
+                return obj.userid === req.apiAuth.userId;
+              }
+            });
           }
 
-          // Check list privacy settings
-          if (req.params.id && list.privacy) {
-            var check = [], checkEditors = [];
-            if (list.privacy == 'some' && list.readers.length) {
-              check = list.readers.filter(function (obj) {
-                if (obj != null && obj.userid) {
-                  return obj.userid === req.apiAuth.userId;
-                }
-              });
-            }
-
-            if (list.editors && list.editors.length) {
-              checkEditors = list.editors.filter(function (obj) {
-                if (obj != null && obj.userid) {
-                  return obj.userid === req.apiAuth.userId;
-                }
-              });
-            }
-
-            var isInList = [];
-            if (list.privacy == 'inlist') {
-              isInList = list.contacts.filter(function (obj) {
-                if (profile._id.equals(obj._profile._id)) {
-                  return true;
-                }
-              });
-            }
-
-            if (req.apiAuth.userId != list.userid && !checkEditors.length && (list.privacy == 'me'
-              || (list.privacy == 'verified' && !profile.verified)
-              || (list.privacy == 'some' && !check.length)
-              || (list.privacy == 'inlist' && !isInList.length))) {
-              res.send(403, 'Access Denied');
-              res.end();
-              return callback(true);
-            }
+          if (list.editors && list.editors.length) {
+            checkEditors = list.editors.filter(function (obj) {
+              if (obj != null && obj.userid) {
+                return obj.userid === req.apiAuth.userId;
+              }
+            });
           }
-          return callback(null);
+
+          var isInList = [];
+          if (list.privacy == 'inlist') {
+            isInList = list.contacts.filter(function (obj) {
+              if (profile._id.equals(obj._profile._id)) {
+                return true;
+              }
+            });
+          }
+
+          if (req.apiAuth.userId != list.userid && !checkEditors.length && (list.privacy == 'me'
+            || (list.privacy == 'verified' && !profile.verified)
+            || (list.privacy == 'some' && !check.length)
+            || (list.privacy == 'inlist' && !isInList.length))) {
+            res.send(403, 'Access Denied');
+            res.end();
+            return callback(true);
+          }
         }
-        else {
-          return callback(err);
-        }
-      });
-    }
+        return callback(null);
+      }
+      else {
+        return callback(err);
+      }
+    });
+  }
 }
 
 function fetchSingle(req, res, callback) {
@@ -111,24 +109,6 @@ function fetchSingle(req, res, callback) {
       });
     });
 }
-
-function fetchAll(req, res, callback) {
-  Profile.findOne({_id: req.params.id}, function (err, profile) {
-    if (err) {
-      return callback(err);
-    }
-    List.find({$or: [{users: profile.userid }, { editors: profile._id }, {userid: profile.userid}]}, function(err, contactLists){
-      if (err) {
-        return callback(err);
-      }
-      lists = contactLists;
-      console.log(contactLists);
-      return callback(null);
-    });
-  });
-}
-
-
 
 function get(req, res, next) {
   // Initialize variables for get() scope.
@@ -640,17 +620,52 @@ function get(req, res, next) {
 
 // Get all lists for a user
 function getForUser(req, res, next) {
+  var profile = {};
   async.series([
-    function (next) {
-      access(req, res, next);
+    function (cb) {
+      // Trusted API clients are allowed read access to all contacts.
+      if (req.apiAuth.mode === 'client' && req.apiAuth.trustedClient) {
+        req.userCanExport = true;
+        req.userCanViewAllContacts = true;
+        return cb();
+      }
+      // For users, we need to check their profile.
+      else if (req.apiAuth.mode === 'user' && req.apiAuth.userId) {
+        Profile.findOne({userid: req.apiAuth.userId}, function (err, prof) {
+          if (err) {
+            res.send(500, new Error(err));
+            return cb(true);
+          }
+          if (!prof) {
+            res.send(404);
+            return cb(true);
+          }
+          if (prof._id != req.params.id) {
+            res.send(403, 'Access Denied');
+            return cb(true);
+          }
+          else {
+            profile = prof;
+            return cb();
+          }
+          res.send(500, new Error('Unknown error'));
+          return cb(true);
+        });
+      }
     },
-    function (next) {
-      fetchAll(req, res, next);
-    },
-    function (next) {
-      res.send(200, lists);
+    function (cb) {
+      List.find({$or: [{users: profile.userid }, { editors: profile._id }, {userid: profile.userid}]}, function(err, lists){
+        if (err) {
+          res.send(500, new Error(err));
+          return cb(err);
+        }
+        res.send(200, lists);
+        return cb();
+      });
     }
-  ]);
+  ], function (err) {
+    return next();
+  });
 }
 
 // Get profiles for a specific list
@@ -699,6 +714,57 @@ function getProfiles(req, res, next) {
   async.series(steps);
 }
 
+function getAll(req, res, next) {
+  var params = {};
+  /*if (req.query.q) {
+    params = {name: new RegExp(req.query.q, 'i')};
+  }
+  if (req.query.status) {
+    params.status = req.query.status;
+  }
+  if (req.query.hidden) {
+    params.hidden = req.query.hidden;
+  }
+  if (req.query.location) {
+    params['locations.remote_id'] = req.query.location;
+  }
+  if (req.query.auto_add) {
+    if (req.query.auto_add == 'false') {
+      params.$or = [
+        { auto_add: false},
+        { auto_add: { $exists: false } }
+      ];
+    }
+    else {
+      params.auto_add = req.query.auto_add;
+    }
+  }
+  if (req.query.auto_remove) {
+    if (req.query.auto_remove == 'false') {
+      params.$or = [
+        { auto_remove: false},
+        { auto_remove: { $exists: false } }
+      ];
+    }
+    else {
+      params.auto_remove = req.query.auto_remove;
+    }
+  }
+  if (!roles.has(req.apiAuth.userProfile, 'admin') && !roles.has(req.apiAuth.userProfile, 'manager')) {
+    params = { $and: [params, { $or: [ {hidden: false }, {userid: req.apiAuth.userProfile.userId } ] } ] };
+  }*/
+
+  List.find(params, function (err, lists) {
+    if (err) {
+      res.send(500, new Error(err));
+    }
+    else {
+      res.send(200, lists);
+    }
+  });
+}
+
 exports.getById = get;
 exports.getProfiles = getProfiles;
 exports.getForUser = getForUser;
+exports.get = getAll;

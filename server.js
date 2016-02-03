@@ -45,6 +45,7 @@ var v01Prefix = '/v0.1/';
 
 server.get(versionPrefix + 'app/data', middleware.require.appOrUser, routes.appData.get);
 
+server.get(v01Prefix + 'lists', middleware.require.appOrUser, routes.listView.get);
 server.get(v01Prefix + 'lists/:id', middleware.require.appOrUser, routes.listView.getById);
 server.get(v01Prefix + 'lists/:id/profiles', middleware.require.appOrUser, routes.listView.getProfiles);
 server.post(versionPrefix + 'list/save', middleware.require.appOrUser, routes.listSave.postAccess, routes.listSave.post);
