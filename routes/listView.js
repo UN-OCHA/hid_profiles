@@ -715,9 +715,21 @@ function getProfiles(req, res, next) {
 }
 
 function getAll(req, res, next) {
-  var query = {};
+  var query = {},
+    skip = 0,
+    limit = 30,
+    sort = 'name';
   if (req.query.q) {
     query = {name: new RegExp(req.query.q, 'i')};
+  }
+  if (req.query.skip) {
+    skip = req.query.skip;
+  }
+  if (req.query.limit) {
+    limit = req.query.limit;
+  }
+  if (req.query.sort) {
+    sort = req.query.sort;
   }
 
   Profile.findOne({userid: req.apiAuth.userId}, function (err, profile) {
@@ -745,7 +757,9 @@ function getAll(req, res, next) {
         query
       ];
     }
-    List.find(params, function (err, lists) {
+    List.find(params, null, { skip: skip, limit: limit })
+      .sort(sort)
+      .exec(function (err, lists) {
       if (err) {
         res.send(500, new Error(err));
       }
