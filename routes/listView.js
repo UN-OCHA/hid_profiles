@@ -769,9 +769,20 @@ function getAll(req, res, next) {
           res.send(500, new Error(err));
         }
         else {
-          // TODO: for the lists with privacy = inlist, make sure the current user is part of the list
-          res.header('X-Total-Count', count);
-          res.send(200, lists);
+          var lists2 = [];
+          async.each(lists, function (list, cb) {
+            // TODO: for the lists with privacy = inlist, make sure the current user is part of the list
+            list.getOwnerName(function (err, contact) {
+              var tmp = list.toObject();
+              tmp.owner = contact.fullName();
+              tmp.ownerId = contact._id;
+              lists2.push(tmp);
+              cb();
+            });
+          }, function (err) {
+            res.header('X-Total-Count', count);
+            res.send(200, lists2);
+          });
         }
         return next();
       });

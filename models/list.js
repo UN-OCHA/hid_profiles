@@ -1,4 +1,6 @@
-var mongoose = require('mongoose');
+var mongoose = require('mongoose'),
+  Profile = require('../models').Profile,
+  Contact = require('../models').Contact;
 var Schema = mongoose.Schema;
 
 var validPrivacy = {
@@ -16,7 +18,15 @@ var listSchema = new Schema({
   editors: [ { type: Schema.Types.ObjectId, ref: 'Profile' } ]
 });
 
-mongoose.model('List', listSchema);
+listSchema.methods.getOwnerName = function(cb) {
+  Profile.findOne({ userid: this.userid }, function (err, profile) {
+    if (err) {
+      return cb(err);
+    }
+    Contact.findOne({type: 'global', _profile: profile._id}, cb);
+  });
+};
 
+mongoose.model('List', listSchema);
 var List = mongoose.model('List');
 module.exports = List;
