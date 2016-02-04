@@ -32,7 +32,10 @@ server.use(helmet.xssFilter());
 
 server.use(restify.CORS({
   origins: ['*'],
-  credentials: true
+  credentials: true,
+  headers: [
+    'x-total-count'
+  ]
 }));
 
 server.pre(function (request, response, next) {

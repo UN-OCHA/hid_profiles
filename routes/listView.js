@@ -757,16 +757,24 @@ function getAll(req, res, next) {
         query
       ];
     }
-    List.find(params, null, { skip: skip, limit: limit })
-      .sort(sort)
-      .exec(function (err, lists) {
+    var q = List.find(params, null, { skip: skip, limit: limit }).sort(sort);
+    q.exec(function (err, lists) {
+      delete q.options.sort;
       if (err) {
         res.send(500, new Error(err));
+        return next();
       }
-      else {
-        // TODO: for the lists with privacy = inlist, make sure the current user is part of the list
-        res.send(200, lists);
-      }
+      q.count(function (err, count) {
+        if (err) {
+          res.send(500, new Error(err));
+        }
+        else {
+          // TODO: for the lists with privacy = inlist, make sure the current user is part of the list
+          res.header('X-Total-Count', count);
+          res.send(200, lists);
+        }
+        return next();
+      });
     });
   });
 }
