@@ -773,10 +773,12 @@ function getAll(req, res, next) {
           async.each(lists, function (list, cb) {
             // TODO: for the lists with privacy = inlist, make sure the current user is part of the list
             list.getOwnerName(function (err, contact) {
-              var tmp = list.toObject();
-              tmp.owner = contact.fullName();
-              tmp.ownerId = contact._id;
-              lists2.push(tmp);
+              if (!err && contact) {
+                var tmp = list.toObject();
+                tmp.owner = contact.fullName();
+                tmp.ownerId = contact._id;
+                lists2.push(tmp);
+              }
               cb();
             });
           }, function (err) {

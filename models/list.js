@@ -23,6 +23,9 @@ listSchema.methods.getOwnerName = function(cb) {
     if (err) {
       return cb(err);
     }
+    if (!profile) {
+      return cb(new Error('Could not find profile'));
+    }
     Contact.findOne({type: 'global', _profile: profile._id}, cb);
   });
 };
