@@ -6,7 +6,6 @@ exports.profileView = require('./profileView');
 exports.profileDelete = require('./profileDelete');
 exports.listSave = require('./listSave');
 exports.listView = require('./listView');
-exports.listView01 = require('./listView01');
 exports.listDelete = require('./listDelete');
 exports.listFollow = require('./listFollow');
 exports.services = require('./services');

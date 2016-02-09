@@ -32,7 +32,10 @@ server.use(helmet.xssFilter());
 
 server.use(restify.CORS({
   origins: ['*'],
-  credentials: true
+  credentials: true,
+  headers: [
+    'x-total-count'
+  ]
 }));
 
 server.pre(function (request, response, next) {
@@ -45,24 +48,25 @@ var v01Prefix = '/v0.1/';
 
 server.get(versionPrefix + 'app/data', middleware.require.appOrUser, routes.appData.get);
 
-server.get(versionPrefix + 'list/view', middleware.require.appOrUser, routes.listView.get);
-server.get(v01Prefix + 'lists/:id', middleware.require.appOrUser, routes.listView01.get);
-server.get(v01Prefix + 'lists/:id/profiles', middleware.require.appOrUser, routes.listView01.getProfiles);
+server.get(v01Prefix + 'lists', middleware.require.appOrUser, routes.listView.get);
+server.get(v01Prefix + 'lists/:id', middleware.require.appOrUser, routes.listView.getById);
+server.get(v01Prefix + 'lists/:id/profiles', middleware.require.appOrUser, routes.listView.getProfiles);
 server.post(versionPrefix + 'list/save', middleware.require.appOrUser, routes.listSave.postAccess, routes.listSave.post);
 server.post(v01Prefix + 'lists/:id/contacts', middleware.require.appOrUser, routes.listSave.writeAccess, routes.listSave.addContact);
 server.del(v01Prefix + 'lists/:id', middleware.require.appOrUser, routes.listDelete.deleteAccess, routes.listDelete.del);
 server.del(v01Prefix + 'lists/:list_id/contacts/:contact_id', middleware.require.appOrUser, routes.listSave.writeAccess, routes.listSave.deleteContact);
 server.put(v01Prefix + 'lists/:id/follow', middleware.require.appOrUser, routes.listFollow.access, routes.listFollow.follow);
 server.del(v01Prefix + 'lists/:id/follow', middleware.require.appOrUser, routes.listFollow.access, routes.listFollow.unfollow);
+server.get(v01Prefix + 'profiles/:id/lists', middleware.require.appOrUser, routes.listView.getForUser);
 
 server.get(versionPrefix + 'profile/view', middleware.require.appOrUser, routes.profileView.get);
 server.post(versionPrefix + 'profile/view', middleware.require.appOrUser, routes.profileView.get);
 server.post(versionPrefix + 'profile/delete', middleware.require.appOrUser, routes.profileDelete.postAccess, routes.profileDelete.post);
 server.post(versionPrefix + 'profile/save', middleware.require.appOrUser, routes.profileSave.postAccess, routes.profileSave.post);
 
-server.post(v01Prefix + '/profiles/:id/subscriptions', middleware.require.appOrUser, routes.services.subscribeAccess, routes.services.subscribe);
-server.del(v01Prefix + '/profiles/:id/subscriptions/:serviceId', middleware.require.appOrUser, routes.services.subscribeAccess, routes.services.unsubscribe);
-server.get(v01Prefix + '/profiles/:id/subscriptions', middleware.require.appOrUser, middleware.require.access, routes.services.subscriptions);
+server.post(v01Prefix + 'profiles/:id/subscriptions', middleware.require.appOrUser, routes.services.subscribeAccess, routes.services.subscribe);
+server.del(v01Prefix + 'profiles/:id/subscriptions/:serviceId', middleware.require.appOrUser, routes.services.subscribeAccess, routes.services.unsubscribe);
+server.get(v01Prefix + 'profiles/:id/subscriptions', middleware.require.appOrUser, middleware.require.access, routes.services.subscriptions);
 
 server.get(versionPrefix + 'contact/view', middleware.require.appOrUser, routes.contactView.get);
 server.get(v01Prefix + 'contacts/:id', middleware.require.appOrUser, middleware.require.access, routes.contactView.getById);
@@ -73,14 +77,14 @@ server.post(versionPrefix + 'contact/save', middleware.require.appOrUser, routes
 server.post(versionPrefix + 'contact/resetpw', middleware.require.appOrUser, routes.contactSave.postAccess, routes.contactSave.resetPasswordPost);
 server.post(versionPrefix + 'contact/notifyContact', middleware.require.appOrUser, routes.contactSave.notifyContact);
 
-server.post(v01Prefix + '/services', middleware.require.appOrUser, routes.services.postAccess, routes.services.post);
-server.put(v01Prefix + '/services/:id', middleware.require.appOrUser, routes.services.putdelAccess, routes.services.put);
-server.del(v01Prefix + '/services/:id', middleware.require.appOrUser, routes.services.putdelAccess, routes.services.del);
-server.get(v01Prefix + '/services', middleware.require.appOrUser, middleware.require.access, routes.services.get);
-server.get(v01Prefix + '/services/:id', middleware.require.appOrUser, middleware.require.access, routes.services.getById);
-server.get(v01Prefix + '/services/mailchimp/lists', middleware.require.appOrUser, middleware.require.access, routes.services.mcLists);
-server.get(v01Prefix + '/services/google/groups', middleware.require.appOrUser, middleware.require.access, routes.services.googleGroups);
-server.get(v01Prefix + '/service_credentials', middleware.require.appOrUser, middleware.require.access, routes.serviceCredentials.get);
+server.post(v01Prefix + 'services', middleware.require.appOrUser, routes.services.postAccess, routes.services.post);
+server.put(v01Prefix + 'services/:id', middleware.require.appOrUser, routes.services.putdelAccess, routes.services.put);
+server.del(v01Prefix + 'services/:id', middleware.require.appOrUser, routes.services.putdelAccess, routes.services.del);
+server.get(v01Prefix + 'services', middleware.require.appOrUser, middleware.require.access, routes.services.get);
+server.get(v01Prefix + 'services/:id', middleware.require.appOrUser, middleware.require.access, routes.services.getById);
+server.get(v01Prefix + 'services/mailchimp/lists', middleware.require.appOrUser, middleware.require.access, routes.services.mcLists);
+server.get(v01Prefix + 'services/google/groups', middleware.require.appOrUser, middleware.require.access, routes.services.googleGroups);
+server.get(v01Prefix + 'service_credentials', middleware.require.appOrUser, middleware.require.access, routes.serviceCredentials.get);
 
 // Provide handling for OPTIONS requests for CORS.
 server.opts('.*', function(req, res, next) {
