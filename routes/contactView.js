@@ -398,6 +398,7 @@ function get(req, res) {
     }
 
     var csvData = '',
+      roles = {},
       stringifier = stringify({'quoted': true});
 
     stringifier.on('readable', function() {
@@ -426,9 +427,11 @@ function get(req, res) {
       'Job Title',
       'Organization',
       'Groups',
+      'Roles',
       'Country',
       'Admin Area',
       'Locality',
+      'Offices',
       'Phone:Landline',
       'Phone:Mobile',
       'Phone:Fax',
@@ -443,9 +446,19 @@ function get(req, res) {
       'Notes'
     ]);
 
-
-    _.forEach(contacts, function (item) {
-      var multiValues = {
+    async.series([
+      function (cb) {
+        // Load protected roles data
+        protectedRoles.get(function (err, data) {
+          data.forEach(function(val) {
+            roles[val.id] = val.name;
+          });
+          cb();
+        });
+      },
+      function (cb) {
+        _.forEach(contacts, function (item) {
+          var multiValues = {
             email: {
               key: 'address',
               defaultType: 'Email',
@@ -460,64 +473,68 @@ function get(req, res) {
               key: 'number',
               defaultType: 'Voip',
               types: {'Voip': []}
-            }
+            },
           };
 
-      _.forEach(multiValues, function(value, fieldType) {
-        _.forEach(item[fieldType], function(fieldEntry) {
-          // Make sure actual value is defined.
-          if (typeof fieldEntry[value.key] !== 'undefined') {
-            // Type is defined and is one of the predefined accepted values.
-            if (typeof fieldEntry.type !== 'undefined' && typeof value.types[fieldEntry.type] !== 'undefined') {
-              multiValues[fieldType].types[fieldEntry.type].push(fieldEntry[value.key]);
+        _.forEach(multiValues, function(value, fieldType) {
+          _.forEach(item[fieldType], function(fieldEntry) {
+            // Make sure actual value is defined.
+            if (typeof fieldEntry[value.key] !== 'undefined') {
+              // Type is defined and is one of the predefined accepted values.
+              if (typeof fieldEntry.type !== 'undefined' && typeof value.types[fieldEntry.type] !== 'undefined') {
+                multiValues[fieldType].types[fieldEntry.type].push(fieldEntry[value.key]);
+              }
+              // If type is defined but not one of the accepted values,
+              // append it to the field value and add it to the default array.
+              else if (typeof fieldEntry.type !== 'undefined') {
+                multiValues[fieldType].types[value.defaultType].push(fieldEntry.type + ": " + fieldEntry[value.key] );
+              }
+              // Otherwise add value to default array.
+              else {
+                multiValues[fieldType].types[value.defaultType].push(fieldEntry[value.key]);
+              }
             }
-            // If type is defined but not one of the accepted values,
-            // append it to the field value and add it to the default array.
-            else if (typeof fieldEntry.type !== 'undefined') {
-              multiValues[fieldType].types[value.defaultType].push(fieldEntry.type + ": " + fieldEntry[value.key] );
-            }
-            // Otherwise add value to default array.
-            else {
-              multiValues[fieldType].types[value.defaultType].push(fieldEntry[value.key]);
-            }
-          }
+          });
         });
+
+        // Tack on a semicolon to the end of all phone number,
+        // having them displayed as a string in excel.
+        _.forEach(multiValues.phone.types, function(value, type){
+          var nums = value.join('; ');
+          multiValues.phone.types[type] = nums.length ? nums + ';' : nums;
+        });
+
+        var dateOptions = { day: "numeric", month: "long", year: "numeric" };
+
+        stringifier.write([
+          item.nameGiven,
+          item.nameFamily,
+          item.jobtitle,
+          item.organization.map(function (val) { if (val && val.name) { return val.name; } }).join('; '),
+          item.bundle.join('; '),
+          item.protectedRoles.map(function (id) { return roles[id]; }).join('; '),
+          item.address && item.address[0] && item.address[0].country ? item.address[0].country : '',
+          item.address && item.address[0] && item.address[0].administrative_area ? item.address[0].administrative_area : '',
+          item.address && item.address[0] && item.address[0].locality ? item.address[0].locality : '',
+          item.office.map(function (val) { if (val && val.name) { return val.name; } }).join('; '),
+          multiValues.phone.types['Landline'],
+          multiValues.phone.types['Mobile'],
+          multiValues.phone.types['Fax'],
+          multiValues.phone.types['Satellite'],
+          multiValues.voip.types['Voip'].join('; '),
+          multiValues.email.types['Email'].join('; '),
+          multiValues.email.types['Work'].join('; '),
+          multiValues.email.types['Personal'].join('; '),
+          multiValues.email.types['Other'].join('; '),
+          item.departureDate ? item.departureDate.toLocaleDateString('en', dateOptions) : '',
+          item.uri ? item.uri.join('; '): '',
+          item.notes
+        ]);
       });
 
-      // Tack on a semicolon to the end of all phone number,
-      // having them displayed as a string in excel.
-      _.forEach(multiValues.phone.types, function(value, type){
-        var nums = value.join('; ');
-        multiValues.phone.types[type] = nums.length ? nums + ';' : nums;
-      });
-
-      var dateOptions = { day: "numeric", month: "long", year: "numeric" };
-
-      stringifier.write([
-        item.nameGiven,
-        item.nameFamily,
-        item.jobtitle,
-        item.organization.map(function (val) { if (val && val.name) { return val.name; } }).join('; '),
-        item.bundle.join('; '),
-        item.address && item.address[0] && item.address[0].country ? item.address[0].country : '',
-        item.address && item.address[0] && item.address[0].administrative_area ? item.address[0].administrative_area : '',
-        item.address && item.address[0] && item.address[0].locality ? item.address[0].locality : '',
-        multiValues.phone.types['Landline'],
-        multiValues.phone.types['Mobile'],
-        multiValues.phone.types['Fax'],
-        multiValues.phone.types['Satellite'],
-        multiValues.voip.types['Voip'].join('; '),
-        multiValues.email.types['Email'].join('; '),
-        multiValues.email.types['Work'].join('; '),
-        multiValues.email.types['Personal'].join('; '),
-        multiValues.email.types['Other'].join('; '),
-        item.departureDate ? item.departureDate.toLocaleDateString('en', dateOptions) : '',
-        item.uri ? item.uri.join('; '): '',
-        item.notes
-      ]);
-    });
-
-    stringifier.end();
+      stringifier.end();
+      cb();
+    }]);
   }
 
   // Returns query results in PDF format from generated HTML output.
