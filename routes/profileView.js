@@ -83,7 +83,7 @@ function get(req, res, next) {
     function (cb) {
       // @todo: @see http://mongoosejs.com/docs/populate.html
       if (profile && profile._id) {
-        Contact.find({'_profile': profile._id, 'status': 1}, function (err, _contacts) {
+        Contact.find({'_profile': profile._id}, function (err, _contacts) {
           if (err) {
             log.warn({'type': 'profileView:error', 'message': 'Error occurred while performing query for contacts related to this profile.', 'err': err});
             return cb(err);
