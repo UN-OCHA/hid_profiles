@@ -123,23 +123,23 @@ function writeAccess(req, res, next) {
 function addContact(req, res, next) {
   List.findById(req.params.id, function (err, list) {
     if (err) {
-      res.json({'status': 'error', 'message': 'Could not find list'});
+      res.send(404, new Error('List not found'));
       return next(false);
     }
 
     var index = list.contacts.indexOf(req.body.contact);
     if (index != -1) {
-      res.json({'status': 'error', 'message': 'Contact is already in list'});
+      res.send(409, new Error('Contact is already in list'));
       return next(false);
     }
     else {
       list.contacts.push(req.body.contact);
       list.save(function (err) {
         if (err) {
-          res.json({'status': 'error', 'message': 'Unknown error saving list'});
+          res.send(404, new Error('Unknown error saving list'));
           return next(false);
         }
-        res.json({'status': 'ok', 'message': 'Contact added successfully'});
+        res.send(201, req.body.contact);
         return next();
       });
     }
@@ -150,23 +150,23 @@ function addContact(req, res, next) {
 function deleteContact(req, res, next) {
   List.findById(req.params.list_id, function (err, list) {
     if (err) {
-      res.json({'status': 'error', 'message': 'Could not find list'});
+      res.send(404, new Error('List not found'));
       return next(false);
     }
 
     var index = list.contacts.indexOf(req.params.contact_id);
     if (index == -1) {
-      res.json({'status': 'error', 'message': 'Contact is not in list'});
+      res.send(404, new Error('Contact not found'));
       return next(false);
     }
     else {
       list.contacts.splice(index, 1);
       list.save(function (err) {
         if (err) {
-          res.json({'status': 'error', 'message': 'Unknown error saving list'});
+          res.send(500, new Error('Unknown error saving list'));
           return next(false);
         }
-        res.json({'status': 'ok', 'message': 'Contact removed successfully'});
+        res.send(204);
         return next();
       });
     }
