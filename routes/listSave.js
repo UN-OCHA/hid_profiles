@@ -121,7 +121,10 @@ function writeAccess(req, res, next) {
 
 // Add contact to a custom contact list
 function addContact(req, res, next) {
-  List.findById(req.params.id, function (err, list) {
+  List
+    .findById(req.params.id)
+    .populate('services')
+    .exec(function (err, list) {
     if (err) {
       res.send(404, new Error('List not found'));
       return next(false);
@@ -139,6 +142,23 @@ function addContact(req, res, next) {
           res.send(404, new Error('Unknown error saving list'));
           return next(false);
         }
+        // Subscribe contact to services
+        if (list.services.length) {
+          Contact
+            .findById(req.body.contact)
+            .populate('_profile')
+            .exec(function (err, contact) {
+              if (!err && contact && contact.email.length) {
+                var profile = contact._profile;
+                list.services.forEach(function (service) {
+                  if (service.auto_add) {
+                    var merge_vars = { 'fname': contact.nameGiven, 'lname': contact.nameFamily };
+                    service.subscribe(profile, contact.email[0].address, merge_vars);
+                  }
+                });
+              }
+            });
+        }
         res.send(201, req.body.contact);
         return next();
       });
@@ -148,7 +168,10 @@ function addContact(req, res, next) {
 
 // Delete contact from a list
 function deleteContact(req, res, next) {
-  List.findById(req.params.list_id, function (err, list) {
+  List
+    .findById(req.params.list_id)
+    .populate('services')
+    .exec(function (err, list) {
     if (err) {
       res.send(404, new Error('List not found'));
       return next(false);
@@ -165,6 +188,21 @@ function deleteContact(req, res, next) {
         if (err) {
           res.send(500, new Error('Unknown error saving list'));
           return next(false);
+        }
+        // Unsubscribe contact from services
+        if (list.services.length) {
+          Contact
+            .findById(req.params.contact_id)
+            .populate('_profile')
+            .exec(function (err, contact) {
+              if (!err && contact) {
+                list.services.forEach(function (service) {
+                  if (service.auto_remove) {
+                    service.unsubscribe(contact._profile);
+                  }
+                });
+              }
+            });
         }
         res.send(204);
         return next();
