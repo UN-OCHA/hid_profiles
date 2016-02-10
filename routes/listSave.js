@@ -234,6 +234,10 @@ function post(req, res, next) {
         updatedList.editors = req.body.editors;
       }
 
+      if (req.body.services) {
+        updatedList.services = req.body.services;
+      }
+
       if (req.body.userid && req.body.userid != origList.userid && req.apiAuth.userId === origList.userid) {
         updatedList.userid = req.body.userid;
         // Make sure original owner is added as an editor and follower
