@@ -121,25 +121,45 @@ function writeAccess(req, res, next) {
 
 // Add contact to a custom contact list
 function addContact(req, res, next) {
-  List.findById(req.params.id, function (err, list) {
+  List
+    .findById(req.params.id)
+    .populate('services')
+    .exec(function (err, list) {
     if (err) {
-      res.json({'status': 'error', 'message': 'Could not find list'});
+      res.send(404, new Error('List not found'));
       return next(false);
     }
 
     var index = list.contacts.indexOf(req.body.contact);
     if (index != -1) {
-      res.json({'status': 'error', 'message': 'Contact is already in list'});
+      res.send(409, new Error('Contact is already in list'));
       return next(false);
     }
     else {
       list.contacts.push(req.body.contact);
       list.save(function (err) {
         if (err) {
-          res.json({'status': 'error', 'message': 'Unknown error saving list'});
+          res.send(404, new Error('Unknown error saving list'));
           return next(false);
         }
-        res.json({'status': 'ok', 'message': 'Contact added successfully'});
+        // Subscribe contact to services
+        if (list.services.length) {
+          Contact
+            .findById(req.body.contact)
+            .populate('_profile')
+            .exec(function (err, contact) {
+              if (!err && contact && contact.email.length) {
+                var profile = contact._profile;
+                list.services.forEach(function (service) {
+                  if (service.auto_add) {
+                    var merge_vars = { 'fname': contact.nameGiven, 'lname': contact.nameFamily };
+                    service.subscribe(profile, contact.email[0].address, merge_vars);
+                  }
+                });
+              }
+            });
+        }
+        res.send(201, req.body.contact);
         return next();
       });
     }
@@ -148,25 +168,43 @@ function addContact(req, res, next) {
 
 // Delete contact from a list
 function deleteContact(req, res, next) {
-  List.findById(req.params.list_id, function (err, list) {
+  List
+    .findById(req.params.list_id)
+    .populate('services')
+    .exec(function (err, list) {
     if (err) {
-      res.json({'status': 'error', 'message': 'Could not find list'});
+      res.send(404, new Error('List not found'));
       return next(false);
     }
 
     var index = list.contacts.indexOf(req.params.contact_id);
     if (index == -1) {
-      res.json({'status': 'error', 'message': 'Contact is not in list'});
+      res.send(404, new Error('Contact not found'));
       return next(false);
     }
     else {
       list.contacts.splice(index, 1);
       list.save(function (err) {
         if (err) {
-          res.json({'status': 'error', 'message': 'Unknown error saving list'});
+          res.send(500, new Error('Unknown error saving list'));
           return next(false);
         }
-        res.json({'status': 'ok', 'message': 'Contact removed successfully'});
+        // Unsubscribe contact from services
+        if (list.services.length) {
+          Contact
+            .findById(req.params.contact_id)
+            .populate('_profile')
+            .exec(function (err, contact) {
+              if (!err && contact) {
+                list.services.forEach(function (service) {
+                  if (service.auto_remove) {
+                    service.unsubscribe(contact._profile);
+                  }
+                });
+              }
+            });
+        }
+        res.send(204);
         return next();
       });
     }
@@ -232,6 +270,10 @@ function post(req, res, next) {
           return cb('Could not save contact list because one of the editors is set to null');
         }
         updatedList.editors = req.body.editors;
+      }
+
+      if (req.body.services) {
+        updatedList.services = req.body.services;
       }
 
       if (req.body.userid && req.body.userid != origList.userid && req.apiAuth.userId === origList.userid) {

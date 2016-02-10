@@ -90,6 +90,7 @@ function fetchSingle(req, res, callback) {
     .populate('contacts')
     .populate('readers')
     .populate('editors')
+    .populate('services')
     .exec(function (err, contactList) {
       if (err) {
         res.send(500, new Error(err));

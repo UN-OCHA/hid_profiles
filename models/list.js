@@ -15,7 +15,8 @@ var listSchema = new Schema({
   contacts: [ { type: Schema.Types.ObjectId, ref: 'Contact' } ],
   privacy: {type: String, required: true, enum: validPrivacy},
   readers:  [ { type:Schema.Types.ObjectId, ref: 'Profile' } ],
-  editors: [ { type: Schema.Types.ObjectId, ref: 'Profile' } ]
+  editors: [ { type: Schema.Types.ObjectId, ref: 'Profile' } ],
+  services: [ { type: Schema.Types.ObjectId, ref: 'Service' } ]
 });
 
 listSchema.methods.getOwnerName = function(cb) {
