@@ -197,9 +197,8 @@ function post(req, res, next) {
     },
     // Check to see if the user exists on the auth side
     function (cb) {
-      authEmail = userid.replace(/(_\d+)$/,'');
       var request = {
-        "email": authEmail
+        "userid": userid
       };
       var new_access_key = middleware.require.getAuthAccessKey(request);
       request["access_key"] = new_access_key.toString();
