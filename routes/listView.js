@@ -743,8 +743,7 @@ function getAll(req, res, next) {
       { privacy: 'all' },
       { userid: req.apiAuth.userId },
       { $and: [ { readers: profile._id }, { privacy: 'some' }] },
-      { editors: profile._id },
-      { privacy: 'inlist' }
+      { editors: profile._id }
     ];
     if (profile.verified == true) {
       permissions.push({ privacy: 'verified' });
