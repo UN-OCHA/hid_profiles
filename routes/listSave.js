@@ -234,7 +234,7 @@ function post(req, res, next) {
         updatedList = new List({
           userid: req.apiAuth.userId,
           users: [req.apiAuth.userId],
-          privacy: 'all'
+          privacy: 'me'
         });
 
         cb();
