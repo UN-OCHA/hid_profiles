@@ -260,8 +260,8 @@ function get(req, res, next) {
             return mod * 1;
         }
         if (sort == 'jobtitle') {
-          var ajt = a.jobtitle.toUpperCase();
-          var bjt = b.jobtitle.toUpperCase();
+          var ajt = a.jobtitle ? a.jobtitle.toUpperCase() : '';
+          var bjt = b.jobtitle ? b.jobtitle.toUpperCase(): '';
           return ajt.localeCompare(bjt);
         }
         if (sort == 'organization') {
