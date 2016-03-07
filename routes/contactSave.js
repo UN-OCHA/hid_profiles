@@ -173,7 +173,9 @@ function post(req, res, next) {
     setProtectedBundles = false,
     newProtectedBundles = [],
     setOrgEditorRoles = false,
-    inviterRequest = null;
+    inviterRequest = null,
+    setDailyDigest = false,
+    newDailyDigest = false;
 
   async.series([
     //Check to see if userid is set - if isNewContact is false, return an error
@@ -469,6 +471,11 @@ function post(req, res, next) {
         newVerified = req.body.verified;
 
       }
+
+      if (req.body.hasOwnProperty("dailyDigest") ) {
+        setDailyDigest = true;
+        newDailyDigest = req.body.dailyDigest;
+      }
       
       // Allow setting protectedRoles if the user is an admin or a manager in
       // the location of this profile. Also, set the user to verified if any
@@ -703,6 +710,27 @@ function post(req, res, next) {
           return cb();
         }
       
+    },
+    //the save for the local daily digest for a country....
+    function (cb){
+      if(setDailyDigest){
+        Profile.findOne({_id: _profile}, function (err, profile) {
+          if (!err && profile) {
+            profile.dailyDigest = newDailyDigest;
+            return profile.save(function (err, profile, num) {
+              log.info({'type': 'contactSave:success', 'message': "Updated daily digest settings for profile  " + _profile });
+              return cb(err);
+            });
+          }
+          else {
+            return cb(err);
+          }
+        });
+        return cb();
+      }
+      else {  
+        return cb();
+      }
     },
     // Find admin profile if applicable
     function (cb) {

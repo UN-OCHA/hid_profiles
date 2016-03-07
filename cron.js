@@ -5,6 +5,7 @@ var operations = require('./lib/operations'),
   orgTypes = require('./lib/orgTypes'),
   disasters = require('./lib/disasters'),
   contacts = require('./lib/contacts'),
+  dailyDigest = require('./lib/local_daily_digest'),
   async = require('async');
 
 async.auto({
@@ -19,6 +20,7 @@ async.auto({
   reminderCheckin: contacts.sendReminderCheckinEmails,
   reminderUpdate: contacts.sendReminderUpdateEmails,
   removeDuplicateProfiles: contacts.removeDuplicateProfiles,
+  dailyDigest: dailyDigest.get,
   appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'orgTypes', 'disasters', operations.buildAppData]
 },
 function (err, results) {
