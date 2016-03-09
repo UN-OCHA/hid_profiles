@@ -751,7 +751,7 @@ function post(req, res, next) {
     function (cb) {
       var mailOptions = {};
       // If checking in
-      if (contactFields.status === 1) {
+      if (contactFields.status === 1 && contactFields.email[0] && contactFields.email[0].address) {
         if (!origContact || (origContact && origContact.status === 0)) {
           var merge_vars = {
             fname: contactFields.nameGiven,
