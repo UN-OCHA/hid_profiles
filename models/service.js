@@ -1,4 +1,5 @@
 var mongoose = require('mongoose'),
+    _ = require('lodash'),
     Profile = require('../models').Profile,
     google = require('googleapis'),
     googleAuth = require('google-auth-library'),
@@ -88,11 +89,19 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
   }
 
   var that = this;
-
+  
   if (this.type === 'mailchimp') {
     var mc = new mcapi.Mailchimp(this.mc_api_key);
+    var temp = [];
     return mc.lists.subscribe({id: this.mc_list.id, email: {email: email}, merge_vars: vars, double_optin: false}, function (data) {
       profile.subscriptions.push({ service: that, email: email});
+
+      //remove any and all existing duplicates from the subscriptions 
+      profile.subscriptions = _.map(_.groupBy(profile.subscriptions,function(doc){
+        return doc.service;
+      }),function(grouped){
+        return grouped[0];
+      });
       profile.save();
       return onresult(email);
     }, function (err) {
@@ -124,6 +133,13 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
         }, function (err, response) {
           if (!err || (err && err.code === 409)) {
             profile.subscriptions.push({ service: that, email: email});
+
+            //remove any and all existing duplicates from the subscriptions 
+            profile.subscriptions = _.map(_.groupBy(profile.subscriptions,function(doc){
+              return doc.service;
+            }),function(grouped){
+              return grouped[0];
+            });
             profile.save();
             return onresult(email);
           }
