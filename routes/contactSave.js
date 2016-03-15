@@ -844,7 +844,7 @@ function post(req, res, next) {
 
           switch(notifyEmail.type) {
             case 'notify_checkin':
-              mailSubject = 'A profile in ' + notifyEmail.locationName + ' has been created for you on Humanitarian ID';
+              mailSubject = 'You have been checked into ' + notifyEmail.locationName + ' on Humanitarian ID';
               mailWarning = {'type': 'notifyCheckinEmail:error', 'message': 'Check-in notification email sending failed to ' + notifyEmail.to + '.'};
               mailInfo = {'type': 'notifyCheckinEmail:success', 'message': 'Check-in notification email sending successful to ' + notifyEmail.to + '.'};
               break;
