@@ -173,7 +173,9 @@ function post(req, res, next) {
     setProtectedBundles = false,
     newProtectedBundles = [],
     setOrgEditorRoles = false,
-    inviterRequest = null;
+    inviterRequest = null,
+    setDailyDigest = false,
+    newDailyDigest = false;
 
   async.series([
     //Check to see if userid is set - if isNewContact is false, return an error
@@ -469,6 +471,11 @@ function post(req, res, next) {
         newVerified = req.body.verified;
 
       }
+
+      if (req.body.hasOwnProperty("dailyDigest") ) {
+        setDailyDigest = true;
+        newDailyDigest = req.body.dailyDigest;
+      }
       
       // Allow setting protectedRoles if the user is an admin or a manager in
       // the location of this profile. Also, set the user to verified if any
@@ -704,6 +711,27 @@ function post(req, res, next) {
         }
       
     },
+    //the save for the local daily digest for a country....
+    function (cb){
+      if(setDailyDigest){
+        Profile.findOne({_id: _profile}, function (err, profile) {
+          if (!err && profile) {
+            profile.dailyDigest = newDailyDigest;
+            return profile.save(function (err, profile, num) {
+              log.info({'type': 'contactSave:success', 'message': "Updated daily digest settings for profile  " + _profile });
+              return cb(err);
+            });
+          }
+          else {
+            return cb(err);
+          }
+        });
+        return cb();
+      }
+      else {  
+        return cb();
+      }
+    },
     // Find admin profile if applicable
     function (cb) {
       var isOwnProfile = req.apiAuth.userId && req.apiAuth.userId === req.body.userid;
@@ -723,7 +751,7 @@ function post(req, res, next) {
     function (cb) {
       var mailOptions = {};
       // If checking in
-      if (contactFields.status === 1) {
+      if (contactFields.status === 1 && contactFields.email[0] && contactFields.email[0].address) {
         if (!origContact || (origContact && origContact.status === 0)) {
           var merge_vars = {
             fname: contactFields.nameGiven,
@@ -816,7 +844,7 @@ function post(req, res, next) {
 
           switch(notifyEmail.type) {
             case 'notify_checkin':
-              mailSubject = 'A profile in ' + notifyEmail.locationName + ' has been created for you on Humanitarian ID';
+              mailSubject = 'You have been checked into ' + notifyEmail.locationName + ' on Humanitarian ID';
               mailWarning = {'type': 'notifyCheckinEmail:error', 'message': 'Check-in notification email sending failed to ' + notifyEmail.to + '.'};
               mailInfo = {'type': 'notifyCheckinEmail:success', 'message': 'Check-in notification email sending successful to ' + notifyEmail.to + '.'};
               break;

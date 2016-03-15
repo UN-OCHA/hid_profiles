@@ -31,6 +31,8 @@ var profileSchema = new mongoose.Schema({
   verifiedByID:       String,
   verifiedByName:     String,
   verificationDate:   Date,
+  dailyDigest:        [ String ],
+  lastDigestSent:     Date
 });
 
 profileSchema.methods.isOrphan = function() {
