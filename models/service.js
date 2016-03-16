@@ -1,5 +1,4 @@
 var mongoose = require('mongoose'),
-    _ = require('lodash'),
     Profile = require('../models').Profile,
     google = require('googleapis'),
     googleAuth = require('google-auth-library'),
