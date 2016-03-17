@@ -127,12 +127,18 @@ function checkout(req, res, next) {
 
 function post(req, res, next) {
   var contactFields = {},
-    contactModel = (new Contact(req.body)).toObject();
+    contactModel = (new Contact(req.body)).toObject(),
+    parts = [];
 
   for (var prop in req.body) {
     if (req.body.hasOwnProperty(prop) && contactModel.hasOwnProperty(prop)) {
       if (prop === 'nameGiven' || prop === 'nameFamily') {
-        contactFields[prop] = req.body[prop].charAt(0).toUpperCase() + req.body[prop].substr(1);
+        parts = req.body[prop].split(" ");
+        for (var i = 0; i < parts.length; i++) {
+          parts[i] = parts[i].replace(/[\W_]+/g, "");
+          parts[i] = parts[i].charAt(0).toUpperCase() + parts[i].substr(1).toLowerCase();
+        }
+        contactFields[prop] = parts.join(" ");
       }
       else {
         contactFields[prop] = req.body[prop];
