@@ -131,7 +131,12 @@ function post(req, res, next) {
 
   for (var prop in req.body) {
     if (req.body.hasOwnProperty(prop) && contactModel.hasOwnProperty(prop)) {
-      contactFields[prop] = req.body[prop];
+      if (prop === 'nameGiven' || prop === 'nameFamily') {
+        contactFields[prop] = req.body[prop].charAt(0).toUpperCase() + req.body[prop].substr(1);
+      }
+      else {
+        contactFields[prop] = req.body[prop];
+      }
     }
   }
   var isNewContact = req.body.isNewContact || false;
