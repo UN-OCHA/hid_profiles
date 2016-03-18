@@ -390,7 +390,7 @@ function post(req, res, next) {
     function (cb) {
       if (!contactFields._id) { // We are creating a new contact
         if (contactFields.type == 'global') {
-          Contact.findOne({'type': 'global', '_profile': _profile}, function (err, doc) {
+          Contact.findOne({'type': 'global', '_profile': _profile, 'status': 1}, function (err, doc) {
             if (!err && doc) {
               // Contact already exists
               result = {status: 'error', message: 'A global profile for this profile already exists'};
