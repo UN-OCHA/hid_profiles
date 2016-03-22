@@ -82,8 +82,13 @@ function get(req, res, next) {
     // Get any active contacts related to this profile
     function (cb) {
       // @todo: @see http://mongoosejs.com/docs/populate.html
+      var query = {};
+      query = {'_profile': profile._id, status: '1'};
+      if (queryContactId) {
+        query = { '_profile': profile._id, $or: [{ status: '1'}, {_id: queryContactId}] };
+      }
       if (profile && profile._id) {
-        Contact.find({'_profile': profile._id, 'status': 1}, function (err, _contacts) {
+        Contact.find(query, function (err, _contacts) {
           if (err) {
             log.warn({'type': 'profileView:error', 'message': 'Error occurred while performing query for contacts related to this profile.', 'err': err});
             return cb(err);
