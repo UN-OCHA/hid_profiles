@@ -685,10 +685,11 @@ function getProfiles(req, res, next) {
     },
     function (next) {
       // Get profiles for list
-      var ids = [];
+      var ids = [], cids = [];
       list.contacts.forEach(function (contact) {
         if (contact._profile && contact._profile._id) {
           ids.push(contact._profile._id);
+          cids.push(contact._id);
         }
       });
       Profile
@@ -700,7 +701,7 @@ function getProfiles(req, res, next) {
           }
           var accounts = [];
           async.each(profiles, function (profile, cb) {
-            Contact.find({'_profile': profile._id, 'status': 1}, function (err, contacts) {
+            Contact.find({'_profile': profile._id, $or: [{'status': 1}, {_id: { $in: cids }}] }, function (err, contacts) {
               accounts.push({ contacts: contacts, profile: profile });
               cb();
             });
