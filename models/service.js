@@ -92,9 +92,12 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
   if (this.type === 'mailchimp') {
     var mc = new mcapi.Mailchimp(this.mc_api_key);
     return mc.lists.subscribe({id: this.mc_list.id, email: {email: email}, merge_vars: vars, double_optin: false}, function (data) {
-      profile.subscriptions.push({ service: that, email: email});
-      profile.save();
-      return onresult(email);
+        if(profile.subscriptions.some(function(e) {e.service != that.service  })){
+              profile.subscriptions.push({ service: that, email: email});
+              profile.save();
+              return onresult(email);
+          }
+      return onerror(new Error('You are already subscribed to this service'));
     }, function (err) {
       if (err.name === 'List_AlreadySubscribed') {
         profile.subscriptions.push({ service: that, email: email });
@@ -123,9 +126,12 @@ serviceSchema.methods.subscribe = function (profile, email, vars, onresult, oner
           resource: { 'email': email, 'role': 'MEMBER' }
         }, function (err, response) {
           if (!err || (err && err.code === 409)) {
-            profile.subscriptions.push({ service: that, email: email});
-            profile.save();
-            return onresult(email);
+           if(profile.subscriptions.some(function(e) {e.service != that.service  })){
+                profile.subscriptions.push({ service: that, email: email});
+                profile.save();
+                return onresult(email);
+            }
+            return onerror(new Error('You are already subscribed to this service'));
           }
          else {
            return onerror(new Error(err));
