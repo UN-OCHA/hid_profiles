@@ -335,6 +335,10 @@ function get(req, res, next) {
       function (cb) {
         // Load the printList.html template, compile it with Handlebars, and
         // generate HTML output for the list.
+        var template = 'views/printList.html';
+        if (meeting) {
+          template = 'views/printMeeting.html';
+        }
         fs.readFile('views/printList.html', function (err, data) {
           if (err) throw err;
           templateData = data;
@@ -594,6 +598,10 @@ function get(req, res, next) {
     stringifier.end();
   }
 
+  function getReturnPDFMeeting(callback) {
+    return getReturnPDF(true, callback);
+  }
+
   // Define workflow.
   var steps = [
     getLockedOps,
@@ -609,6 +617,8 @@ function get(req, res, next) {
 
   if (req.query.export && req.query.export === 'pdf') {
     steps.push(getReturnPDF);
+  } else if (req.query.export && req.query.export === 'meeting') {
+    steps.push(getReturnPDFMeeting);
   } else if (req.query.export && req.query.export === 'csv') {
     steps.push(getReturnCSV);
   } else {
