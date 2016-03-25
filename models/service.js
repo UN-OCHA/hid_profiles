@@ -21,7 +21,7 @@ var serviceSchema = new Schema({
   mc_list: { id: String, name: String},
   googlegroup: {
     domain: { type: String },
-    group: { id: String, name: String }
+    group: { id: String, name: String, email: String }
   },
  status: { type: Boolean, default: true},
   hidden: { type: Boolean, default: false},
