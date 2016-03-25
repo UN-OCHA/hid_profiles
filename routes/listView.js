@@ -339,7 +339,7 @@ function get(req, res, next) {
         if (meeting) {
           template = 'views/printMeeting.html';
         }
-        fs.readFile('views/printList.html', function (err, data) {
+        fs.readFile(template, function (err, data) {
           if (err) throw err;
           templateData = data;
           cb();
