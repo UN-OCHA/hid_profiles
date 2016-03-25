@@ -288,7 +288,7 @@ function get(req, res, next) {
     res.send(200, list);
   }
 
-  function getReturnPDF(callback) {
+  function getReturnPDF(meeting, callback) {
     if (!req.userCanExport) {
       res.send(403, "Access Denied");
       res.end();
