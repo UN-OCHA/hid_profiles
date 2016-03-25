@@ -538,7 +538,7 @@ function get(req, res) {
   }
 
   // Returns query results in PDF format from generated HTML output.
-  function getReturnPDF(contacts, count, callback) {
+  function getReturnPDF(contacts, count, meeting, callback) {
     if (!req.userCanExport) {
       log.warn({'type': 'contactViewPDF:error', 'message': 'User attempted to fetch the PDF export from a contact list, but is not authorized to do so.'});
       res.send(403, "Access Denied");
@@ -599,7 +599,11 @@ function get(req, res) {
       function (cb) {
         // Load the printList.html template, compile it with Handlebars, and
         // generate HTML output for the list.
-        fs.readFile('views/printList.html', function (err, data) {
+        var template = 'views/printList.html';
+        if (meeting == true) {
+          template = 'views/printMeeting.html';
+        }
+        fs.readFile(template, function (err, data) {
           if (err) throw err;
           templateData = data;
           cb();
@@ -736,6 +740,10 @@ function get(req, res) {
     });
   }
 
+  function getReturnMeetingPDF(contacts, count, callback) {
+    return getReturnPDF(contacts, count, true, callback);
+  }
+
   // Define workflow.
   var steps = [
     access,
@@ -744,6 +752,9 @@ function get(req, res) {
   ];
   if (req.query.export && req.query.export === 'pdf') {
     steps.push(getReturnPDF);
+  }
+  else if (req.query.export && req.query.export === 'meeting') {
+    steps.push(getReturnMeetingPDF);
   }
   else if (req.query.export && req.query.export === 'csv') {
     steps.push(getReturnCSV);
