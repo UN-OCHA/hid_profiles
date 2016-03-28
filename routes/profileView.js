@@ -115,6 +115,22 @@ function get(req, res, next) {
       }
     },
     function (cb) {
+      var expires = false;
+      if (profile.userid == req.apiAuth.userId) {
+        contacts.forEach(function (contact) {
+          if (contact.expires) {
+            contact.expires = false;
+            contact.save();
+          }
+        });
+        if (profile.expires) {
+          profile.expires = false;
+          profile.save();
+        }
+      }
+      return cb();
+    },
+    function (cb) {
       var account = {
         'profile': profile,
         'contacts': contacts

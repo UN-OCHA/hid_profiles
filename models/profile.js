@@ -32,7 +32,9 @@ var profileSchema = new mongoose.Schema({
   verifiedByName:     String,
   verificationDate:   Date,
   dailyDigest:        [ String ],
-  lastDigestSent:     Date
+  lastDigestSent:     Date,
+  expires:            { type: Boolean, default: false },
+  expiresAfter:       Number // Number of seconds after which it should expire
 });
 
 profileSchema.methods.isOrphan = function() {

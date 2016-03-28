@@ -82,8 +82,9 @@ var contactSchema = new mongoose.Schema({
   remindedCheckout:   Boolean,
   remindedCheckoutDate: Date,
   remindedCheckin:    Number, //timestamp
-  remindedUpdate: Number // timestamp
-  
+  remindedUpdate:     Number, // timestamp
+  expires:            { type: Boolean, default: false },
+  expiresAfter:       Number // Number of seconds after which it should expire
 });
 
 contactSchema.methods.fullName = function() {
