@@ -180,9 +180,6 @@ function get(req, res) {
       }
     }
 
-    // Set query defaults: Limit the query to active status.
-    query.status = 1;
-
     // Skip the count query and disable skip and limit values if the query
     // requires filtering after execution (includes filters for verified,
     // role, ghost, or orphan).
