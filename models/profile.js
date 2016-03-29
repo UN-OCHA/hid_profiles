@@ -59,6 +59,19 @@ profileSchema.methods.isSubscribed = function (service) {
   }
 };
 
+// Determine if a profile is expired and should be removed
+profileSchema.methods.isExpired = function() {
+  var now = Date.now();
+  var created = this.created;
+  var expiresAfter = this.expiresAfter * 1000;
+  if (this.expires && now.valueOf() - created > expiresAfter) {
+    return true;
+  }
+  else {
+    return false;
+  }
+};
+
 mongoose.model('Profile', profileSchema);
 
 var Profile = mongoose.model('Profile');
