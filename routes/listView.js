@@ -754,7 +754,8 @@ function getAll(req, res, next) {
       { privacy: 'all' },
       { userid: req.apiAuth.userId },
       { $and: [ { readers: profile._id }, { privacy: 'some' }] },
-      { editors: profile._id }
+      { editors: profile._id },
+      { privacy: 'inlist' }
     ];
     if (profile.verified == true) {
       permissions.push({ privacy: 'verified' });
@@ -782,15 +783,34 @@ function getAll(req, res, next) {
         else {
           var lists2 = [];
           async.each(lists, function (list, cb) {
-            // TODO: for the lists with privacy = inlist, make sure the current user is part of the list
             list.getOwnerName(function (err, contact) {
               if (!err && contact) {
                 var tmp = list.toObject();
                 tmp.owner = contact.fullName();
                 tmp.ownerId = contact._id;
-                lists2.push(tmp);
+                // For lists with privacy = inlist, make sure the current user is part of the list
+                if (list.privacy == 'inlist' && list.userid != req.apiAuth.userId) {
+                  list.populate('contacts', function (err2, list2) {
+                    var allowed = false;
+                    list2.contacts.forEach(function (contact2) {
+                      if (profile._id.equals(contact2._profile)) {
+                        allowed = true;
+                      }
+                    });
+                    if (!allowed) {
+                      count--;
+                    }
+                    else {
+                      lists2.push(tmp);
+                    }
+                    cb();
+                  });
+                }
+                else {
+                  lists2.push(tmp);
+                  cb();
+                }
               }
-              cb();
             });
           }, function (err) {
             res.header('X-Total-Count', count);
