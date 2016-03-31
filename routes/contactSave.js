@@ -277,7 +277,9 @@ function post(req, res, next) {
           "adminEmail": adminEmail,
           "location": contactFields.location,
           "active": 1,
-          'emailFlag': '1' //Orphan email
+          'emailFlag': '1',
+          'expires': contactFields.expires ? contactFields.expires : false,
+          'expiresAfter': contactFields.expiresAfter ? contactFields.expiresAfter : 0 //Orphan email
         };
         if (inviterRequest) {
           request.inviter = inviterRequest;
@@ -350,7 +352,13 @@ function post(req, res, next) {
         Profile.findOne({userid: userid}, function (err, profile) {
           if (err || !profile || !profile._id || userid === "") {
             log.info({'type': 'post', 'message': 'Creating new profile for userid ' + userid});
-            Profile.update({userid: userid}, {userid: userid, status: 1}, {upsert: true}, function(err, profile) {
+            var upProfile = {
+              userid: userid,
+              status: 1,
+              expires: contactFields.expires ? contactFields.expires : false,
+              expiresAfter: contactFields.expiresAfter ? contactFields.expiresAfter : 0
+            };
+            Profile.update({userid: userid}, upProfile, {upsert: true}, function(err, profile) {
               if (err) {
                 log.warn({'type': 'post:error', 'message': 'Error occurred while trying to update/insert profile for user ID ' + userid, 'err': err});
                 result = {status: "error", message: "Could not create profile for user."};

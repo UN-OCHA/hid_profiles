@@ -20,6 +20,8 @@ async.auto({
   reminderCheckin: contacts.sendReminderCheckinEmails,
   reminderUpdate: contacts.sendReminderUpdateEmails,
   removeDuplicateProfiles: contacts.removeDuplicateProfiles,
+  deleteExpiredContacts: contacts.deleteExpiredContacts,
+  deleteExpiredProfiles: contacts.deleteExpiredProfiles,
   dailyDigest: dailyDigest.get,
   appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'orgTypes', 'disasters', operations.buildAppData]
 },
