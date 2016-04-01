@@ -682,7 +682,7 @@ function get(req, res) {
 
       var emptyLines = [];
       for (var i = 0; i < 12; i++) {
-        emptyLines[] = i;
+        emptyLines.push(i);
       }
 
       var template = Handlebars.compile(String(templateData)),
