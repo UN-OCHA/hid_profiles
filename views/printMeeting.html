@@ -45,21 +45,21 @@
       <table class="table table-striped" cg-busy="contactsPromise" style="position: relative;">
         <thead>
           <tr>
-            <th translate=""><span class="ng-scope">Name</span></th>
-            <th translate=""><span class="ng-scope">Organization</span></th>
-            <th translate=""><span class="ng-scope">Job Title</span></th>
-            <th translate=""><span class="ng-scope">Phone</span></th>
-            <th translate=""><span class="ng-scope">Email</span></th>
-            <th translate=""><span class="ng-scope">Signature</span></th>
+            <th class="col-xs-2" translate=""><span class="ng-scope">Name</span></th>
+            <th class="col-xs-1" translate=""><span class="ng-scope">Organization</span></th>
+            <th class="col-xs-2" translate=""><span class="ng-scope">Job Title</span></th>
+            <th class="col-xs-2" translate=""><span class="ng-scope">Phone</span></th>
+            <th class="col-xs-2" translate=""><span class="ng-scope">Email</span></th>
+            <th class="col-xs-3" translate=""><span class="ng-scope">Signature</span></th>
           </tr>
         </thead>
         <tbody>
           {{#each contacts}}
             <tr class="profile-item ng-scope">
-              <td class="title-cell"><div class="avoid ng-binding">{{nameGiven}}<br><span class="name-family ng-binding">{{nameFamily}}</span></div></td>
-              <td><div class="avoid ng-binding">{{organization.[0].name}}</div></td>
-              <td><div class="avoid ng-binding">{{jobtitle}}</div></td>
-              <td>
+              <td class="title-cell col-xs-2"><div class="avoid ng-binding">{{nameGiven}}<br><span class="name-family ng-binding">{{nameFamily}}</span></div></td>
+              <td class="col-xs-1"><div class="avoid ng-binding">{{organization.[0].name}}</div></td>
+              <td class="col-xs-2"><div class="avoid ng-binding">{{jobtitle}}</div></td>
+              <td class="col-xs-2">
                 {{#each phone}}
                   <div>
                     {{number~}}
@@ -68,7 +68,7 @@
                   </div>
                 {{/each}}
               </td>
-              <td>
+              <td class="col-xs-2">
                 {{#each email}}
                   <div>
                     <a href="mailto:{{address}}">{{address}}</a>
@@ -77,19 +77,24 @@
                   </div>
                 {{/each}}
               </td>
-              <td>
+              <td class="col-xs-3">
               </td>
             </tr>
           {{/each}}
+            <tr ng-repeat="i in 1...12">
+              <td class="title-cell col-xs-2"></td>
+              <td class="col-xs-1"></td>
+              <td class="col-xs-2"></td>
+              <td class="col-xs-2"></td>
+              <td class="col-xs-2"></td>
+              <td class="col-xs-3"></td>
+            </tr>
         </tbody>
       </table>
     </div>
   </div>
   <div id="print-footer">
     <div class="message"><span translate=""><span class="ng-scope">Powered by</span></span> <span class="title-humanitarian">Humanitarian</span> <span class="title-id">Id</span> - <span translate=""><span class="ng-scope">to update your information, check in to</span></span> <a href="http://humanitarian.id">http://humanitarian.id</a><br>
-    {{#unless isGlobal}}
-      <span class="ng-scope">* Groups include clusters, sectors, working group or similar.</span>
-    {{/unless}}
     </div>
   </div>
 </div>
