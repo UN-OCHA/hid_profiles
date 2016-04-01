@@ -351,7 +351,6 @@ function get(req, res) {
             }
           });
     }], function (err, result) {
-      console.log(result);
       return callback(err, result[1].contacts, result[1].count);
     });
   }
