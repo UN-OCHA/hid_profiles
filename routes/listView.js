@@ -812,6 +812,7 @@ function getAll(req, res, next) {
                 }
               }
               else {
+                count--;
                 log.warn({'type': 'listView:error', 'message': 'An error occured while requesting the list owner: ' + err.message, 'error': err});
                 cb();
               }
