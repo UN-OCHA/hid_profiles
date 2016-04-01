@@ -680,6 +680,11 @@ function get(req, res) {
         filters.push('Orphan Users');
       }
 
+      var emptyLines = [];
+      for (var i = 0; i < 12; i++) {
+        emptyLines[] = i;
+      }
+
       var template = Handlebars.compile(String(templateData)),
         isGlobal = (query.type === 'global' || !query.locationId || !query.locationId.length),
         tokens = {
@@ -689,7 +694,8 @@ function get(req, res) {
           queryCount: contacts.length,
           filters: filters,
           dateGenerated: moment().format('LL'),
-          contacts: contacts
+          contacts: contacts,
+          emptyLines: emptyLines
         },
         result = template(tokens),
         postData = qs.stringify({

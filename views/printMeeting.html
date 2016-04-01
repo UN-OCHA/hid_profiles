@@ -81,7 +81,8 @@
               </td>
             </tr>
           {{/each}}
-            <tr ng-repeat="i in 1...12">
+          {{#each emptyLines}}
+            <tr class="profile-item ng-scope">
               <td class="title-cell col-xs-2"></td>
               <td class="col-xs-1"></td>
               <td class="col-xs-2"></td>
@@ -89,6 +90,7 @@
               <td class="col-xs-2"></td>
               <td class="col-xs-3"></td>
             </tr>
+          {{/each}}
         </tbody>
       </table>
     </div>
