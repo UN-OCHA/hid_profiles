@@ -811,6 +811,10 @@ function getAll(req, res, next) {
                   cb();
                 }
               }
+              else {
+                log.warn({'type': 'listView:error', 'message': 'An error occured while requesting the list owner: ' + err.message, 'error': err});
+                cb();
+              }
             });
           }, function (err) {
             res.header('X-Total-Count', count);
