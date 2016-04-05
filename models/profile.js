@@ -32,7 +32,9 @@ var profileSchema = new mongoose.Schema({
   verifiedByName:     String,
   verificationDate:   Date,
   dailyDigest:        [ String ],
-  lastDigestSent:     Date
+  lastDigestSent:     Date,
+  expires:            { type: Boolean, default: false },
+  expiresAfter:       Number // Number of seconds after which it should expire
 });
 
 profileSchema.methods.isOrphan = function() {
@@ -51,6 +53,19 @@ profileSchema.methods.isSubscribed = function (service) {
       return item.service.equals(service._id);
     });
     return found.length ? true : false;
+  }
+  else {
+    return false;
+  }
+};
+
+// Determine if a profile is expired and should be removed
+profileSchema.methods.isExpired = function() {
+  var now = Date.now();
+  var created = this.created;
+  var expiresAfter = this.expiresAfter * 1000;
+  if (this.expires && now.valueOf() - created > expiresAfter) {
+    return true;
   }
   else {
     return false;

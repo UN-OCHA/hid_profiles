@@ -11,7 +11,7 @@
 <% } %>
 
 <% if (contact.isInCountry() && (!contact.address[0].administrative_area || !contact.address[0].country || !contact.office || !contact.office.length)) { %>
-<p>We <% if (!hasLocalPhoneNumber || !contact.isInCountry()) { %> also <% } %> noticed that you did not provide details about your location (current location country, region/state and/or coordination office). Being able to find and contact humanitarians within specific areas can be critical during a crisis. If comfortable, we kindly ask that you update your profile with relevant location details (country, area and nearest coordination hub). Update your profile with the link below.</p>
+<p>We <% if (!hasLocalPhoneNumber || !contact.isInCountry()) { %> also <% } %> noticed that you did not provide details about your location (current location country, region/state and/or coordination office). Being able to find and contact humanitarians within specific areas can be critical during a crisis. If there are additional location details such as a region, state or coordination hub available for your check-in location, and if comfortable, we kindly ask that you update your profile with relevant location details (country, area and nearest coordination hub). Update your profile with the link below.</p>
 <% } %>
 
 <p><a href="<%= contactURL %>"><%= contactURL %></a></p>
@@ -36,7 +36,7 @@
 <% } %>
 
 <% if (contact.isInCountry() && (!contact.address[0].administrative_area || !contact.address[0].country || !contact.office || !contact.office.length)) { %>
-<p>Nous avons <% if (!hasLocalPhoneNumber || !contact.isInCountry()) { %> aussi <% } %> remarqué que vous n'avez pas fourni de détail concernant votre emplacement (region/état et/ou bureau de coordination). Pouvoir trouver et contacter des humanitaires d'un endroit spécifique peut être crucial durant une crise humanitaire. Si vous le souhaitez, nous vous prions de mettre à jour votre emplacement (région/état et/ou bureau de coordination) sur votre profil. Vous pouvez mettre à jour votre profil en utilisant le lien ci-dessous..</p>
+<p>Nous avons <% if (!hasLocalPhoneNumber || !contact.isInCountry()) { %> aussi <% } %> remarqué que vous n'avez pas fourni de détail concernant votre emplacement (region/état et/ou bureau de coordination). Pouvoir trouver et contacter des humanitaires d'un endroit spécifique peut être crucial durant une crise humanitaire. Si des information additionnelles concernant votre emplacement sont disponibles (comme par exemple la région, l'état ou le bureau de coordination) et si vous le souhaitez, nous vous prions de mettre à jour votre emplacement (région/état et/ou bureau de coordination) sur votre profil. Vous pouvez mettre à jour votre profil en utilisant le lien ci-dessous..</p>
 <% } %>
 
 <p><a href="<%= contactURL %>"><%= contactURL %></a></p>

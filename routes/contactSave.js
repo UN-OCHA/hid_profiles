@@ -8,7 +8,8 @@ var async = require('async'),
   log = require('../log'),
   restify = require('restify'),
   middleware = require('../middleware');
-  mail = require('../mail');
+  mail = require('../mail'),
+  cartodb = require('cartodb');
 
 // Middleware function to grant/deny access to the profileSave and contactSave
 // routes.
@@ -276,7 +277,9 @@ function post(req, res, next) {
           "adminEmail": adminEmail,
           "location": contactFields.location,
           "active": 1,
-          'emailFlag': '1' //Orphan email
+          'emailFlag': '1',
+          'expires': contactFields.expires ? contactFields.expires : false,
+          'expiresAfter': contactFields.expiresAfter ? contactFields.expiresAfter : 0 //Orphan email
         };
         if (inviterRequest) {
           request.inviter = inviterRequest;
@@ -349,7 +352,13 @@ function post(req, res, next) {
         Profile.findOne({userid: userid}, function (err, profile) {
           if (err || !profile || !profile._id || userid === "") {
             log.info({'type': 'post', 'message': 'Creating new profile for userid ' + userid});
-            Profile.update({userid: userid}, {userid: userid, status: 1}, {upsert: true}, function(err, profile) {
+            var upProfile = {
+              userid: userid,
+              status: 1,
+              expires: contactFields.expires ? contactFields.expires : false,
+              expiresAfter: contactFields.expiresAfter ? contactFields.expiresAfter : 0
+            };
+            Profile.update({userid: userid}, upProfile, {upsert: true}, function(err, profile) {
               if (err) {
                 log.warn({'type': 'post:error', 'message': 'Error occurred while trying to update/insert profile for user ID ' + userid, 'err': err});
                 result = {status: "error", message: "Could not create profile for user."};
@@ -658,6 +667,36 @@ function post(req, res, next) {
         }
         else {
           log.info({'type': 'contactSave:success', 'message': "Created contact " + upsertId + " for user " + userid});
+          if (contactFields.type == 'local') {
+            Contact.findById(upsertId, function (err2, contact) {
+              if (!err2 && contact) {
+                // Add the contact in cartodb
+                // Get the corresponding location
+                var restclient = restify.createJsonClient({
+                  url: process.env.HRINFO_BASE_URL
+                });
+           
+                var op_id = contact.locationId.replace('hrinfo:', '');
+                restclient.get('/api/v1.0/operations/' + op_id, function (err3, req1, res1, obj) {
+                  if (!err && obj.data && obj.data.length) {
+                    if (obj.data[0].country) {
+                      var lat = obj.data[0].country.geolocation.lat;
+                      var lon = obj.data[0].country.geolocation.lon;
+                      var org_name = contact.organization[0] ? contact.organization[0].name : '';
+                      var origin_location = contact.address[0] ? contact.address[0].country : '';
+                      var location_country = obj.data[0].country.label;
+                      var created = new Date(contact.created);
+                      var sql_query = "INSERT INTO " + process.env.CARTODB_TABLE + " (the_geom, hid_id, org_name, last_updated, origin_location, location_country, operation_id) VALUES (";
+                      sql_query = sql_query + "'SRID=4326; POINT (" + lon + " " + lat + ")', '" + contact._id.toString() + "', '" + org_name + "', '" + created.toISOString() + "', '" + origin_location + "', '" + location_country + "', '" + op_id + "')";
+                      // Execute the cartodb query
+                      var csql = new cartodb.SQL({ user: process.env.CARTODB_DOMAIN, api_key: process.env.CARTODB_API_KEY});
+                      csql.execute(sql_query);
+                    }
+                  }
+                });
+              }
+            });
+          }
         }
         result = {status: "ok", data: contactFields, "_id": upsertId};
         return cb();

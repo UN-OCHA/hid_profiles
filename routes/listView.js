@@ -288,7 +288,7 @@ function get(req, res, next) {
     res.send(200, list);
   }
 
-  function getReturnPDF(callback) {
+  function getReturnPDF(meeting, callback) {
     if (!req.userCanExport) {
       res.send(403, "Access Denied");
       res.end();
@@ -335,7 +335,11 @@ function get(req, res, next) {
       function (cb) {
         // Load the printList.html template, compile it with Handlebars, and
         // generate HTML output for the list.
-        fs.readFile('views/printList.html', function (err, data) {
+        var template = 'views/printList.html';
+        if (meeting) {
+          template = 'views/printMeeting.html';
+        }
+        fs.readFile(template, function (err, data) {
           if (err) throw err;
           templateData = data;
           cb();
@@ -594,6 +598,10 @@ function get(req, res, next) {
     stringifier.end();
   }
 
+  function getReturnPDFMeeting(callback) {
+    return getReturnPDF(true, callback);
+  }
+
   // Define workflow.
   var steps = [
     getLockedOps,
@@ -609,6 +617,8 @@ function get(req, res, next) {
 
   if (req.query.export && req.query.export === 'pdf') {
     steps.push(getReturnPDF);
+  } else if (req.query.export && req.query.export === 'meeting') {
+    steps.push(getReturnPDFMeeting);
   } else if (req.query.export && req.query.export === 'csv') {
     steps.push(getReturnCSV);
   } else {
@@ -744,7 +754,8 @@ function getAll(req, res, next) {
       { privacy: 'all' },
       { userid: req.apiAuth.userId },
       { $and: [ { readers: profile._id }, { privacy: 'some' }] },
-      { editors: profile._id }
+      { editors: profile._id },
+      { privacy: 'inlist' }
     ];
     if (profile.verified == true) {
       permissions.push({ privacy: 'verified' });
@@ -772,15 +783,39 @@ function getAll(req, res, next) {
         else {
           var lists2 = [];
           async.each(lists, function (list, cb) {
-            // TODO: for the lists with privacy = inlist, make sure the current user is part of the list
             list.getOwnerName(function (err, contact) {
               if (!err && contact) {
                 var tmp = list.toObject();
                 tmp.owner = contact.fullName();
                 tmp.ownerId = contact._id;
-                lists2.push(tmp);
+                // For lists with privacy = inlist, make sure the current user is part of the list
+                if (list.privacy == 'inlist' && list.userid != req.apiAuth.userId) {
+                  list.populate('contacts', function (err2, list2) {
+                    var allowed = false;
+                    list2.contacts.forEach(function (contact2) {
+                      if (profile._id.equals(contact2._profile)) {
+                        allowed = true;
+                      }
+                    });
+                    if (!allowed) {
+                      count--;
+                    }
+                    else {
+                      lists2.push(tmp);
+                    }
+                    cb();
+                  });
+                }
+                else {
+                  lists2.push(tmp);
+                  cb();
+                }
               }
-              cb();
+              else {
+                count--;
+                log.warn({'type': 'listView:error', 'message': 'An error occured while requesting the list owner: ' + err.message, 'error': err});
+                cb();
+              }
             });
           }, function (err) {
             res.header('X-Total-Count', count);

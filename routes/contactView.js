@@ -180,9 +180,6 @@ function get(req, res) {
       }
     }
 
-    // Set query defaults: Limit the query to active status.
-    query.status = 1;
-
     // Skip the count query and disable skip and limit values if the query
     // requires filtering after execution (includes filters for verified,
     // role, ghost, or orphan).
@@ -196,98 +193,120 @@ function get(req, res) {
       contacts = [],
       count = 0;
 
-    // Perform a count query to determine total number of matching contacts.
-    if (!skipCount) {
-      Contact
-        .count(query)
-        .exec(function (err, _count) {
-          if (err) {
-            log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts count.', 'err': err});
-            result = {status: "error", message: "Query failed for contacts count."};
-          }
-          else {
-            count = _count
-          }
-        });
-    }
-
-    var sort = {};
-    var sortskip = range.skip;
-    var sortlimit = range.limit;
-    if (!req.query.sort) {
-      sort = {nameGiven: 1, nameFamily: 1};
-    }
-    else {
-      if (req.query.sort == 'name') {
-        sort = {nameGiven: 1, nameFamily: 1};
-      }
-      if (req.query.sort == 'jobtitle') {
-        sort = {jobtitle: 1};
-      }
-      if (req.query.sort != 'jobtitle' && req.query.sort != 'name') {
-        sort = {nameGiven: 1, nameFamily: 1};
-      }
-      if (req.query.sort == 'organization' || req.query.sort == 'verified') {
-        range.skip = 0;
-        range.limit = 5000;
-      }
-    }
-
-    // Perform query with populate to include associated profile documents.
-    Contact
-      .find(query)
-      .skip(range.skip)
-      .limit(range.limit)
-      .sort(sort)
-      .populate('_profile')
-      .exec(function (err, _contacts) {
-        if (err) {
-          log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts.', 'err': err});
-          result = {status: "error", message: "Query failed for contacts."};
-          res.send(result);
-          return callback(err);
+    async.series([
+      function (cb) {
+        // Perform a count query to determine total number of matching contacts.
+        if (!skipCount) {
+          Contact
+            .count(query)
+            .exec(function (err, _count) {
+              if (err) {
+                log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts count.', 'err': err});
+                result = {status: "error", message: "Query failed for contacts count."};
+              }
+              else {
+                count = _count
+              }
+              return cb();
+            });
         }
         else {
-          if (_contacts && _contacts.length) {
-            contacts = _contacts;
+          return cb();
+        }
+      },
+      function (cb) {
+        var sort = {};
+        var sortskip = range.skip;
+        var sortlimit = range.limit;
+        if (!req.query.sort) {
+          sort = {nameGiven: 1, nameFamily: 1};
+        }
+        else {
+          if (req.query.sort == 'name') {
+            sort = {nameGiven: 1, nameFamily: 1};
+          }
+          if (req.query.sort == 'jobtitle') {
+            sort = {jobtitle: 1};
+          }
+          if (req.query.sort != 'jobtitle' && req.query.sort != 'name') {
+            sort = {nameGiven: 1, nameFamily: 1};
+          }
+          if (req.query.sort == 'organization' || req.query.sort == 'verified') {
+            range.skip = 0;
+            range.limit = 5000;
+          }
+        }
 
-            if (req.query.hasOwnProperty("verified") && req.query.verified) {
-              contacts = contacts.filter(function (item) {
-                return item._profile && item._profile.verified;
-              });
+        // Perform query with populate to include associated profile documents.
+        Contact
+          .find(query)
+          .skip(range.skip)
+          .limit(range.limit)
+          .sort(sort)
+          .populate('_profile')
+          .exec(function (err, _contacts) {
+            if (err) {
+              log.warn({'type': 'contactView:error', 'message': 'Error occurred while performing query for contacts.', 'err': err});
+              result = {status: "error", message: "Query failed for contacts."};
+              res.send(result);
+              return callback(err);
             }
+            else {
+              if (_contacts && _contacts.length) {
+                contacts = _contacts;
 
-            if (req.query.hasOwnProperty("role") && req.query.role.length) {
-              contacts = contacts.filter(function (item) {
-                return item._profile && item._profile.roles && item._profile.roles.indexOf(req.query.role) >= 0;
-              });
-            }
+                if (req.query.hasOwnProperty("verified") && req.query.verified) {
+                  contacts = contacts.filter(function (item) {
+                    return item._profile && item._profile.verified;
+                  });
+                }
 
-            if (req.query.hasOwnProperty("ghost") && req.query.ghost) {
-              contacts = contacts.filter(function (item) {
-                return item._profile && item._profile.userid && !item._profile.userid.match(/^.+@.+_\d+$/);
-              });
-            }
+                if (req.query.hasOwnProperty("role") && req.query.role.length) {
+                  contacts = contacts.filter(function (item) {
+                    return item._profile && item._profile.roles && item._profile.roles.indexOf(req.query.role) >= 0;
+                  });
+                }
 
-            if (req.query.hasOwnProperty("orphan") && req.query.orphan) {
-              contacts = contacts.filter(function (item) {
-                var profile = item._profile ? item._profile.toObject() : false;
-                return profile && profile.userid && profile.userid.match(/^.+@.+_\d+$/) && (!profile.hasOwnProperty('firstUpdate') || !profile.firstUpdate);
-              });
-            }
+                if (req.query.hasOwnProperty("ghost") && req.query.ghost) {
+                  contacts = contacts.filter(function (item) {
+                    return item._profile && item._profile.userid && !item._profile.userid.match(/^.+@.+_\d+$/);
+                  });
+                }
 
-            if (skipCount) {
-              count = contacts.length;
-            }
+                if (req.query.hasOwnProperty("orphan") && req.query.orphan) {
+                  contacts = contacts.filter(function (item) {
+                    var profile = item._profile ? item._profile.toObject() : false;
+                    return profile && profile.userid && profile.userid.match(/^.+@.+_\d+$/) && (!profile.hasOwnProperty('firstUpdate') || !profile.firstUpdate);
+                  });
+                }
 
-            if (req.query.sort == 'verified') {
-              contacts = contacts.sort(function (a, b) {
-                var aprofile = a._profile ? a._profile.toObject() : false;
-                var bprofile = b._profile ? b._profile.toObject() : false;
-                var aname = a.fullName();
-                var bname = b.fullName();
-                if (aprofile && aprofile.verified) {
-                  if (bprofile && bprofile.verified) {
+                if (skipCount) {
+                  count = contacts.length;
+                }
+
+                if (req.query.sort == 'verified') {
+                  contacts = contacts.sort(function (a, b) {
+                    var aprofile = a._profile ? a._profile.toObject() : false;
+                    var bprofile = b._profile ? b._profile.toObject() : false;
+                    var aname = a.fullName();
+                    var bname = b.fullName();
+                    if (aprofile && aprofile.verified) {
+                      if (bprofile && bprofile.verified) {
+                        if (aname > bname) {
+                          return 1;
+                        }
+                        else if (aname < bname) {
+                          return -1;
+                        }
+                        return 0;
+                      }
+                      else {
+                        return -1;
+                      }
+                    }
+                    if (bprofile && bprofile.verified) {
+                      return 1;
+                    }
                     if (aname > bname) {
                       return 1;
                     }
@@ -295,53 +314,45 @@ function get(req, res) {
                       return -1;
                     }
                     return 0;
-                  }
-                  else {
-                    return -1;
-                  }
+                  });
+                  contacts = contacts.slice(sortskip, sortskip + sortlimit);
                 }
-                if (bprofile && bprofile.verified) {
-                  return 1;
-                }
-                if (aname > bname) {
-                  return 1;
-                }
-                else if (aname < bname) {
-                  return -1;
-                }
-                return 0;
-              });
-              contacts = contacts.slice(sortskip, sortskip + sortlimit);
-            }
 
-           if (req.query.sort == 'organization') {
-             contacts = contacts.sort(function (a, b) {
-               var aname = a.fullName().toUpperCase();
-               var bname = b.fullName().toUpperCase();
-               var aorg = a.mainOrganization();
-               var borg = b.mainOrganization();
-               var aorgname = '';
-               var borgname = '';
-               if (aorg && aorg.name) {
-                 aorgname = aorg.name;
+               if (req.query.sort == 'organization') {
+                 contacts = contacts.sort(function (a, b) {
+                   var aname = a.fullName().toUpperCase();
+                   var bname = b.fullName().toUpperCase();
+                   var aorg = a.mainOrganization();
+                   var borg = b.mainOrganization();
+                   var aorgname = '';
+                   var borgname = '';
+                   if (aorg && aorg.name) {
+                     aorgname = aorg.name;
+                   }
+                   if (borg && borg.name) {
+                     borgname = borg.name;
+                   }
+                   aorgname = aorgname.toUpperCase();
+                   borgname = borgname.toUpperCase();
+                   var out = aorgname.localeCompare(borgname);
+                   if (out == 0) {
+                     out = aname.localeCompare(bname);
+                   }
+                   return out;
+                 });
+                 contacts = contacts.slice(sortskip, sortskip + sortlimit);
                }
-               if (borg && borg.name) {
-                 borgname = borg.name;
-               }
-               aorgname = aorgname.toUpperCase();
-               borgname = borgname.toUpperCase();
-               var out = aorgname.localeCompare(borgname);
-               if (out == 0) {
-                 out = aname.localeCompare(bname);
-               }
-               return out;
-             });
-             contacts = contacts.slice(sortskip, sortskip + sortlimit);
-           }
-          }
-          return callback(null, contacts, count);
-        }
-      });
+              }
+              var result = {
+                contacts: contacts,
+                count: count
+              };
+              return cb(null, result);
+            }
+          });
+    }], function (err, result) {
+      return callback(err, result[1].contacts, result[1].count);
+    });
   }
 
   // Recursively check schema for properties in array.
@@ -538,7 +549,7 @@ function get(req, res) {
   }
 
   // Returns query results in PDF format from generated HTML output.
-  function getReturnPDF(contacts, count, callback) {
+  function getReturnPDF(contacts, count, meeting, callback) {
     if (!req.userCanExport) {
       log.warn({'type': 'contactViewPDF:error', 'message': 'User attempted to fetch the PDF export from a contact list, but is not authorized to do so.'});
       res.send(403, "Access Denied");
@@ -599,7 +610,11 @@ function get(req, res) {
       function (cb) {
         // Load the printList.html template, compile it with Handlebars, and
         // generate HTML output for the list.
-        fs.readFile('views/printList.html', function (err, data) {
+        var template = 'views/printList.html';
+        if (meeting == true) {
+          template = 'views/printMeeting.html';
+        }
+        fs.readFile(template, function (err, data) {
           if (err) throw err;
           templateData = data;
           cb();
@@ -665,6 +680,11 @@ function get(req, res) {
         filters.push('Orphan Users');
       }
 
+      var emptyLines = [];
+      for (var i = 0; i < 12; i++) {
+        emptyLines.push(i);
+      }
+
       var template = Handlebars.compile(String(templateData)),
         isGlobal = (query.type === 'global' || !query.locationId || !query.locationId.length),
         tokens = {
@@ -674,7 +694,8 @@ function get(req, res) {
           queryCount: contacts.length,
           filters: filters,
           dateGenerated: moment().format('LL'),
-          contacts: contacts
+          contacts: contacts,
+          emptyLines: emptyLines
         },
         result = template(tokens),
         postData = qs.stringify({
@@ -736,6 +757,10 @@ function get(req, res) {
     });
   }
 
+  function getReturnMeetingPDF(contacts, count, callback) {
+    return getReturnPDF(contacts, count, true, callback);
+  }
+
   // Define workflow.
   var steps = [
     access,
@@ -744,6 +769,9 @@ function get(req, res) {
   ];
   if (req.query.export && req.query.export === 'pdf') {
     steps.push(getReturnPDF);
+  }
+  else if (req.query.export && req.query.export === 'meeting') {
+    steps.push(getReturnMeetingPDF);
   }
   else if (req.query.export && req.query.export === 'csv') {
     steps.push(getReturnCSV);
