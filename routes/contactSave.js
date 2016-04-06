@@ -682,9 +682,9 @@ function post(req, res, next) {
                     if (obj.data[0].country) {
                       var lat = obj.data[0].country.geolocation.lat;
                       var lon = obj.data[0].country.geolocation.lon;
-                      var org_name = contact.organization[0] ? contact.organization[0].name : '';
-                      var origin_location = contact.address[0] ? contact.address[0].country : '';
-                      var location_country = obj.data[0].country.label;
+                      var org_name = contact.organization[0] && contact.organization[0].name ? contact.organization[0].name.replace("'", "''") : '';
+                      var origin_location = contact.address[0] && contact.address[0].country ? contact.address[0].country.replace("'", "''") : '';
+                      var location_country = obj.data[0].country.label ? obj.data[0].country.label.replace("'", "''") : '';
                       var created = new Date(contact.created);
                       var sql_query = "INSERT INTO " + process.env.CARTODB_TABLE + " (the_geom, hid_id, org_name, last_updated, origin_location, location_country, operation_id) VALUES (";
                       sql_query = sql_query + "'SRID=4326; POINT (" + lon + " " + lat + ")', '" + contact._id.toString() + "', '" + org_name + "', '" + created.toISOString() + "', '" + origin_location + "', '" + location_country + "', '" + op_id + "')";
