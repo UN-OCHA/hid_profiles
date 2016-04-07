@@ -329,7 +329,7 @@ function post(req, res, next) {
       }
       else {
         //If isNewContact is true and its not a ghost account, verify that no existing contact record exists with new contact's email
-        if (isNewContact && !isGhost){
+        if (isNewContact && !isGhost && !contactFields.expires){
           //See if contact record exists for new contact request - if so, return original contact record
           Contact.findOne({'email.address': authEmail}, function (err, doc) {
             if (!err && doc && doc._id) {
