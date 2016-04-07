@@ -693,7 +693,7 @@ function get(req, res) {
         if (contact.organization[0] && contact.organization[0].name) {
           contact.org_name = contact.organization[0].name;
           matches = regExp.exec(contact.org_name);
-          if (matches[1]) {
+          if (matches && matches.length && matches[1]) {
             contact.org_name = matches[1];
           }
         }
