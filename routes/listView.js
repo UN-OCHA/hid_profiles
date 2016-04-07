@@ -397,6 +397,20 @@ function get(req, res, next) {
         filters.push('Orphan Users');
       }
 
+      // Use organization acronym whenever possible
+      var regExp = /\(([^)]+)\)/;
+      var matches = [];
+      _.each(contacts, function (contact) {
+        contact.org_name = '';
+        if (contact.organization[0] && contact.organization[0].name) {
+          contact.org_name = contact.organization[0].name;
+          matches = regExp.exec(contact.org_name);
+          if (matches && matches.length && matches[1]) {
+            contact.org_name = matches[1];
+          }
+        }
+      });
+
       var template = Handlebars.compile(String(templateData)),
         isGlobal = false,
         tokens = {
