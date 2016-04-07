@@ -801,13 +801,13 @@ function post(req, res, next) {
     function (cb) {
       var mailOptions = {};
       // If checking in
-      if (contactFields.status === 1 && contactFields.email[0] && contactFields.email[0].address) {
+      if (contactFields.type == 'local' && contactFields.status === 1 && contactFields.email[0] && contactFields.email[0].address) {
         if (!origContact || (origContact && origContact.status === 0)) {
           var merge_vars = {
             fname: contactFields.nameGiven,
             lname: contactFields.nameFamily
           };
-          Service.find({ auto_add: true, 'locations.remote_id': contactFields.locationId }, function (err, services) {
+          Service.find({ status: true, auto_add: true, 'locations.remote_id': contactFields.locationId }, function (err, services) {
             services.forEach(function (service, i) {
               service.subscribe(origProfile, contactFields.email[0].address, merge_vars, function (data) {
                 if (data) {
@@ -832,7 +832,7 @@ function post(req, res, next) {
       // If checking out
       else if (contactFields.status === 0) {
         if (origContact && origContact.status === true) {
-          Service.find({ auto_remove: true, 'locations.remote_id': origContact.locationId }, function (err, services) {
+          Service.find({ status: true, auto_remove: true, 'locations.remote_id': origContact.locationId }, function (err, services) {
             services.forEach(function (service, i) {
               service.unsubscribe(origProfile, function (data) {
                 // send email to tell user he was unsubscribed
