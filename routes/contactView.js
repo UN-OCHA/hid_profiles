@@ -685,6 +685,20 @@ function get(req, res) {
         emptyLines.push(i);
       }
 
+      // Use organization acronym whenever possible
+      var regExp = /\(([^)]+)\)/;
+      var matches = [];
+      _.each(contacts, function (contact) {
+        contact.org_name = '';
+        if (contact.organization[0] && contact.organization[0].name) {
+          contact.org_name = contact.organization[0].name;
+          matches = regExp.exec(contact.org_name);
+          if (matches[1]) {
+            contact.org_name = matches[1];
+          }
+        }
+      });
+
       var template = Handlebars.compile(String(templateData)),
         isGlobal = (query.type === 'global' || !query.locationId || !query.locationId.length),
         tokens = {
