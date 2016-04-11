@@ -337,7 +337,7 @@ function get(req, res, next) {
         // generate HTML output for the list.
         var template = 'views/printList.html';
         if (meeting) {
-          template = 'views/printMeeting.html';
+          template = 'views/' + meeting + '.html';
         }
         fs.readFile(template, function (err, data) {
           if (err) throw err;
@@ -612,8 +612,12 @@ function get(req, res, next) {
     stringifier.end();
   }
 
-  function getReturnPDFMeeting(callback) {
-    return getReturnPDF(true, callback);
+  function getReturnPDFMeetingComfortable(callback) {
+    return getReturnPDF('printMeetingComfortable', callback);
+  }
+
+  function getReturnPDFMeetingCompact(callback) {
+    return getReturnPDF('printMeetingCompact', callback);
   }
 
   // Define workflow.
@@ -631,8 +635,10 @@ function get(req, res, next) {
 
   if (req.query.export && req.query.export === 'pdf') {
     steps.push(getReturnPDF);
-  } else if (req.query.export && req.query.export === 'meeting') {
-    steps.push(getReturnPDFMeeting);
+  } else if (req.query.export && req.query.export === 'meeting-comfortable') {
+    steps.push(getReturnPDFMeetingComfortable);
+  } else if (req.query.export && req.query.export === 'meeting-compact') {
+    steps.push(getReturnPDFMeetingCompact);
   } else if (req.query.export && req.query.export === 'csv') {
     steps.push(getReturnCSV);
   } else {
