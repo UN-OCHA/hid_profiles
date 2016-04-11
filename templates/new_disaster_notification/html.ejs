@@ -1,0 +1,12 @@
+<%= nameGiven %>,
+<p>There is a new disaster occuring in <%= location %>. Please click on the link below to automatically add the disaster to your local profile: </p>
+
+<%if (contacts) { %>
+	<% for (var i=0; i < requiredLocations[location].glide.length; i++) { %>
+		<li><a href="<%= baseUrl %>/#/profile/<%= id %>/<%=requiredLocations[location].glide[i]%>"><%= nameGiven %> <%= nameFamily %></a></li>
+	<% } %>
+<% } %>
+
+
+<% include ../includes/footer_en %>
+<hr />
