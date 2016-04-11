@@ -208,6 +208,19 @@ function get(req, res, next) {
       });
     }
 
+    if (req.query.hasOwnProperty('orphan')) {
+      contacts = contacts.filter(function (contact) {
+        return contact._profile ? contact._profile.isOrphan() : false;
+      });
+    }
+
+    if (req.query.hasOwnProperty("ghost")) {
+      contacts = contacts.filter(function (contact) {
+        return contact._profile && contact._profile.userid && !contact._profile.userid.match(/^.+@.+_\d+$/);
+      });
+    }
+
+
     if (req.query.hasOwnProperty('text')) {
       var textRegExp = new RegExp(req.query['text'].toLowerCase());
       contacts = contacts.filter(function(contact){
