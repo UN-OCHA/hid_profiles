@@ -23,6 +23,7 @@
     "mongoose": "~3.8.27",
     "nodemailer": "^1.3.0",
     "pm2": "~0.12.7",
+    "request": "latest",
     "restify": "^2.8.3"
   },
   "engine": "node 0.6.x",
