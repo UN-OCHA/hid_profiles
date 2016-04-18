@@ -29,5 +29,8 @@ profiles:
     AUTH_CLIENT_ID: hid-local
     REQUIRE_SSL: false
     ROOT_URL: http://profiles.contactsid.vm
+    CARTODB_DOMAIN: fis-ocha
+    CARTODB_API_KEY: 12345
+    CARTODB_TABLE: hid_checkins_dev
   links:
     - mongo:mongo

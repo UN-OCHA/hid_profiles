@@ -82,8 +82,9 @@ var contactSchema = new mongoose.Schema({
   remindedCheckout:   Boolean,
   remindedCheckoutDate: Date,
   remindedCheckin:    Number, //timestamp
-  remindedUpdate: Number // timestamp
-  
+  remindedUpdate:     Number, // timestamp
+  expires:            { type: Boolean, default: false },
+  expiresAfter:       Number // Number of seconds after which it should expire
 });
 
 contactSchema.methods.fullName = function() {
@@ -311,6 +312,20 @@ contactSchema.methods.shouldSendReminderUpdate = function () {
   }
   return true;
 };
+
+// Determine if a contact is expired and should be removed
+contactSchema.methods.isExpired = function() {
+  var now = Date.now();
+  var created = this.created;
+  var expiresAfter = this.expiresAfter * 1000;
+  if (this.expires && now.valueOf() - created > expiresAfter) {
+    return true;
+  }
+  else {
+    return false;
+  }
+};
+
 
 mongoose.model('Contact', contactSchema);
 

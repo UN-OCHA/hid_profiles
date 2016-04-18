@@ -208,6 +208,19 @@ function get(req, res, next) {
       });
     }
 
+    if (req.query.hasOwnProperty('orphan')) {
+      contacts = contacts.filter(function (contact) {
+        return contact._profile ? contact._profile.isOrphan() : false;
+      });
+    }
+
+    if (req.query.hasOwnProperty("ghost")) {
+      contacts = contacts.filter(function (contact) {
+        return contact._profile && contact._profile.userid && !contact._profile.userid.match(/^.+@.+_\d+$/);
+      });
+    }
+
+
     if (req.query.hasOwnProperty('text')) {
       var textRegExp = new RegExp(req.query['text'].toLowerCase());
       contacts = contacts.filter(function(contact){
@@ -288,7 +301,7 @@ function get(req, res, next) {
     res.send(200, list);
   }
 
-  function getReturnPDF(callback) {
+  function getReturnPDF(meeting, callback) {
     if (!req.userCanExport) {
       res.send(403, "Access Denied");
       res.end();
@@ -335,7 +348,11 @@ function get(req, res, next) {
       function (cb) {
         // Load the printList.html template, compile it with Handlebars, and
         // generate HTML output for the list.
-        fs.readFile('views/printList.html', function (err, data) {
+        var template = 'views/printList.html';
+        if (meeting) {
+          template = 'views/' + meeting + '.html';
+        }
+        fs.readFile(template, function (err, data) {
           if (err) throw err;
           templateData = data;
           cb();
@@ -392,6 +409,20 @@ function get(req, res, next) {
       if (req.query.hasOwnProperty('orphan') && req.query.orphan) {
         filters.push('Orphan Users');
       }
+
+      // Use organization acronym whenever possible
+      var regExp = /\(([^)]+)\)/;
+      var matches = [];
+      _.each(contacts, function (contact) {
+        contact.org_name = '';
+        if (contact.organization[0] && contact.organization[0].name) {
+          contact.org_name = contact.organization[0].name;
+          matches = regExp.exec(contact.org_name);
+          if (matches && matches.length && matches[1]) {
+            contact.org_name = matches[1];
+          }
+        }
+      });
 
       var template = Handlebars.compile(String(templateData)),
         isGlobal = false,
@@ -594,6 +625,14 @@ function get(req, res, next) {
     stringifier.end();
   }
 
+  function getReturnPDFMeetingComfortable(callback) {
+    return getReturnPDF('printMeetingComfortable', callback);
+  }
+
+  function getReturnPDFMeetingCompact(callback) {
+    return getReturnPDF('printMeetingCompact', callback);
+  }
+
   // Define workflow.
   var steps = [
     getLockedOps,
@@ -609,6 +648,10 @@ function get(req, res, next) {
 
   if (req.query.export && req.query.export === 'pdf') {
     steps.push(getReturnPDF);
+  } else if (req.query.export && req.query.export === 'meeting-comfortable') {
+    steps.push(getReturnPDFMeetingComfortable);
+  } else if (req.query.export && req.query.export === 'meeting-compact') {
+    steps.push(getReturnPDFMeetingCompact);
   } else if (req.query.export && req.query.export === 'csv') {
     steps.push(getReturnCSV);
   } else {
@@ -685,10 +728,11 @@ function getProfiles(req, res, next) {
     },
     function (next) {
       // Get profiles for list
-      var ids = [];
+      var ids = [], cids = [];
       list.contacts.forEach(function (contact) {
         if (contact._profile && contact._profile._id) {
           ids.push(contact._profile._id);
+          cids.push(contact._id);
         }
       });
       Profile
@@ -700,7 +744,7 @@ function getProfiles(req, res, next) {
           }
           var accounts = [];
           async.each(profiles, function (profile, cb) {
-            Contact.find({'_profile': profile._id, 'status': 1}, function (err, contacts) {
+            Contact.find({'_profile': profile._id, $or: [{'status': 1}, {_id: { $in: cids }}] }, function (err, contacts) {
               accounts.push({ contacts: contacts, profile: profile });
               cb();
             });
@@ -743,7 +787,8 @@ function getAll(req, res, next) {
       { privacy: 'all' },
       { userid: req.apiAuth.userId },
       { $and: [ { readers: profile._id }, { privacy: 'some' }] },
-      { editors: profile._id }
+      { editors: profile._id },
+      { privacy: 'inlist' }
     ];
     if (profile.verified == true) {
       permissions.push({ privacy: 'verified' });
@@ -771,15 +816,39 @@ function getAll(req, res, next) {
         else {
           var lists2 = [];
           async.each(lists, function (list, cb) {
-            // TODO: for the lists with privacy = inlist, make sure the current user is part of the list
             list.getOwnerName(function (err, contact) {
               if (!err && contact) {
                 var tmp = list.toObject();
                 tmp.owner = contact.fullName();
                 tmp.ownerId = contact._id;
-                lists2.push(tmp);
+                // For lists with privacy = inlist, make sure the current user is part of the list
+                if (list.privacy == 'inlist' && list.userid != req.apiAuth.userId) {
+                  list.populate('contacts', function (err2, list2) {
+                    var allowed = false;
+                    list2.contacts.forEach(function (contact2) {
+                      if (profile._id.equals(contact2._profile)) {
+                        allowed = true;
+                      }
+                    });
+                    if (!allowed) {
+                      count--;
+                    }
+                    else {
+                      lists2.push(tmp);
+                    }
+                    cb();
+                  });
+                }
+                else {
+                  lists2.push(tmp);
+                  cb();
+                }
               }
-              cb();
+              else {
+                count--;
+                log.warn({'type': 'listView:error', 'message': 'An error occured while requesting the list owner: ' + err.message, 'error': err});
+                cb();
+              }
             });
           }, function (err) {
             res.header('X-Total-Count', count);

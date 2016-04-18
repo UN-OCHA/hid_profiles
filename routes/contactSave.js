@@ -8,7 +8,8 @@ var async = require('async'),
   log = require('../log'),
   restify = require('restify'),
   middleware = require('../middleware');
-  mail = require('../mail');
+  mail = require('../mail'),
+  cartodb = require('cartodb');
 
 // Middleware function to grant/deny access to the profileSave and contactSave
 // routes.
@@ -127,12 +128,18 @@ function checkout(req, res, next) {
 
 function post(req, res, next) {
   var contactFields = {},
-    contactModel = (new Contact(req.body)).toObject();
+    contactModel = (new Contact(req.body)).toObject(),
+    parts = [];
 
   for (var prop in req.body) {
     if (req.body.hasOwnProperty(prop) && contactModel.hasOwnProperty(prop)) {
       if (prop === 'nameGiven' || prop === 'nameFamily') {
-        contactFields[prop] = req.body[prop].charAt(0).toUpperCase() + req.body[prop].substr(1);
+        parts = req.body[prop].split(" ");
+        for (var i = 0; i < parts.length; i++) {
+          parts[i] = parts[i].replace(/[\W_]+/g, "");
+          parts[i] = parts[i].charAt(0).toUpperCase() + parts[i].substr(1).toLowerCase();
+        }
+        contactFields[prop] = parts.join(" ");
       }
       else {
         contactFields[prop] = req.body[prop];
@@ -270,7 +277,9 @@ function post(req, res, next) {
           "adminEmail": adminEmail,
           "location": contactFields.location,
           "active": 1,
-          'emailFlag': '1' //Orphan email
+          'emailFlag': '1',
+          'expires': contactFields.expires ? contactFields.expires : false,
+          'expiresAfter': contactFields.expiresAfter ? contactFields.expiresAfter : 0 //Orphan email
         };
         if (inviterRequest) {
           request.inviter = inviterRequest;
@@ -320,7 +329,7 @@ function post(req, res, next) {
       }
       else {
         //If isNewContact is true and its not a ghost account, verify that no existing contact record exists with new contact's email
-        if (isNewContact && !isGhost){
+        if (isNewContact && !isGhost && !contactFields.expires){
           //See if contact record exists for new contact request - if so, return original contact record
           Contact.findOne({'email.address': authEmail}, function (err, doc) {
             if (!err && doc && doc._id) {
@@ -343,7 +352,13 @@ function post(req, res, next) {
         Profile.findOne({userid: userid}, function (err, profile) {
           if (err || !profile || !profile._id || userid === "") {
             log.info({'type': 'post', 'message': 'Creating new profile for userid ' + userid});
-            Profile.update({userid: userid}, {userid: userid, status: 1}, {upsert: true}, function(err, profile) {
+            var upProfile = {
+              userid: userid,
+              status: 1,
+              expires: contactFields.expires ? contactFields.expires : false,
+              expiresAfter: contactFields.expiresAfter ? contactFields.expiresAfter : 0
+            };
+            Profile.update({userid: userid}, upProfile, {upsert: true}, function(err, profile) {
               if (err) {
                 log.warn({'type': 'post:error', 'message': 'Error occurred while trying to update/insert profile for user ID ' + userid, 'err': err});
                 result = {status: "error", message: "Could not create profile for user."};
@@ -384,7 +399,7 @@ function post(req, res, next) {
     function (cb) {
       if (!contactFields._id) { // We are creating a new contact
         if (contactFields.type == 'global') {
-          Contact.findOne({'type': 'global', '_profile': _profile}, function (err, doc) {
+          Contact.findOne({'type': 'global', '_profile': _profile, 'status': 1}, function (err, doc) {
             if (!err && doc) {
               // Contact already exists
               result = {status: 'error', message: 'A global profile for this profile already exists'};
@@ -652,6 +667,36 @@ function post(req, res, next) {
         }
         else {
           log.info({'type': 'contactSave:success', 'message': "Created contact " + upsertId + " for user " + userid});
+          if (contactFields.type == 'local') {
+            Contact.findById(upsertId, function (err2, contact) {
+              if (!err2 && contact) {
+                // Add the contact in cartodb
+                // Get the corresponding location
+                var restclient = restify.createJsonClient({
+                  url: process.env.HRINFO_BASE_URL
+                });
+           
+                var op_id = contact.locationId.replace('hrinfo:', '');
+                restclient.get('/api/v1.0/operations/' + op_id, function (err3, req1, res1, obj) {
+                  if (!err && obj.data && obj.data.length) {
+                    if (obj.data[0].country) {
+                      var lat = obj.data[0].country.geolocation.lat;
+                      var lon = obj.data[0].country.geolocation.lon;
+                      var org_name = contact.organization[0] && contact.organization[0].name ? contact.organization[0].name.replace("'", "''") : '';
+                      var origin_location = contact.address[0] && contact.address[0].country ? contact.address[0].country.replace("'", "''") : '';
+                      var location_country = obj.data[0].country.label ? obj.data[0].country.label.replace("'", "''") : '';
+                      var created = new Date(contact.created);
+                      var sql_query = "INSERT INTO " + process.env.CARTODB_TABLE + " (the_geom, hid_id, org_name, last_updated, origin_location, location_country, operation_id) VALUES (";
+                      sql_query = sql_query + "'SRID=4326; POINT (" + lon + " " + lat + ")', '" + contact._id.toString() + "', '" + org_name + "', '" + created.toISOString() + "', '" + origin_location + "', '" + location_country + "', '" + op_id + "')";
+                      // Execute the cartodb query
+                      var csql = new cartodb.SQL({ user: process.env.CARTODB_DOMAIN, api_key: process.env.CARTODB_API_KEY});
+                      csql.execute(sql_query);
+                    }
+                  }
+                });
+              }
+            });
+          }
         }
         result = {status: "ok", data: contactFields, "_id": upsertId};
         return cb();
@@ -756,13 +801,13 @@ function post(req, res, next) {
     function (cb) {
       var mailOptions = {};
       // If checking in
-      if (contactFields.status === 1 && contactFields.email[0] && contactFields.email[0].address) {
+      if (contactFields.type == 'local' && contactFields.status === 1 && contactFields.email[0] && contactFields.email[0].address) {
         if (!origContact || (origContact && origContact.status === 0)) {
           var merge_vars = {
             fname: contactFields.nameGiven,
             lname: contactFields.nameFamily
           };
-          Service.find({ auto_add: true, 'locations.remote_id': contactFields.locationId }, function (err, services) {
+          Service.find({ status: true, auto_add: true, 'locations.remote_id': contactFields.locationId }, function (err, services) {
             services.forEach(function (service, i) {
               service.subscribe(origProfile, contactFields.email[0].address, merge_vars, function (data) {
                 if (data) {
@@ -787,7 +832,7 @@ function post(req, res, next) {
       // If checking out
       else if (contactFields.status === 0) {
         if (origContact && origContact.status === true) {
-          Service.find({ auto_remove: true, 'locations.remote_id': origContact.locationId }, function (err, services) {
+          Service.find({ status: true, auto_remove: true, 'locations.remote_id': origContact.locationId }, function (err, services) {
             services.forEach(function (service, i) {
               service.unsubscribe(origProfile, function (data) {
                 // send email to tell user he was unsubscribed

@@ -10,7 +10,8 @@ var async = require('async'),
   Service = require('../models').Service,
   ServiceCredentials = require('../models').ServiceCredentials,
   Profile = require('../models').Profile,
-  Contact = require('../models').Contact;
+  Contact = require('../models').Contact,
+  List = require('../models').List;
 
 // Middleware function to grant/deny access to the put and delete routes
 function putdelAccess(req, res, next) {
@@ -223,6 +224,16 @@ function del(req, res, next) {
     } else {
       if (service) {
         res.send(204);
+        List.find({services: service}, function (err2, lists) {
+          if (!err2 && lists) {
+            lists.forEach(function (list) {
+              list.services = list.services.filter(function (serv) {
+                return !service._id.equals(serv);
+              });
+              list.save();
+            });
+          }
+        });
         return next();
       }
       else {
