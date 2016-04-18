@@ -159,7 +159,7 @@ serviceSchema.methods.unsubscribe = function (profile, onresult, onerror) {
 
   if (this.type === 'mailchimp') {
     var mc = new mcapi.Mailchimp(this.mc_api_key);
-    return mc.lists.unsubscribe({id: this.mc_list.id, email: {email: profile.subscriptions[index].email}}, function (data) {
+    return mc.lists.unsubscribe({id: this.mc_list.id, email: {email: profile.subscriptions[index].email}, delete_member: true}, function (data) {
       var email = profile.subscriptions[index].email;
       profile.subscriptions.splice(index, 1);
       profile.save();

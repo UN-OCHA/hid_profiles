@@ -208,6 +208,19 @@ function get(req, res, next) {
       });
     }
 
+    if (req.query.hasOwnProperty('orphan')) {
+      contacts = contacts.filter(function (contact) {
+        return contact._profile ? contact._profile.isOrphan() : false;
+      });
+    }
+
+    if (req.query.hasOwnProperty("ghost")) {
+      contacts = contacts.filter(function (contact) {
+        return contact._profile && contact._profile.userid && !contact._profile.userid.match(/^.+@.+_\d+$/);
+      });
+    }
+
+
     if (req.query.hasOwnProperty('text')) {
       var textRegExp = new RegExp(req.query['text'].toLowerCase());
       contacts = contacts.filter(function(contact){
@@ -337,7 +350,7 @@ function get(req, res, next) {
         // generate HTML output for the list.
         var template = 'views/printList.html';
         if (meeting) {
-          template = 'views/printMeeting.html';
+          template = 'views/' + meeting + '.html';
         }
         fs.readFile(template, function (err, data) {
           if (err) throw err;
@@ -396,6 +409,20 @@ function get(req, res, next) {
       if (req.query.hasOwnProperty('orphan') && req.query.orphan) {
         filters.push('Orphan Users');
       }
+
+      // Use organization acronym whenever possible
+      var regExp = /\(([^)]+)\)/;
+      var matches = [];
+      _.each(contacts, function (contact) {
+        contact.org_name = '';
+        if (contact.organization[0] && contact.organization[0].name) {
+          contact.org_name = contact.organization[0].name;
+          matches = regExp.exec(contact.org_name);
+          if (matches && matches.length && matches[1]) {
+            contact.org_name = matches[1];
+          }
+        }
+      });
 
       var template = Handlebars.compile(String(templateData)),
         isGlobal = false,
@@ -598,8 +625,12 @@ function get(req, res, next) {
     stringifier.end();
   }
 
-  function getReturnPDFMeeting(callback) {
-    return getReturnPDF(true, callback);
+  function getReturnPDFMeetingComfortable(callback) {
+    return getReturnPDF('printMeetingComfortable', callback);
+  }
+
+  function getReturnPDFMeetingCompact(callback) {
+    return getReturnPDF('printMeetingCompact', callback);
   }
 
   // Define workflow.
@@ -617,8 +648,10 @@ function get(req, res, next) {
 
   if (req.query.export && req.query.export === 'pdf') {
     steps.push(getReturnPDF);
-  } else if (req.query.export && req.query.export === 'meeting') {
-    steps.push(getReturnPDFMeeting);
+  } else if (req.query.export && req.query.export === 'meeting-comfortable') {
+    steps.push(getReturnPDFMeetingComfortable);
+  } else if (req.query.export && req.query.export === 'meeting-compact') {
+    steps.push(getReturnPDFMeetingCompact);
   } else if (req.query.export && req.query.export === 'csv') {
     steps.push(getReturnCSV);
   } else {

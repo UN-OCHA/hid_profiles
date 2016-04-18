@@ -1,0 +1,15 @@
+Dear <%= nameGiven %>,
+<p>A disaster alert for <%= disaster.name %> has occurred in <%= location %>. If you are responding to that disaster, please consider adding it to your <%= location %> profile. Adding this information to your profile will help others to find your contact details in that specific disaster response. </p>
+
+<p>Yes, please add <%= disaster.name %> to my <%= location %> profile.</p>
+
+<ul>
+<% for (var i=0; i < requiredLocations[location].glide.length; i++) { %>
+	<li><a href="<%= baseUrl %>/#/profile/<%= id %>/<%= requiredLocations[location].glide[i] %>"><%= nameGiven %> <%= nameFamily %></a></li>
+<% } %>
+</ul>
+
+<% include ../includes/footer_en %>
+<hr />
+
+

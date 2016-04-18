@@ -14,7 +14,7 @@
 <body ng-app="contactsId" class="break960 ng-animate print pdf">
   <div id="contactsid-app-view-wrapper">
     <div id="contactsid-app" class="contactsid-app">
-<div id="contactsid-app-view" class="container ng-scope" ng-view=""><div class="page-list print pdf meeting ng-scope">
+<div id="contactsid-app-view" class="container ng-scope" ng-view=""><div class="page-list print pdf meeting meeting-compact ng-scope">
   <div class="row masthead">
     <div class="col-xs-12">
       <!-- ngIf: !supported -->
@@ -57,7 +57,7 @@
           {{#each contacts}}
             <tr class="profile-item ng-scope">
               <td class="title-cell col-xs-2"><div class="avoid ng-binding">{{nameGiven}}<br><span class="name-family ng-binding">{{nameFamily}}</span></div></td>
-              <td class="col-xs-1"><div class="avoid ng-binding">{{organization.[0].name}}</div></td>
+              <td class="col-xs-1"><div class="avoid ng-binding">{{org_name}}</div></td>
               <td class="col-xs-2"><div class="avoid ng-binding">{{jobtitle}}</div></td>
               <td class="col-xs-2">
                 {{#each phone}}

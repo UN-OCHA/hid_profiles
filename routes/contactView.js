@@ -611,8 +611,8 @@ function get(req, res) {
         // Load the printList.html template, compile it with Handlebars, and
         // generate HTML output for the list.
         var template = 'views/printList.html';
-        if (meeting == true) {
-          template = 'views/printMeeting.html';
+        if (meeting) {
+          template = 'views/' + meeting + '.html';
         }
         fs.readFile(template, function (err, data) {
           if (err) throw err;
@@ -684,6 +684,20 @@ function get(req, res) {
       for (var i = 0; i < 12; i++) {
         emptyLines.push(i);
       }
+
+      // Use organization acronym whenever possible
+      var regExp = /\(([^)]+)\)/;
+      var matches = [];
+      _.each(contacts, function (contact) {
+        contact.org_name = '';
+        if (contact.organization[0] && contact.organization[0].name) {
+          contact.org_name = contact.organization[0].name;
+          matches = regExp.exec(contact.org_name);
+          if (matches && matches.length && matches[1]) {
+            contact.org_name = matches[1];
+          }
+        }
+      });
 
       var template = Handlebars.compile(String(templateData)),
         isGlobal = (query.type === 'global' || !query.locationId || !query.locationId.length),
@@ -757,8 +771,12 @@ function get(req, res) {
     });
   }
 
-  function getReturnMeetingPDF(contacts, count, callback) {
-    return getReturnPDF(contacts, count, true, callback);
+  function getReturnMeetingComfortablePDF(contacts, count, callback) {
+    return getReturnPDF(contacts, count, 'printMeetingComfortable', callback);
+  }
+
+  function getReturnMeetingCompactPDF(contacts, count, callback) {
+    return getReturnPDF(contacts, count, 'printMeetingCompact', callback);
   }
 
   // Define workflow.
@@ -770,8 +788,11 @@ function get(req, res) {
   if (req.query.export && req.query.export === 'pdf') {
     steps.push(getReturnPDF);
   }
-  else if (req.query.export && req.query.export === 'meeting') {
-    steps.push(getReturnMeetingPDF);
+  else if (req.query.export && req.query.export === 'meeting-comfortable') {
+    steps.push(getReturnMeetingComfortablePDF);
+  }
+  else if (req.query.export && req.query.export === 'meeting-compact') {
+    steps.push(getReturnMeetingCompactPDF);
   }
   else if (req.query.export && req.query.export === 'csv') {
     steps.push(getReturnCSV);
