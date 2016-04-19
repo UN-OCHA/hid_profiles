@@ -779,6 +779,10 @@ function get(req, res) {
     return getReturnPDF(contacts, count, 'printMeetingCompact', callback);
   }
 
+  function getReturnNormalPDF(contacts, count, callback) {
+    return getReturnPDF(contacts, count, false, callback);
+  }
+
   // Define workflow.
   var steps = [
     access,
@@ -786,7 +790,7 @@ function get(req, res) {
     fetch
   ];
   if (req.query.export && req.query.export === 'pdf') {
-    steps.push(getReturnPDF);
+    steps.push(getReturnNormalPDF);
   }
   else if (req.query.export && req.query.export === 'meeting-comfortable') {
     steps.push(getReturnMeetingComfortablePDF);
