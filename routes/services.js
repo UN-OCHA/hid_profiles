@@ -580,7 +580,7 @@ function unsubscribe(req, res, next) {
       }
       service.unsubscribe(profile, function (data) {
         if (req.apiAuth.userProfile && req.apiAuth.userProfile._id != req.params.id) {
-          subscribeEmail('notify_unsubscribe', email, profile, req.apiAuth.userProfile, service);
+          subscribeEmail('notify_unsubscribe', data, profile, req.apiAuth.userProfile, service);
         }
         res.send(204);
         return next();
