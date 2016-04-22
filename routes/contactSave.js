@@ -136,7 +136,7 @@ function post(req, res, next) {
       if (prop === 'nameGiven' || prop === 'nameFamily') {
         parts = req.body[prop].split(" ");
         for (var i = 0; i < parts.length; i++) {
-          parts[i] = parts[i].replace(/[\W_]+/g, "");
+          parts[i] = parts[i].replace(/[(){}[]%_]+/g, "");
           parts[i] = parts[i].charAt(0).toUpperCase() + parts[i].substr(1).toLowerCase();
         }
         contactFields[prop] = parts.join(" ");
