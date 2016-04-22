@@ -633,6 +633,10 @@ function get(req, res, next) {
     return getReturnPDF('printMeetingCompact', callback);
   }
 
+  function getReturnNormalPDF(callback) {
+    return getReturnPDF(false, callback);
+  }
+
   // Define workflow.
   var steps = [
     getLockedOps,
@@ -647,7 +651,7 @@ function get(req, res, next) {
   ];
 
   if (req.query.export && req.query.export === 'pdf') {
-    steps.push(getReturnPDF);
+    steps.push(getReturnNormalPDF);
   } else if (req.query.export && req.query.export === 'meeting-comfortable') {
     steps.push(getReturnPDFMeetingComfortable);
   } else if (req.query.export && req.query.export === 'meeting-compact') {
