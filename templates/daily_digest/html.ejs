@@ -10,7 +10,7 @@
 
 			<ul>
 				<% for(var j=0; j<locations[dailyDigest[i]].checkedInUsers.length; j++) {%>
-	   				<li><a href="<%= baseUrl %>/#/contact/<%= locations[dailyDigest[i]].checkedInUsers[j]._id %>"><%= locations[dailyDigest[i]].checkedInUsers[j].nameGiven %> <%= locations[dailyDigest[i]].checkedInUsers[j].nameFamily %></a>, <%= locations[dailyDigest[i]].checkedInUsers[j].jobtitle %> at <%= locations[dailyDigest[i]].checkedInUsers[j].organizations[0].name %></li>
+	   				<li><a href="<%= baseUrl %>/#/contact/<%= locations[dailyDigest[i]].checkedInUsers[j]._id %>"><%= locations[dailyDigest[i]].checkedInUsers[j].nameGiven %> <%= locations[dailyDigest[i]].checkedInUsers[j].nameFamily %></a>, <%= locations[dailyDigest[i]].checkedInUsers[j].jobtitle %> </li>
 				<% } %>
 			</ul>
 		<% } %>
@@ -27,7 +27,7 @@
 
                         <ul>
                                 <% for(var j=0; j<locations[dailyDigest[i]].checkedOutUsers.length; j++) {%>
-                                        <li><a href="<%= baseUrl %>/#/contact/<%= locations[dailyDigest[i]].checkedOutUsers[j]._id %>"><%= locations[dailyDigest[i]].checkedOutUsers[j].nameGiven %> <%= locations[dailyDigest[i]].checkedOutUsers[j].nameFamily %></a>, <%= locations[dailyDigest[i]].checkedOutUsers[j].jobtitle %> at <%= locations[dailyDigest[i]].checkedOutUsers[j].organizations[0].name %></li>
+                                        <li><a href="<%= baseUrl %>/#/contact/<%= locations[dailyDigest[i]].checkedOutUsers[j]._id %>"><%= locations[dailyDigest[i]].checkedOutUsers[j].nameGiven %> <%= locations[dailyDigest[i]].checkedOutUsers[j].nameFamily %></a>, <%= locations[dailyDigest[i]].checkedOutUsers[j].jobtitle %> </li>
                                 <% } %>
                         </ul>
                 <% } %>
