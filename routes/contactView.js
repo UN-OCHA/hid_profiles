@@ -315,7 +315,9 @@ function get(req, res) {
                     }
                     return 0;
                   });
-                  contacts = contacts.slice(sortskip, sortskip + sortlimit);
+                  if (!skipCount) {
+                    contacts = contacts.slice(sortskip, sortskip + sortlimit);
+                  }
                 }
 
                if (req.query.sort == 'organization') {
@@ -340,7 +342,9 @@ function get(req, res) {
                    }
                    return out;
                  });
-                 contacts = contacts.slice(sortskip, sortskip + sortlimit);
+                 if (!skipCount) {
+                   contacts = contacts.slice(sortskip, sortskip + sortlimit);
+                 }
                }
               }
               var result = {
