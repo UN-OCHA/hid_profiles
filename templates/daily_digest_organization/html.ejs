@@ -1,0 +1,18 @@
+<%= nameGiven %>,
+
+<%if (orgContacts) { %>
+	<% for (var i=0; i < dailyDigest.length; i++) { %>
+		<% if (locations[dailyDigest[i]].orgContacts.length) { %>
+			<p> The following people from  <%= locations[dailyDigest[i]].orgContacts[0].organization[0].name %> also checked into <%= locations[dailyDigest[i]].name %> </p>
+			<ul>
+				<% for(var j=0; j<locations[dailyDigest[i]].orgContacts.length; j++) {%>
+	   				<li><a href="<%= baseUrl %>/#/contact/<%= locations[dailyDigest[i]].orgContacts[j]._id %>"><%= locations[dailyDigest[i]].orgContacts[j].nameGiven %> <%= locations[dailyDigest[i]].orgContacts[j].nameFamily %></a></li>
+				<% } %>
+			</ul>
+		<% } %>
+	<% } %>
+<% } %>
+
+<% include ../includes/footer_en %>
+
+<hr />
