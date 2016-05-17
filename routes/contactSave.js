@@ -266,7 +266,7 @@ function post(req, res, next) {
       }
     },
     function (cb) {
-      if (isNewUser) {
+      if (isNewUser && contactFields.status == 1) {
         authEmail = contactFields.email[0].address;
         //Create a new auth record for the new profile
         var request = {
