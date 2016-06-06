@@ -291,7 +291,12 @@ function get(req, res, next) {
     params.hidden = req.query.hidden;
   }
   if (req.query.location) {
-    params['locations.remote_id'] = req.query.location;
+    if (req.query.location == 'null') {
+      params['locations'] = { $exists: true, $size: 0};
+    }
+    else {
+      params['locations.remote_id'] = req.query.location;
+    }
   }
   if (req.query.auto_add) {
     if (req.query.auto_add == 'false') {
