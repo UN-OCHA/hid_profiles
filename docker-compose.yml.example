@@ -7,9 +7,9 @@ mongo:
     DNSDOCK_IMAGE: contactsid
     MONGO_OPTIONS: --journal --noprealloc --smallfiles
 profiles:
-  image: unocha/nodejs
+  image: unocha/alpine-base-nodejs
   volumes:
-    - .:/var/www/html
+    - .:/srv/www
   environment:
     DNSDOCK_NAME: profiles
     DNSDOCK_IMAGE: contactsid
