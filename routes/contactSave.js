@@ -486,10 +486,11 @@ function post(req, res, next) {
       // Allow setting the Verified User flag if the user is an admin,
       // manager, or editor.
       if (req.body.hasOwnProperty("verified") && (isAPI || isAdmin || isManager || isEditor)) {
-        setVerified = true;
-        setVerifiedFlag = true;
-        newVerified = req.body.verified;
-
+        if (origProfile && origProfile.verified == false) {
+          setVerified = true;
+          setVerifiedFlag = true;
+          newVerified = req.body.verified;
+        }
       }
 
       if (req.body.hasOwnProperty("dailyDigest") ) {
