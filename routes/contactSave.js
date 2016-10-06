@@ -486,7 +486,7 @@ function post(req, res, next) {
       // Allow setting the Verified User flag if the user is an admin,
       // manager, or editor.
       if (req.body.hasOwnProperty("verified") && (isAPI || isAdmin || isManager || isEditor)) {
-        if (origProfile && (origProfile.verified == false || !origProfile.verified)) {
+        if (origProfile && (origProfile.verified != req.body.verified || !origProfile.verified)) {
           setVerified = true;
           setVerifiedFlag = true;
           newVerified = req.body.verified;
