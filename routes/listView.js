@@ -702,7 +702,7 @@ function getForUser(req, res, next) {
       }
     },
     function (cb) {
-      List.find({$or: [{users: profile.userid }, { editors: profile._id }, {userid: profile.userid}]}, function(err, lists){
+      List.find({$or: [{$and: [{ privacy: 'some'}, {users: profile.userid}] }, { editors: profile._id }, {userid: profile.userid}]}, function(err, lists){
         if (err) {
           res.send(500, new Error(err));
           return cb(err);
