@@ -14,7 +14,7 @@ async.auto({
   offices: offices.fetchOffices,
   protectedRoles: protectedRoles.buildCache,
   orgTypes: orgTypes.buildCache,
-  //disasters: ['operations', disasters.buildCache],
+  disasters: ['operations', disasters.buildCache],
   reminderCheckout: contacts.sendReminderCheckoutEmails,
   checkout: contacts.doAutomatedCheckout,
   reminderCheckin: contacts.sendReminderCheckinEmails,
@@ -23,8 +23,7 @@ async.auto({
   deleteExpiredContacts: contacts.deleteExpiredContacts,
   deleteExpiredProfiles: contacts.deleteExpiredProfiles,
   dailyDigest: dailyDigest.get,
-  //appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'orgTypes', 'disasters', operations.buildAppData]
-  appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'orgTypes', operations.buildAppData]
+  appData: ['operations', 'bundles', 'offices', 'protectedRoles', 'orgTypes', 'disasters', operations.buildAppData]
 },
 function (err, results) {
   if (err) {
