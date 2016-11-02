@@ -381,7 +381,7 @@ function googleGroups(req, res, next) {
         service.groups.list({
           auth: auth,
           customer: 'my_customer',
-          maxResults: 10
+          maxResults: 200
         }, function (err, response) {
           if (err) {
             res.send(500, new Error(err));
