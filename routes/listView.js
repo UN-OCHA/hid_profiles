@@ -787,24 +787,27 @@ function getAll(req, res, next) {
       return next();
     }
     var params = {};
-    var permissions = [
-      { privacy: 'all' },
-      { userid: req.apiAuth.userId },
-      { $and: [ { readers: profile._id }, { privacy: 'some' }] },
-      { editors: profile._id },
-      { privacy: 'inlist' }
-    ];
-    if (profile.verified == true) {
-      permissions.push({ privacy: 'verified' });
-    }
-    if (query.length === 0) {
-      params.$or = permissions;
-    }
-    else {
-      params.$and = [
-        { $or: permissions },
-        query
+    var permissions = [];
+    if (req.apiAuth.mode === 'user') {
+      permissions = [
+        { privacy: 'all' },
+        { userid: req.apiAuth.userId },
+        { $and: [ { readers: profile._id }, { privacy: 'some' }] },
+        { editors: profile._id },
+        { privacy: 'inlist' }
       ];
+      if (profile.verified == true) {
+        permissions.push({ privacy: 'verified' });
+      }
+      if (query.length === 0) {
+        params.$or = permissions;
+      }
+      else {
+        params.$and = [
+          { $or: permissions },
+          query
+        ];
+      }
     }
     var q = List.find(params, null, { skip: skip, limit: limit }).sort(sort);
     q.exec(function (err, lists) {
@@ -826,7 +829,7 @@ function getAll(req, res, next) {
                 tmp.owner = contact.fullName();
                 tmp.ownerId = contact._id;
                 // For lists with privacy = inlist, make sure the current user is part of the list
-                if (list.privacy == 'inlist' && list.userid != req.apiAuth.userId) {
+                if (list.privacy == 'inlist' && list.userid != req.apiAuth.userId && req.apiAuth.mode === 'user') {
                   list.populate('contacts', function (err2, list2) {
                     var allowed = false;
                     list2.contacts.forEach(function (contact2) {
