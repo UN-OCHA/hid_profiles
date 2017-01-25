@@ -320,7 +320,7 @@ function get(req, res, next) {
       params.auto_remove = req.query.auto_remove;
     }
   }
-  if (!roles.has(req.apiAuth.userProfile, 'admin') && !roles.has(req.apiAuth.userProfile, 'manager')) {
+  if (req.apiAuth.mode === 'user' && !roles.has(req.apiAuth.userProfile, 'admin') && !roles.has(req.apiAuth.userProfile, 'manager')) {
     params = { $and: [params, { $or: [ {hidden: false }, {userid: req.apiAuth.userProfile.userId } ] } ] };
   }
 
@@ -329,12 +329,12 @@ function get(req, res, next) {
       res.send(500, new Error(err));
     }
     else {
-      if (req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, 'admin')) {
+      if ((req.apiAuth.mode === 'user' && req.apiAuth.userProfile.roles && req.apiAuth.userProfile.roles.length && roles.has(req.apiAuth.userProfile, 'admin')) || req.apiAuth.mode === 'client') {
           res.send(200, services);
       }
       else {
         services.forEach(function (service) {
-          if (service.userid != req.apiAuth.userId) {
+          if (req.apiAuth.mode === 'user' && service.userid != req.apiAuth.userId) {
             service.sanitize();
           }
         });
