@@ -1,3 +1,7 @@
+# !!! DEPRECATED !!!
+
+This repository contains code for HID v1, which is now deprecated.
+
 # Humanitarian ID User Profile API
 
 Humanitarian ID provides a self-managed approach to contact lists in humanitarian disasters. The API is a profile field API which uses [restify](http://mcavage.me/node-restify/) and Mongoose. It is only available through access keys which are issued by Humanitarian ID for use by humanitarian agencies and those which support humanitarian work.
